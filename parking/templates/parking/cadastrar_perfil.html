@@ -1,0 +1,252 @@
+{% load static %}
+{% load widget_tweaks %}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Perfil</title>
+
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <!-- Estilo customizado -->
+    <style>
+        .cor-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .cor-circle {
+            transition: all 0.3s ease;
+            transform: scale(0.9);
+        }
+
+        .cor-item.active .cor-circle {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+
+        .color-nav-btn {
+            transition: transform 0.2s;
+        }
+
+        .color-nav-btn:hover {
+            transform: scale(1.2);
+        }
+    </style>
+
+    <!-- Estilo para fundo com imagem estática do Django -->
+    <style>
+        body {
+            background-image: url("{% static 'parking/css/images/fundo5.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold mb-4">Cadastro de Perfil</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="mb-4">
+                {{ form.nome_completo.label_tag }}
+                {{ form.nome_completo|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            
+            <div class="mb-4">
+                {{ form.foto.label_tag }}
+                {{ form.foto|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            
+            <div class="mb-4">
+                {{ form.telefone.label_tag }}
+                {{ form.telefone|add_class:"border rounded-lg w-full p-2"|attr:"id:telefone"|attr:"type:tel" }}
+            </div>
+
+            <div class="mb-4">
+                <label for="marca-select" class="block">Marca do Veículo</label>
+                <select id="marca-select" class="border rounded-lg w-full p-2" required>
+                    <option value="">Selecione a marca</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="modelo-select" class="block">Modelo do Veículo</label>
+                <select id="modelo-select" name="modelo_veiculo" class="border rounded-lg w-full p-2" required>
+                    <option value="">Selecione o modelo</option>
+                </select>
+            </div>
+
+            <input type="hidden" name="marca_veiculo" id="marca-veiculo-hidden">
+
+            <img id="imagem-veiculo" src="" alt="Imagem do veículo" style="max-width: 200px; display: none; margin-bottom: 15px;" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/4fee19c2-c951-4662-ab22-a7e027d77408.png">
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cor do Veículo</label>
+                <div class="flex items-center gap-4">
+                    <button type="button" class="color-nav-btn p-2 text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <div id="cores-container" class="flex-1 flex justify-center">
+                        <div class="cor-item active">
+                            <div class="cor-circle w-12 h-12 rounded-full border-4 border-white shadow-lg"></div>
+                            <div class="cor-nome text-xs mt-2 text-center"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="color-nav-btn p-2 text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+                <input type="hidden" name="cor_veiculo" id="cor-veiculo-escolhida" required>
+            </div>
+
+            <div class="mb-4">
+                {{ form.placa_veiculo.label_tag }}
+                {{ form.placa_veiculo|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+
+            <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">Salvar</button>
+        </form>
+    </div>
+
+    <script>
+        let veiculosAgrupados = {};
+
+        async function carregarVeiculos() {
+            const res = await fetch("{% url 'parking:buscar_veiculos' %}");
+            const dados = await res.json();
+
+            // Agrupar modelos por marca
+            veiculosAgrupados = {};
+            dados.forEach(veiculo => {
+                const marca = veiculo.marca;
+                const modelo = veiculo.modelo;
+                const imagem = veiculo.imagem;
+
+                if (!marca || !modelo) return;
+
+                if (!veiculosAgrupados[marca]) {
+                    veiculosAgrupados[marca] = [];
+                }
+
+                veiculosAgrupados[marca].push({ modelo, imagem });
+            });
+
+            // Preencher o select de marcas
+            const marcaSelect = document.getElementById("marca-select");
+            for (let marca in veiculosAgrupados) {
+                const option = document.createElement("option");
+                option.value = marca;
+                option.textContent = marca;
+                marcaSelect.appendChild(option);
+            }
+        }
+
+        document.getElementById("marca-select").addEventListener("change", function () {
+            const marca = this.value;
+            const modeloSelect = document.getElementById("modelo-select");
+            const imagemEl = document.getElementById("imagem-veiculo");
+
+            modeloSelect.innerHTML = '<option value="">Selecione o modelo</option>';
+            imagemEl.style.display = "none";
+            imagemEl.src = "";
+
+            document.getElementById("marca-veiculo-hidden").value = marca;
+
+            if (veiculosAgrupados[marca]) {
+                veiculosAgrupados[marca].forEach((info) => {
+                    const option = document.createElement("option");
+                    option.value = info.modelo;
+                    option.textContent = info.modelo;
+                    option.setAttribute("data-imagem", info.imagem || "");
+                    modeloSelect.appendChild(option);
+                });
+            }
+        });
+
+        document.getElementById("modelo-select").addEventListener("change", function () {
+            const selected = this.selectedOptions[0];
+            const imagem = selected?.getAttribute("data-imagem");
+            const imagemEl = document.getElementById("imagem-veiculo");
+
+            if (imagem) {
+                imagemEl.src = imagem;
+                imagemEl.style.display = "block";
+            } else {
+                imagemEl.style.display = "none";
+            }
+        });
+
+        let cores = [
+            { nome: "Vermelho", corHex: "#ff0000" },
+            { nome: "Azul", corHex: "#0000ff" },
+            { nome: "Verde", corHex: "#00ff00" },
+            { nome: "Preto", corHex: "#000000" },
+            { nome: "Branco", corHex: "#ffffff" },
+            { nome: "Prata", corHex: "#c0c0c0" },
+            { nome: "Cinza", corHex: "#808080" },
+            { nome: "Amarelo", corHex: "#ffff00" },
+            { nome: "Marrom", corHex: "#8b4513" },
+            { nome: "Laranja", corHex: "#ffa500" }
+        ];
+        
+        let currentColorIndex = 0;
+        
+        function carregarCores() {
+            const container = document.getElementById("cores-container");
+            const campoHidden = document.getElementById("cor-veiculo-escolhida");
+            
+            function updateColorDisplay() {
+                const currentColor = cores[currentColorIndex];
+                const colorCircle = container.querySelector('.cor-circle');
+                const colorName = container.querySelector('.cor-nome');
+                
+                colorCircle.style.backgroundColor = currentColor.corHex;
+                colorName.textContent = currentColor.nome;
+                campoHidden.value = currentColor.nome;
+            }
+            
+            // Set up navigation buttons
+            document.querySelectorAll('.color-nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const direction = e.currentTarget.querySelector('path').getAttribute('d').includes('M15') ? -1 : 1;
+                    currentColorIndex = (currentColorIndex + direction + cores.length) % cores.length;
+                    updateColorDisplay();
+                });
+            });
+            
+            updateColorDisplay();
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            carregarVeiculos();
+            carregarCores();
+        });
+        
+    </script>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.8/dist/jquery.inputmask.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#telefone').inputmask('(99) 99999-9999', {
+      placeholder: '_',
+      showMaskOnHover: false,
+      showMaskOnFocus: true
+    });
+  });
+</script>
+
+</body>
+</html>

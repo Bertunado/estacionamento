@@ -1,0 +1,19 @@
+{% extends "parking/base.html" %}
+{% block title %}Chat{% endblock %}
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Suas conversas</h2>
+
+<ul>
+  {% for c in conversations %}
+    <li class="border-b py-2">
+      <a href="{% url 'parking:chat_room' c.id %}" class="hover:underline">
+        {{ c.reservation.parking }} – 
+        {% if user == c.seller %}Comprador: {{ c.buyer.username }}
+        {% else %}Vendedor: {{ c.seller.username }}{% endif %}
+      </a>
+    </li>
+  {% empty %}
+    <p>Nenhuma conversa no momento.</p>
+  {% endfor %}
+</ul>
+{% endblock %}

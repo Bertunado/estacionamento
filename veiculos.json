@@ -1,0 +1,1117 @@
+[
+  {
+    "marca": "Chevrolet",
+    "modelo": "Camaro",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/16/40/2019_chevrolet_camaro-pic-3240347243114186409-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Accord",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/09/22/2020_honda_accord-pic-1509085538457605041-1024x768.jpeg"
+  },
+  {
+    "marca": "Dodge",
+    "modelo": "Charger",
+    "imagem": "https://auto.dev/images/forsale/2025/07/04/11/03/2021_dodge_charger-pic-8482514435482887394-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "RAV4",
+    "imagem": "https://auto.dev/images/forsale/2025/07/05/06/59/2021_toyota_rav4-pic-6702806429305858383-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "3 Series",
+    "imagem": "https://auto.dev/images/forsale/2025/05/17/05/18/2022_bmw_3_series-pic-2708886126031268091-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Sentra",
+    "imagem": "https://auto.dev/images/forsale/2025/06/10/05/41/2019_nissan_sentra-pic-2210504397073454273-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Tacoma",
+    "imagem": "https://auto.dev/images/forsale/2025/07/05/06/59/2019_toyota_tacoma-pic-7152770580075123389-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Jetta",
+    "imagem": "https://auto.dev/images/forsale/2025/06/15/06/22/2017_volkswagen_jetta-pic-3961531574304092864-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Ariya",
+    "imagem": "https://auto.dev/images/forsale/2025/05/02/17/09/2023_nissan_ariya-pic-3635806400629647559-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Stinger",
+    "imagem": "https://auto.dev/images/forsale/2025/05/27/06/02/2018_kia_stinger-pic-1587254209435594864-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "K5",
+    "imagem": "https://auto.dev/images/forsale/2025/05/13/15/59/2025_kia_k5-pic-6780955256703158521-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Sedona",
+    "imagem": "https://auto.dev/images/forsale/2025/05/24/19/52/2012_kia_sedona-pic-2222424777433374166-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Arteon",
+    "imagem": "https://auto.dev/images/forsale/2025/06/07/05/01/2021_volkswagen_arteon-pic-5758903304845517996-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Civic",
+    "imagem": "https://auto.dev/images/forsale/2025/04/17/14/32/2024_honda_civic-pic-1755968240332612512-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Camry Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/05/13/15/15/2024_toyota_camry_hybrid-pic-3527764253555798421-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Passport",
+    "imagem": "https://auto.dev/images/forsale/2025/04/04/18/28/2022_honda_passport-pic-8431655240139410079-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Pathfinder",
+    "imagem": "https://auto.dev/images/forsale/2025/06/26/09/40/2022_nissan_pathfinder-pic-3397522621939471724-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Malibu",
+    "imagem": "https://auto.dev/images/forsale/2025/05/24/07/15/2023_chevrolet_malibu-pic-3391652474312672287-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "LEAF",
+    "imagem": "https://auto.dev/images/forsale/2025/05/01/07/05/2023_nissan_leaf-pic-222456319289161802-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Equinox",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/14/57/2019_chevrolet_equinox-pic-7415717436633150139-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "RAV4 Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/06/24/15/10/2024_toyota_rav4_hybrid-pic-506948269101629193-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Yaris",
+    "imagem": "https://auto.dev/images/forsale/2025/07/04/11/03/2019_toyota_yaris-pic-819421602122665516-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Impreza",
+    "imagem": "https://auto.dev/images/forsale/2025/05/23/10/19/2023_subaru_impreza-pic-4955017717812011534-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Camry",
+    "imagem": "https://auto.dev/images/forsale/2025/07/06/05/54/2019_toyota_camry-pic-6183528755823788744-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "WRX",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/14/57/2018_subaru_wrx-pic-2613102758226349034-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Avalon",
+    "imagem": "https://auto.dev/images/forsale/2025/06/14/22/12/2018_toyota_avalon-pic-6596264931239898491-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Optima",
+    "imagem": "https://auto.dev/images/forsale/2025/06/06/07/54/2020_kia_optima-pic-4224215221203827519-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Soul",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/14/24/2022_kia_soul-pic-6980222018203746517-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-150",
+    "imagem": "https://auto.dev/images/forsale/2025/06/19/07/20/2019_ford_f-150-pic-6703442976888449174-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Escape",
+    "imagem": "https://auto.dev/images/forsale/2024/11/29/13/51/2018_ford_escape-pic-1656815306284861357-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Rogue",
+    "imagem": "https://auto.dev/images/forsale/2024/11/19/17/39/2016_nissan_rogue-pic-200599155370213028-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Wrangler Unlimited",
+    "imagem": "https://auto.dev/images/forsale/2025/06/17/22/12/2016_jeep_wrangler-pic-428073750697180503-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Bronco Sport",
+    "imagem": "https://auto.dev/images/forsale/2025/02/02/01/42/2021_ford_bronco_sport-pic-8995078434152872210-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Santa Fe Sport",
+    "imagem": "https://auto.dev/images/forsale/2025/02/24/21/14/2018_hyundai_santa_fe_sport-pic-8425070619047131703-1024x768.jpeg"
+  },
+  {
+    "marca": "Dodge",
+    "modelo": "Durango",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/09/00/2015_dodge_durango-pic-5377479529319654595-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Tiguan",
+    "imagem": "https://auto.dev/images/forsale/2025/06/19/07/03/2020_volkswagen_tiguan-pic-830357488124476992-1024x768.jpeg"
+  },
+  {
+    "marca": "Dodge",
+    "modelo": "Challenger",
+    "imagem": "https://auto.dev/images/forsale/2025/04/27/06/38/2016_dodge_challenger-pic-6241030700189702912-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "HR-V",
+    "imagem": "https://auto.dev/images/forsale/2025/06/11/10/07/2023_honda_hr-v-pic-6977298471724073668-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Golf",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/01/25/2015_volkswagen_golf-pic-1079092853939079769-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "BRZ",
+    "imagem": "https://auto.dev/images/forsale/2025/04/11/02/27/2023_subaru_brz-pic-6786411144595181028-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "4Runner",
+    "imagem": "https://auto.dev/images/forsale/2025/05/21/04/34/2024_toyota_4runner-pic-3961547033773732419-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Santa Fe Plug-In Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/14/57/2023_hyundai_santa_fe_hybrid_plug-in-pic-4851782553454563785-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Cherokee",
+    "imagem": "https://auto.dev/images/forsale/2025/02/15/04/58/2023_jeep_cherokee-pic-9162791925885787368-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Forte",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/09/00/2019_kia_forte-pic-5757762155452473871-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Grand Cherokee L",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/14/57/2022_jeep_grand_cherokee_l-pic-5376868398278258109-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Armada",
+    "imagem": "https://auto.dev/images/forsale/2025/06/12/05/26/2022_nissan_armada-pic-5672646407268089914-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Elantra Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/05/07/07/09/2024_hyundai_elantra_hybrid-pic-4963952065917805920-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Niro",
+    "imagem": "https://auto.dev/images/forsale/2025/05/03/11/08/2022_kia_niro-pic-9025484653570019299-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "A4",
+    "imagem": "https://auto.dev/images/forsale/2025/04/19/05/46/2019_audi_a4-pic-7224405611332633726-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "5 Series",
+    "imagem": "https://auto.dev/images/forsale/2025/05/16/03/55/2022_bmw_5_series-pic-2194108475404169319-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-150 Lightning",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/07/51/2023_ford_f-150_lightning-pic-6313527070408090650-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "S2000",
+    "imagem": "https://auto.dev/images/forsale/2025/05/21/10/14/2006_honda_s2000-pic-7316708128988651500-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Niro EV",
+    "imagem": "https://auto.dev/images/forsale/2025/06/24/16/51/2024_kia_niro_ev-pic-1718314966542557050-1024x768.jpeg"
+  },
+  {
+    "marca": "Land Rover",
+    "modelo": "Range Rover Velar",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/14/57/2021_land_rover_range_rover_velar-pic-5121925339318429379-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Venza",
+    "imagem": "https://auto.dev/images/forsale/2025/03/27/07/30/2021_toyota_venza-pic-7452160821031079243-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "CR-V Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/04/29/14/33/2022_honda_cr-v_hybrid-pic-2549492496076540822-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Grand Cherokee",
+    "imagem": "https://auto.dev/images/forsale/2025/05/20/16/19/2021_jeep_grand_cherokee-pic-2445086591139757601-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Mustang",
+    "imagem": "https://auto.dev/images/forsale/2025/05/06/15/07/2024_ford_mustang-pic-9047107765561389354-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Corolla Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/05/09/08/02/2024_toyota_corolla_hybrid-pic-443251737240811454-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Ioniq Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/04/16/53/2020_hyundai_ioniq_hybrid-pic-8845232328963065104-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Explorer",
+    "imagem": "https://auto.dev/images/forsale/2025/06/08/17/08/2017_ford_explorer-pic-9165303899591402797-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Versa",
+    "imagem": "https://auto.dev/images/forsale/2025/04/23/10/37/2015_nissan_versa-pic-652488612971417450-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Elantra",
+    "imagem": "https://auto.dev/images/forsale/2025/05/06/05/34/2020_hyundai_elantra-pic-5095556197117214422-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Sportage",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/08/54/2019_kia_sportage-pic-2672696840104434596-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Altima",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/08/13/2014_nissan_altima-pic-3365713593907419336-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Compass",
+    "imagem": "https://auto.dev/images/forsale/2025/06/21/11/47/2018_jeep_compass-pic-4902491153191605269-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Fit",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/15/36/2016_honda_fit-pic-3411130480039562740-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Ranger",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/07/37/2019_ford_ranger-pic-5901666659730762478-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Frontier",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/15/36/2017_nissan_frontier-pic-7456588425506602315-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "SONATA Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/10/35/2016_hyundai_sonata_hybrid-pic-5685538822450010375-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "X1",
+    "imagem": "https://auto.dev/images/forsale/2025/05/28/17/28/2018_bmw_x1-pic-2395375247778469056-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Maxima",
+    "imagem": "https://auto.dev/images/forsale/2025/06/29/14/49/2023_nissan_maxima-pic-2936105821690919274-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Corolla",
+    "imagem": "https://auto.dev/images/forsale/2025/05/13/17/36/2022_toyota_corolla-pic-1959438268699346885-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Mustang Mach-E",
+    "imagem": "https://auto.dev/images/forsale/2025/05/07/06/08/2021_ford_mustang_mach-e-pic-8984082333655472245-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Telluride",
+    "imagem": "https://auto.dev/images/forsale/2025/05/24/17/04/2020_kia_telluride-pic-1707040632077975060-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Accord Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/06/17/22/34/2024_honda_accord_hybrid-pic-5392929144584817684-1024x768.jpeg"
+  },
+  {
+    "marca": "Mitsubishi",
+    "modelo": "Outlander",
+    "imagem": "https://auto.dev/images/forsale/2025/06/14/02/34/2023_mitsubishi_outlander-pic-7480289747961049886-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Bolt EV",
+    "imagem": "https://auto.dev/images/forsale/2025/07/01/13/07/2022_chevrolet_bolt_ev-pic-3430724986752576872-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Atlas Cross Sport",
+    "imagem": "https://auto.dev/images/forsale/2025/05/10/10/47/2022_volkswagen_atlas_cross_sport-pic-2772588136537890435-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Pilot",
+    "imagem": "https://auto.dev/images/forsale/2025/06/22/04/58/2022_honda_pilot-pic-764902424944999025-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Sienna",
+    "imagem": "https://auto.dev/images/forsale/2025/05/02/22/59/2023_toyota_sienna-pic-872049835620598484-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "EcoSport",
+    "imagem": "https://auto.dev/images/forsale/2025/06/07/19/38/2020_ford_ecosport-pic-1301732280001880510-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Edge",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/15/36/2013_ford_edge-pic-7608298966066541439-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Venue",
+    "imagem": "https://auto.dev/images/forsale/2025/06/19/07/36/2022_hyundai_venue-pic-612449783394342556-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "X5",
+    "imagem": "https://auto.dev/images/forsale/2025/05/25/07/26/2018_bmw_x5-pic-3767029922880732897-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado 1500",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/16/55/2017_chevrolet_silverado_1500-pic-9197136105059339523-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Crosstrek",
+    "imagem": "https://auto.dev/images/forsale/2025/05/17/06/30/2021_subaru_crosstrek-pic-5903005766394911234-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Prius Plug-in Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/04/15/07/54/2015_toyota_prius_plug-in-pic-4511889103629657629-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "Q5",
+    "imagem": "https://auto.dev/images/forsale/2025/06/26/10/45/2021_audi_q5-pic-8275108177022470808-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Atlas",
+    "imagem": "https://auto.dev/images/forsale/2025/04/15/16/37/2021_volkswagen_atlas-pic-4258931544924285646-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Forester",
+    "imagem": "https://auto.dev/images/forsale/2025/05/01/05/15/2020_subaru_forester-pic-5017318361917299992-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Kona",
+    "imagem": "https://auto.dev/images/forsale/2025/02/28/08/49/2024_hyundai_kona-pic-7683444906274744450-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Expedition",
+    "imagem": "https://auto.dev/images/forsale/2025/04/26/07/15/2023_ford_expedition-pic-5438747991786542346-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "X3",
+    "imagem": "https://auto.dev/images/forsale/2025/02/06/10/40/2022_bmw_x3-pic-5313735427468848267-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Kicks",
+    "imagem": "https://auto.dev/images/forsale/2025/05/06/04/34/2021_nissan_kicks-pic-2579692788929577594-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "KONA",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/16/40/2019_hyundai_kona-pic-7749022850899539860-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "CR-V",
+    "imagem": "https://auto.dev/images/forsale/2025/03/01/22/15/2016_honda_cr-v-pic-8717931289170429264-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Outback",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/23/22/2018_subaru_outback-pic-6528976370398093060-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "2 Series",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/14/24/2022_bmw_2_series-pic-1338366355197404967-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Ridgeline",
+    "imagem": "https://auto.dev/images/forsale/2025/04/24/18/37/2022_honda_ridgeline-pic-8318348252976015060-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Sportage Plug-In Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/03/13/20/52/2023_kia_sportage_hybrid_plug-in-pic-272795635918624087-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Renegade",
+    "imagem": "https://auto.dev/images/forsale/2025/07/01/19/19/2019_jeep_renegade-pic-723397459052713007-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Colorado",
+    "imagem": "https://auto.dev/images/forsale/2025/06/18/15/00/2019_chevrolet_colorado-pic-4457786333718325380-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "A5 Sportback",
+    "imagem": "https://auto.dev/images/forsale/2025/05/30/17/00/2021_audi_a5_sportback-pic-9125138611243172389-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Cruze",
+    "imagem": "https://auto.dev/images/forsale/2025/05/20/05/34/2017_chevrolet_cruze-pic-4364131467108193900-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Murano",
+    "imagem": "https://auto.dev/images/forsale/2025/06/05/05/08/2022_nissan_murano-pic-7341192536279248502-1024x768.jpeg"
+  },
+  {
+    "marca": "Dodge",
+    "modelo": "Journey",
+    "imagem": "https://auto.dev/images/forsale/2025/04/29/14/23/2016_dodge_journey-pic-8496245291510627343-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Sonata",
+    "imagem": "https://auto.dev/images/forsale/2025/06/12/14/35/2017_hyundai_sonata-pic-6810226236086022323-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Genesis Coupe",
+    "imagem": "https://auto.dev/images/forsale/2025/03/27/21/26/2013_hyundai_genesis_coupe-pic-1945812813189665171-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "86",
+    "imagem": "https://auto.dev/images/forsale/2025/05/17/15/42/2019_toyota_gr86-pic-5083921663124903125-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Palisade",
+    "imagem": "https://auto.dev/images/forsale/2025/05/31/05/59/2020_hyundai_palisade-pic-1125914344745120239-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Trax",
+    "imagem": "https://auto.dev/images/forsale/2025/03/01/22/26/2022_chevrolet_trax-pic-6171661739341575857-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Focus",
+    "imagem": "https://auto.dev/images/forsale/2025/06/23/14/05/2016_ford_focus_electric-pic-8510812401786505656-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Traverse",
+    "imagem": "https://auto.dev/images/forsale/2025/03/01/22/03/2021_chevrolet_traverse-pic-1664927244595010345-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Transit Connect",
+    "imagem": "https://auto.dev/images/forsale/2025/05/20/21/09/2014_ford_transit_connect-pic-1228500456259047651-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "C-MAX Energi",
+    "imagem": "https://auto.dev/images/forsale/2025/04/27/18/39/2014_ford_c-max_energi-pic-4686890884044763578-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "X4",
+    "imagem": "https://auto.dev/images/forsale/2025/07/05/14/49/2016_bmw_x4-pic-346096224045511495-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Titan",
+    "imagem": "https://auto.dev/images/forsale/2025/06/24/22/08/2021_nissan_titan-pic-5346418828759498380-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Ascent",
+    "imagem": "https://auto.dev/images/forsale/2025/06/22/06/16/2019_subaru_ascent-pic-8614191643616143252-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Tucson Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/03/29/11/59/2023_hyundai_tucson_hybrid-pic-708268033821704465-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Tucson",
+    "imagem": "https://auto.dev/images/forsale/2025/06/05/06/54/2017_hyundai_tucson-pic-7540050041096139479-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Prius",
+    "imagem": "https://auto.dev/images/forsale/2025/07/04/10/25/2015_toyota_prius-pic-2014492704612362018-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Passat",
+    "imagem": "https://auto.dev/images/forsale/2025/06/19/06/31/2021_volkswagen_passat-pic-7000841703219478020-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Rogue Sport",
+    "imagem": "https://auto.dev/images/forsale/2025/03/11/07/49/2019_nissan_rogue_sport-pic-1737295254458110406-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Seltos",
+    "imagem": "https://auto.dev/images/forsale/2025/05/15/16/54/2021_kia_seltos-pic-2517662762108293519-1024x768.jpeg"
+  },
+  {
+    "marca": "Mitsubishi",
+    "modelo": "Mirage G4",
+    "imagem": "https://auto.dev/images/forsale/2025/04/22/06/42/2021_mitsubishi_mirage_g4-pic-4435058548454677967-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Blazer",
+    "imagem": "https://auto.dev/images/forsale/2025/06/24/17/39/2022_chevrolet_blazer-pic-4636186259790863016-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "GR86",
+    "imagem": "https://auto.dev/images/forsale/2025/07/05/04/35/2022_toyota_gr86-pic-4226133709748291619-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "C-MAX Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/06/21/2015_ford_c-max_hybrid-pic-7184376019272899709-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Sorento",
+    "imagem": "https://auto.dev/images/forsale/2025/05/22/17/54/2024_kia_sorento-pic-6663114044789161933-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Gladiator",
+    "imagem": "https://auto.dev/images/forsale/2025/05/24/18/25/2022_jeep_gladiator-pic-5197881992316502534-1024x768.jpeg"
+  },
+  {
+    "marca": "Mitsubishi",
+    "modelo": "Outlander Sport",
+    "imagem": "https://auto.dev/images/forsale/2025/05/23/08/56/2022_mitsubishi_outlander_sport-pic-8153138558549357822-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Cadenza",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/12/14/2017_kia_cadenza-pic-8871425683248165935-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Sportage Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/01/13/07/2023_kia_sportage_hybrid-pic-5523457476788614019-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "A3",
+    "imagem": "https://auto.dev/images/forsale/2025/05/03/23/10/2020_audi_a3-pic-3541552763961077642-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "A6",
+    "imagem": "https://auto.dev/images/forsale/2025/02/27/17/18/2024_audi_a6-pic-8845016905649876829-1024x768.jpeg"
+  },
+  {
+    "marca": "Kia",
+    "modelo": "Sorento Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/04/11/13/30/2023_kia_sorento_hybrid-pic-4106611036667379427-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "C-HR",
+    "imagem": "https://auto.dev/images/forsale/2025/04/19/16/03/2018_toyota_c-hr-pic-5151427024605198242-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "RAV4 Prime",
+    "imagem": "https://auto.dev/images/forsale/2025/06/01/13/24/2023_toyota_rav4_prime-pic-6804428611251205791-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Elantra GT",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/08/13/2018_hyundai_elantra_gt-pic-4693636431126038664-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "4 Series",
+    "imagem": "https://auto.dev/images/forsale/2025/05/20/13/48/2015_bmw_4_series-pic-726151026708885147-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "SQ5",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/09/49/2020_audi_sq5-pic-2862530583536458582-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Taos",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/06/21/2023_volkswagen_taos-pic-5863061914707226155-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Highlander",
+    "imagem": "https://auto.dev/images/forsale/2025/05/22/06/43/2023_toyota_highlander-pic-4619651549716757931-1024x768.jpeg"
+  },
+  {
+    "marca": "Audi",
+    "modelo": "Q7",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/15/51/2021_audi_q7-pic-2404178099454788078-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Corolla Hatchback",
+    "imagem": "https://auto.dev/images/forsale/2025/06/14/18/20/2022_toyota_corolla_hatchback-pic-6262506562456055234-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Maverick",
+    "imagem": "https://auto.dev/images/forsale/2025/06/06/20/35/2023_ford_maverick-pic-690223039230062153-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Transit",
+    "imagem": "https://auto.dev/images/forsale/2025/07/05/06/17/2019_ford_transit_cargo-pic-3095832665934961040-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Highlander Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/05/31/15/04/2022_toyota_highlander_hybrid-pic-8687374667013803505-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "7 Series",
+    "imagem": "https://auto.dev/images/forsale/2025/04/02/13/41/2014_bmw_7_series-pic-7003711410776742442-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Escape Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/06/05/54/2021_ford_escape_hybrid-pic-541094783693571062-1024x768.jpeg"
+  },
+  {
+    "marca": "Dodge",
+    "modelo": "Grand Caravan",
+    "imagem": "https://auto.dev/images/forsale/2025/04/27/18/37/2016_dodge_grand_caravan-pic-755054499855229283-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Express",
+    "imagem": "https://auto.dev/images/forsale/2024/11/19/16/26/2019_chevrolet_express_cargo-pic-2752032936210406362-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Bronco",
+    "imagem": "https://auto.dev/images/forsale/2025/06/24/17/20/2023_ford_bronco-pic-6260976474106737955-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Odyssey",
+    "imagem": "https://auto.dev/images/forsale/2025/05/22/22/12/2023_honda_odyssey-pic-2415938949888455143-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Veloster Turbo",
+    "imagem": "https://auto.dev/images/forsale/2025/05/30/16/06/2020_hyundai_veloster-pic-55188703133207289-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado 1500 Limited",
+    "imagem": "https://auto.dev/images/forsale/2025/05/27/16/52/2022_chevrolet_silverado_1500-pic-25113120957237237-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Santa Fe Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/01/13/07/2024_hyundai_santa_fe_hybrid-pic-8285175469982925639-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Sonata Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/03/14/12/04/2021_hyundai_sonata_hybrid-pic-6576623113173341390-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Clarity Plug-In Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/05/03/08/17/2018_honda_clarity_hybrid_plug-in-pic-4335693376045906260-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado 2500HD",
+    "imagem": "https://auto.dev/images/forsale/2025/07/04/13/34/2024_chevrolet_silverado_2500hd-pic-4454192484810150611-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Trailblazer",
+    "imagem": "https://auto.dev/images/forsale/2025/03/30/15/15/2025_chevrolet_trailblazer-pic-2541271235862465370-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Suburban",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/17/24/2025_chevrolet_suburban-pic-3462863737817473309-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado 2500",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/17/24/2025_chevrolet_silverado_2500hd-pic-781679868027938516-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Tundra Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/03/01/21/26/2025_toyota_tundra_hybrid-pic-5975409822611136732-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Tundra",
+    "imagem": "https://auto.dev/images/forsale/2025/06/28/03/21/2022_toyota_tundra-pic-9113138539631173560-1024x768.jpeg"
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "XC40",
+    "imagem": "https://auto.dev/images/forsale/2025/06/16/15/31/2022_volvo_xc40-pic-3822620841796235884-1024x768.jpeg"
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "XC90",
+    "imagem": "https://auto.dev/images/forsale/2025/05/31/19/58/2025_volvo_xc90-pic-6375786775097335190-1024x768.jpeg"
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "XC60",
+    "imagem": "https://auto.dev/images/forsale/2025/05/21/11/35/2025_volvo_xc60-pic-4688530664311633745-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Tahoe",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/23/22/2017_chevrolet_tahoe-pic-1826510375348450635-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Santa Fe",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/17/50/2025_hyundai_santa_fe-pic-7222726587255721518-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Elantra N",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/17/50/2025_hyundai_elantra_n-pic-1691555890960814030-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Grand Highlander Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/00/24/2025_toyota_grand_highlander_hybrid-pic-8375154890041034311-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Corvette",
+    "imagem": "https://auto.dev/images/forsale/2025/06/11/14/32/2025_chevrolet_corvette-pic-1522201693071388989-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Equinox EV",
+    "imagem": "https://auto.dev/images/forsale/2025/06/03/20/25/2025_chevrolet_equinox_ev-pic-7219320606601033690-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Ioniq 5",
+    "imagem": "https://auto.dev/images/forsale/2025/06/18/22/03/2025_hyundai_ioniq_5-pic-529860922041578043-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "IONIQ 9",
+    "imagem": "https://auto.dev/images/forsale/2025/06/06/21/09/2026_hyundai_ioniq_9-pic-7882259588731589335-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Kona Electric",
+    "imagem": "https://auto.dev/images/forsale/2025/03/07/22/37/2025_hyundai_kona_electric-pic-4454658062966943845-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "SONATA",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/10/11/2023_hyundai_sonata-pic-7363101254440197321-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-350",
+    "imagem": "https://auto.dev/images/forsale/2025/06/27/06/51/2025_ford_f-350_super_duty-pic-6252920243859933400-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Transit Cargo",
+    "imagem": "https://auto.dev/images/forsale/2025/06/29/02/49/2025_ford_transit_cargo-pic-7252871678602803307-1024x768.jpeg"
+  },
+  {
+    "marca": "Jeep",
+    "modelo": "Patriot",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/06/36/2017_jeep_patriot-pic-3478927383351037521-1024x768.jpeg"
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "EX90",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/20/15/2025_volvo_ex90-pic-9030453260233737713-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado 3500",
+    "imagem": "https://auto.dev/images/forsale/2025/06/13/17/06/2025_chevrolet_silverado_3500hd-pic-6827819651432616868-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Grand Highlander",
+    "imagem": "https://auto.dev/images/forsale/2025/06/15/02/49/2025_toyota_grand_highlander-pic-4014597533253287757-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Sequoia",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/04/41/2014_toyota_sequoia-pic-79792211728526156-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "Kicks Play",
+    "imagem": "https://auto.dev/images/forsale/2025/06/05/21/14/2025_nissan_kicks_play-pic-6578760059597040191-1024x768.jpeg"
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "EX30",
+    "imagem": "https://auto.dev/images/forsale/2025/05/09/19/26/2025_volvo_ex30-pic-7047361584707515876-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Spark",
+    "imagem": "https://pictures.dealer.com/t/trophynissanvtg/1139/d36ef6b264bd2b10022c5b54d6f1ef49x.jpg"
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "S60",
+    "imagem": "https://auto.dev/images/forsale/2025/06/06/16/15/2024_volvo_s60-pic-8763553473053447733-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Corolla Cross",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/06/59/2025_toyota_corolla_cross-pic-7911562145634260394-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Crown",
+    "imagem": "https://auto.dev/images/forsale/2025/06/25/12/28/2023_toyota_crown-pic-7503328131339406621-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "GR Corolla",
+    "imagem": "https://auto.dev/images/forsale/2025/02/12/04/32/2025_toyota_gr_corolla-pic-7186500203848365593-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "VENUE",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/08/46/2023_hyundai_venue-pic-1094133509481800163-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "370Z",
+    "imagem": "https://auto.dev/images/forsale/2025/06/24/14/24/2019_nissan_370z-pic-2780235824450173206-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado 3500HD",
+    "imagem": "https://auto.dev/images/forsale/2025/07/01/20/56/2024_chevrolet_silverado_3500hd_chassis-pic-5638932083336897262-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Blazer EV",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/04/41/2025_chevrolet_blazer_ev-pic-5111625592858808037-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Prologue",
+    "imagem": "https://auto.dev/images/forsale/2025/05/03/18/52/2025_honda_prologue-pic-7543869745032740559-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Golf GTI",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/06/59/2025_volkswagen_golf_gti-pic-6449660650763946624-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "ID.4",
+    "imagem": "https://auto.dev/images/forsale/2025/07/01/06/54/2025_volkswagen_id_4-pic-2620915659488956028-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Solterra",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/08/46/2025_subaru_solterra-pic-3604166853638339991-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "TUCSON",
+    "imagem": "https://auto.dev/images/forsale/2025/07/07/18/28/2024_hyundai_tucson-pic-4343840014986326594-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-250 Super Duty",
+    "imagem": "https://auto.dev/images/forsale/2025/02/03/16/16/2024_ford_f-250_super_duty-pic-3010575221463165055-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-250",
+    "imagem": "https://auto.dev/images/forsale/2025/06/12/23/36/2025_ford_f-250_super_duty-pic-7491583504923534324-1024x768.jpeg"
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "e-Golf",
+    "imagem": "https://auto.dev/images/forsale/2025/06/29/08/55/2019_volkswagen_e-golf-pic-2627674536845250223-1024x768.jpeg"
+  },
+  {
+    "marca": "Toyota",
+    "modelo": "Corolla Cross Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/04/41/2025_toyota_corolla_cross_hybrid-pic-2151728820679197394-1024x768.jpeg"
+  },
+  {
+    "marca": "Chevrolet",
+    "modelo": "Silverado EV",
+    "imagem": "https://auto.dev/images/forsale/2025/06/27/10/19/2026_chevrolet_silverado_ev-pic-2833441180856846951-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Transit Passenger",
+    "imagem": "https://auto.dev/images/forsale/2025/05/15/05/40/2025_ford_transit_passenger-pic-3985879479132111385-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-350 Super Duty",
+    "imagem": "https://auto.dev/images/forsale/2025/07/03/23/59/2020_ford_f-350_super_duty-pic-7686438155086395325-1024x768.jpeg"
+  },
+  {
+    "marca": "Subaru",
+    "modelo": "Legacy",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/06/36/2020_subaru_legacy-pic-3285968242974540692-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-350 Super Duty Chassis",
+    "imagem": "https://auto.dev/images/forsale/2025/01/23/06/27/2025_ford_f-350_super_duty_chassis-pic-5215576014455871190-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Escape Hybrid Plug-in",
+    "imagem": "https://auto.dev/images/forsale/2025/06/07/22/05/2025_ford_escape_hybrid_plug-in-pic-7278048369713940252-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Transit Chassis",
+    "imagem": "https://auto.dev/images/forsale/2025/05/26/18/34/2024_ford_transit_chassis-pic-7925380881398375118-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "F-450 Super Duty",
+    "imagem": "https://auto.dev/images/forsale/2025/06/29/18/39/2025_ford_f-450_super_duty-pic-5953815083026332009-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "Santa Cruz",
+    "imagem": "https://auto.dev/images/forsale/2025/06/07/07/07/2025_hyundai_santa_cruz-pic-6171575866723478969-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "Civic Hatchback",
+    "imagem": "https://auto.dev/images/forsale/2025/05/06/02/26/2025_honda_civic_hatchback-pic-3337310451741384491-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "SANTA FE",
+    "imagem": "https://auto.dev/images/forsale/2025/07/02/20/15/2021_hyundai_santa_fe-pic-7597514485052043394-1024x768.jpeg"
+  },
+  {
+    "marca": "BMW",
+    "modelo": "X5 M",
+    "imagem": "https://auto.dev/images/forsale/2025/07/07/14/58/2022_bmw_x5_m-pic-4755636795101281215-1024x768.jpeg"
+  },
+  {
+    "marca": "Nissan",
+    "modelo": "350Z",
+    "imagem": "https://auto.dev/images/forsale/2025/04/01/20/23/2025_nissan_z-pic-4675215902208916602-1024x768.jpeg"
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Explorer Hybrid",
+    "imagem": "https://auto.dev/images/forsale/2025/07/05/15/08/2021_ford_explorer_hybrid-pic-6417045910646402397-1024x768.jpeg"
+  },
+  {
+    "marca": "Honda",
+    "modelo": "CR-Z",
+    "imagem": "https://auto.dev/images/forsale/2025/07/07/18/39/2014_honda_cr-z-pic-1338861677369637019-1024x768.jpeg"
+  },
+  {
+    "marca": "Hyundai",
+    "modelo": "PALISADE",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/05/10/2023_hyundai_palisade-pic-8019495067073432668-1024x768.jpeg"
+  },
+  {
+    "marca": "Land Rover",
+    "modelo": "Discovery",
+    "imagem": "https://auto.dev/images/forsale/2025/07/08/04/41/2020_land_rover_discovery-pic-3353847007787785746-1024x768.jpeg"
+  }
+]

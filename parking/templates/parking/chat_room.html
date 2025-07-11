@@ -1,0 +1,27 @@
+{% extends "parking/base.html" %}
+{% load static %}
+
+{% block content %}
+<h2>Conversa sobre: {{ conversation.reservation.spot }}</h2>
+
+<div id="msg-box" class="...">
+  {% for m in conversation.messages.all %}
+    <p><strong>{{ m.sender.username }}:</strong> {{ m.text }} <small>{{ m.created_at|time:"H:i" }}</small></p>
+  {% endfor %}
+</div>
+
+<form id="msg-form">
+  {% csrf_token %}
+  <input name="text" type="text" placeholder="Digite sua mensagem">
+  <button>Enviar</button>
+</form>
+
+<!-- Insere JSON seguro no HTML -->
+{{ conversation.id|json_script:"convIdData" }}
+
+<script>
+  window.convId = JSON.parse(document.getElementById('convIdData').textContent);
+</script>
+
+<script src="{% static 'parking/js/chat.js' %}"></script>
+{% endblock %}

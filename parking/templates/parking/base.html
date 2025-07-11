@@ -1,0 +1,78 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}ParkShare{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- CSS estático do projeto -->
+    <link rel="stylesheet" href="{% static 'parking/css/style.css' %}" />
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+
+<nav class="bg-indigo-600 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-car text-2xl"></i>
+            <h1 class="text-xl font-bold">ParkShare</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="#" class="hover:text-indigo-200"><i class="fas fa-bell"></i></a>
+            <a href="#profile" class="hover:text-indigo-200"><i class="fas fa-user-circle"></i></a>
+            <a href="{% url 'parking:logout' %}" class="bg-indigo-800 px-3 py-1 rounded hover:bg-indigo-900">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<main class="container mx-auto p-4">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="text-center p-4 text-gray-500">
+    © 2025 ParkShare
+</footer>
+
+{% block extra_scripts %}
+<script>
+  window.initMap = function() {
+    const mapElement = document.getElementById('map');
+    if (!mapElement) return;
+
+    mapElement.style.height = '400px';
+    mapElement.style.width = '100%';
+
+    const center = { lat: -23.55052, lng: -46.633308 };
+
+    const map = new google.maps.Map(mapElement, {
+      zoom: 12,
+      center: center,
+    });
+
+    new google.maps.Marker({
+      position: center,
+      map: map,
+      title: "Centro",
+    });
+  };
+</script>
+
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places&callback=initMap"
+  async defer
+></script>
+
+<script src="{% static 'parking/css/js/main.js' %}"></script>
+{% endblock %}
+
+</body>
+</html>

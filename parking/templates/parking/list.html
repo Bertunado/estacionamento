@@ -1,0 +1,42 @@
+{% extends "parking/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap"
+    async
+    defer></script>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'parking/css/js/main.js' %}"></script>
+  <script>
+    function initMap() {
+      const center = { lat: -23.55052, lng: -46.633308 }; // exemplo São Paulo
+      const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 14,
+        center: center,
+      });
+
+      fetch('/parking/api/spots/')
+        .then(response => response.json())
+        .then(data => {
+          data.forEach(spot => {
+            const marker = new google.maps.Marker({
+              position: { lat: parseFloat(spot.latitude), lng: parseFloat(spot.longitude) },
+              map: map,
+              title: spot.title
+            });
+          });
+        });
+    }
+  </script>
+{% endblock %}
+
+{% block title %}Vagas Disponíveis{% endblock %}
+
+{% block content %}
+  <h2>Vagas próximas</h2>
+  <div id="map" style="width: 100%; height: 500px;"></div>
+{% endblock %}

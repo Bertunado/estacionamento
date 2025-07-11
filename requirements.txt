@@ -1,0 +1,6 @@
+Django==5.2.3
+djangorestframework
+django-cors-headers
+channels
+python-dotenv
+geopy   

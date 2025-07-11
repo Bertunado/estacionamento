@@ -1,0 +1,54 @@
+
+{% load static %}
+{% load widget_tweaks %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>Login - Estacionamento Inteligente</title>
+
+    <!-- CSS Estático e Tailwind -->
+    <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <!-- Estilo para fundo do body -->
+    <style>
+        body {
+            background-image: url("{% static 'parking/css/images/fundo5.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center h-screen">
+    <div class="bg-white bg-opacity-90 p-8 rounded-lg shadow-md w-96">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Faça Login</h2>
+
+        {% if form.errors %}
+            <p class="text-red-600 mb-4">Usuário ou senha inválidos.</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="{{ form.username.id_for_label }}" class="block text-gray-700">Email:</label>
+                {{ form.username|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            <div class="mb-4">
+                <label for="{{ form.password.id_for_label }}" class="block text-gray-700">Senha:</label>
+                {{ form.password|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                Entrar
+            </button>
+        </form>
+
+        <p class="mt-4 text-center text-gray-600">
+            Não tem uma conta? <a href="{% url 'parking:registrar' %}" class="text-blue-600 hover:underline">Cadastre-se</a>
+        </p>
+    </div>
+</body>
+</html>

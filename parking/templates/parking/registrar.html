@@ -1,0 +1,53 @@
+{% load static %}
+{% load widget_tweaks %}
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Estacionamento Inteligente</title>
+    <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxMTc3M3wwfDF8c2VhcmNofDF8fHN0cmVldCUyMGNhcmx8ZW58MHx8fHwxNjI3MjY5NzY0&ixlib=rb-1.2.1&q=80&w=1080');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen">
+    <div class="bg-white bg-opacity-90 p-8 rounded-lg shadow-md w-96">
+        <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Crie sua conta</h2>
+        <p class="text-gray-600 text-center mb-4">Faça parte da comunidade de estacionamentos inteligentes!</p>
+
+        {% if form.errors %}
+            <p class="text-red-600 mb-4">Por favor, corrija os erros abaixo.</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-4">
+                {{ form.email.label_tag }}
+                {{ form.email|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            <div class="mb-4">
+                {{ form.password1.label_tag }}
+                {{ form.password1|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            <div class="mb-4">
+                {{ form.password2.label_tag }}
+                {{ form.password2|add_class:"border rounded-lg w-full p-2" }}
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">Registrar</button>
+        </form>
+
+        <p class="mt-4 text-center text-gray-600">
+            Já tem conta? <a href="{% url 'parking:login' %}" class="text-blue-600 hover:underline">Faça login</a>
+        </p>
+    </div>
+</body>
+</html>
+
