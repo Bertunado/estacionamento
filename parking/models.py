@@ -15,6 +15,7 @@ class ParkingSpot(models.Model):
     has_camera = models.BooleanField(default=False)
     size = models.CharField(max_length=30, default="Médio")  # se quiser manter
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default="Ativa")
 
     def __str__(self):
         return f"{self.title} – {self.address}"

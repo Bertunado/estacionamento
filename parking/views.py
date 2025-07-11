@@ -18,6 +18,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django import forms
 import os
 import json
+from rest_framework import viewsets
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 import logging
 import requests
 
@@ -49,6 +53,22 @@ class ParkingSpotListCreateAPIView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
     
+class MinhasVagasView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        spots = ParkingSpot.objects.filter(owner=request.user)
+        serializer = ParkingSpotSerializer(spots, many=True)
+        return Response(serializer.data)
+
+class ParkingSpotViewSet(viewsets.ModelViewSet):
+    queryset = ParkingSpot.objects.all()
+    serializer_class = ParkingSpotSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
 @csrf_exempt
 def buscar_veiculos(request):
     caminho = os.path.join(os.path.dirname(__file__), "..", "veiculos.json")

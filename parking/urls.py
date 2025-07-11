@@ -5,6 +5,8 @@ from . import views
 from django.contrib.auth import views as auth_views
 from .forms import EmailAuthenticationForm
 from django.contrib.auth.views import LogoutView
+from .views import MinhasVagasView
+
 
 
 app_name = 'parking'
@@ -24,4 +26,5 @@ urlpatterns = [
     path("perfil/cadastrar/", views.cadastrar_perfil, name="cadastrar_perfil"),
     path("registrar/", views.registrar_usuario, name="registrar"),
     path('perfil/buscar-veiculos/', views.buscar_veiculos, name='buscar_veiculos'),
+    path('api/minhas-vagas/', MinhasVagasView.as_view(), name='minhas-vagas'),
 ]

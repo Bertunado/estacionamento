@@ -163,13 +163,15 @@ async function handleSubmitSpot(e) {
   if (!resp.ok) {
     const errText = await resp.text();
     console.error("Falha no POST:", resp.status, errText);
-    return alert("Erro ao salvar vaga.");
+    alert("Erro ao salvar vaga:\n" + errText);
+    return;
   }
 
   const spot = await resp.json();
   alert("Vaga publicada com sucesso!");
   form.reset();
   renderSpot(spot);
+  renderMySpot(spot);
 }
 
 // --------------- HELPERS ----------------------------------------------
@@ -220,6 +222,9 @@ function switchTab(btn) {
     b.classList.toggle("border-indigo-600", b === btn);
     b.classList.toggle("text-indigo-600", b === btn);
     b.classList.toggle("text-gray-500", b !== btn);
+    if (btn.dataset.tab === "my-parkings") {
+      carregarMinhasVagas();  // ✅ chama aqui quando o usuário abre "Minhas Vagas"
+}
   });
 
   document.querySelectorAll(".tab-content").forEach((c) => {
@@ -250,3 +255,83 @@ function getCookie(name) {
   }
   return cookieValue;
 }
+
+function renderMySpot(spot) {
+  const container = document.getElementById("myVagasContainer");
+  if (!container) return;
+
+  const card = document.createElement("div");
+  card.className = "border border-gray-200 rounded-lg p-4";
+
+  card.innerHTML = `
+    <div class="flex justify-between items-center">
+      <div>
+        <h3 class="font-semibold text-lg text-gray-800">${spot.title}</h3>
+        <p class="text-sm text-gray-500">${spot.address}</p>
+        <p class="text-sm text-gray-500 mt-1">R$ ${spot.price_hour}/hora ou R$ ${spot.price_day}/dia</p>
+      </div>
+      <div>
+        <span class="text-green-600 bg-green-100 text-sm px-2 py-1 rounded">Ativa</span>
+      </div>
+    </div>
+
+    <div class="mt-3 flex items-center justify-between">
+      <div class="flex space-x-2">
+        <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700">Editar</button>
+        <button class="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-200">Ver Estatísticas</button>
+        <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200">Desativar</button>
+        <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200">Excluir</button>
+      </div>
+    </div>
+  `;
+
+  container.prepend(card);
+}
+
+function carregarMinhasVagas() {
+  const container = document.getElementById("myVagasContainer");
+  if (!container) return;
+
+  fetch("/parking/api/minhas-vagas/")
+    .then(r => r.json())
+    .then(vagas => {
+      container.innerHTML = ""; // limpa o conteúdo
+      vagas.forEach(renderMySpot); // usa a função reaproveitável
+    })
+    .catch(err => console.error("Erro ao carregar minhas vagas:", err));
+}
+
+document.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("btn-excluir")) {
+    const id = e.target.dataset.id;
+    if (!id) return alert("ID da vaga não encontrado.");
+
+    if (!confirm("Tem certeza que deseja excluir esta vaga? Essa ação não pode ser desfeita.")) {
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/parking/api/spots/${id}/`, {
+        method: "DELETE",
+        headers: {
+          "X-CSRFToken": csrfToken,
+        },
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("Erro ao excluir:", resp.status, errText);
+        return alert("Não foi possível excluir a vaga.");
+      }
+
+      // Remove o card visualmente
+      const card = e.target.closest(".border.border-gray-200");
+      if (card) card.remove();
+
+      alert("Vaga excluída com sucesso!");
+    } catch (err) {
+      console.error("Erro ao excluir:", err);
+      alert("Erro ao excluir vaga.");
+    }
+  }
+});
