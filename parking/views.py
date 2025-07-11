@@ -22,6 +22,8 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
+
 import logging
 import requests
 
@@ -69,6 +71,14 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+class ParkingSpotDetailAPIView(RetrieveUpdateDestroyAPIView):
+    queryset = ParkingSpot.objects.all()
+    serializer_class = ParkingSpotSerializer
+
+    def get_queryset(self):
+        # Garantir que só o dono pode editar/excluir
+        return self.queryset.filter(owner=self.request.user)
+    
 @csrf_exempt
 def buscar_veiculos(request):
     caminho = os.path.join(os.path.dirname(__file__), "..", "veiculos.json")

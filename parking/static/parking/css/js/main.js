@@ -301,37 +301,32 @@ function carregarMinhasVagas() {
     .catch(err => console.error("Erro ao carregar minhas vagas:", err));
 }
 
-document.addEventListener("click", async (e) => {
-  if (e.target.classList.contains("btn-excluir")) {
-    const id = e.target.dataset.id;
-    if (!id) return alert("ID da vaga não encontrado.");
+document.addEventListener("click", (e) => {
+  if (e.target.matches("button[data-action='excluir']")) {
+    const vagaId = e.target.getAttribute("data-id");
 
-    if (!confirm("Tem certeza que deseja excluir esta vaga? Essa ação não pode ser desfeita.")) {
-      return;
-    }
-
-    try {
-      const resp = await fetch(`/parking/api/spots/${id}/`, {
-        method: "DELETE",
-        headers: {
-          "X-CSRFToken": csrfToken,
-        },
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        console.error("Erro ao excluir:", resp.status, errText);
-        return alert("Não foi possível excluir a vaga.");
-      }
-
-      // Remove o card visualmente
-      const card = e.target.closest(".border.border-gray-200");
-      if (card) card.remove();
-
-      alert("Vaga excluída com sucesso!");
-    } catch (err) {
-      console.error("Erro ao excluir:", err);
-      alert("Erro ao excluir vaga.");
+    if (confirm("Tem certeza que deseja excluir esta vaga?")) {
+      excluirVaga(vagaId, e.target);
     }
   }
 });
+
+function excluirVaga(vagaId, botao) {
+  fetch(`/parking/api/spots/${vagaId}/`, {
+    method: "DELETE",
+    headers: {
+      "X-CSRFToken": csrfToken,
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Erro ao excluir a vaga");
+
+      // Remove o card da vaga visualmente
+      const card = botao.closest(".border");
+      if (card) card.remove();
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Erro ao excluir a vaga.");
+    });
+}
