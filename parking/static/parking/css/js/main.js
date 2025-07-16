@@ -151,6 +151,25 @@ async function handleSubmitSpot(e) {
 
   const latitude = Number(loc.lat.toFixed(6));
   const longitude = Number(loc.lng.toFixed(6));
+  const disponibilidade = [];
+
+  diasDisponibilidade.querySelectorAll(".flex").forEach((div) => {
+  const checkbox = div.querySelector("input[type='checkbox']");
+  if (checkbox.checked) {
+    const dia = checkbox.dataset.dia;
+    const hora_inicio = div.querySelector(".hora-inicio").value;
+    const hora_fim = div.querySelector(".hora-fim").value;
+
+    if (hora_inicio && hora_fim) {
+      disponibilidade.push({
+        dia,
+        hora_inicio,
+        hora_fim,
+        quantidade: Number(quantidade),
+      });
+    }
+  }
+});
 
   const payload = {
     title,
@@ -162,6 +181,7 @@ async function handleSubmitSpot(e) {
     size,
     tipo_vaga,
     description,
+    disponibilidade,
   };
 
   // CSRF token já definido abaixo
@@ -185,6 +205,8 @@ async function handleSubmitSpot(e) {
   const files = photosInput.files;
 if (files.length > 0) {
   await uploadPhotos(spot.id, files);
+  uploadedFiles = [];
+  previewContainer.innerHTML = "";
      }
   alert("Vaga publicada com sucesso!");
   form.reset();
@@ -264,6 +286,44 @@ function formatarTipoVaga(tipo) {
   };
   return tipos[tipo] || "Tipo desconhecido";
 }
+
+const diasSemana = [
+  "Segunda-feira",
+  "Terça-feira",
+  "Quarta-feira",
+  "Quinta-feira",
+  "Sexta-feira",
+  "Sábado",
+  "Domingo"
+];
+
+const diasDisponibilidade = document.getElementById("diasDisponibilidade");
+
+diasSemana.forEach((dia, index) => {
+  const div = document.createElement("div");
+  div.className = "flex items-center";
+
+  div.innerHTML = `
+    <input type="checkbox" id="dia-${index}" class="mr-2" data-dia="${dia}">
+    <label for="dia-${index}" class="w-32">${dia}</label>
+    <input type="time" class="ml-2 border border-gray-300 rounded p-1 hora-inicio" disabled>
+    <span class="mx-1">às</span>
+    <input type="time" class="border border-gray-300 rounded p-1 hora-fim" disabled>
+    <input type="number" class="ml-4 border border-gray-300 rounded p-1 qtd-vagas w-20" placeholder="Qtde" min="1">
+  `;
+
+  diasDisponibilidade.appendChild(div);
+});
+
+// Habilita/desabilita os campos de horário
+diasDisponibilidade.addEventListener("change", (e) => {
+  if (e.target.matches("input[type='checkbox']")) {
+    const container = e.target.closest(".flex");
+    container.querySelector(".hora-inicio").disabled = !e.target.checked;
+    container.querySelector(".hora-fim").disabled = !e.target.checked;
+    const quantidade = div.querySelector(".qtd-vagas")?.value || 0;
+  }
+});
 
 // --------------- TROCA DE ABAS ------------------------------------------
 function switchTab(btn) {
@@ -578,21 +638,43 @@ function handleFiles(files) {
   for (const file of files) {
     if (!file.type.startsWith("image/")) continue;
 
+    uploadedFiles.push(file); // adiciona ao array
+
     const reader = new FileReader();
     reader.onload = (event) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = "relative inline-block";
+
       const img = document.createElement("img");
       img.src = event.target.result;
       img.className = "w-20 h-20 object-cover rounded border";
-      previewContainer.appendChild(img);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.innerHTML = "×";
+      removeBtn.className = `
+        absolute top-0 right-0 bg-red-600 text-white w-5 h-5 rounded-full text-xs
+        flex items-center justify-center hover:bg-red-700 cursor-pointer
+      `;
+      removeBtn.onclick = () => {
+        const index = [...previewContainer.children].indexOf(wrapper);
+        uploadedFiles.splice(index, 1); // remove do array
+        wrapper.remove(); // remove do DOM
+      };
+
+      wrapper.appendChild(img);
+      wrapper.appendChild(removeBtn);
+      previewContainer.appendChild(wrapper);
     };
     reader.readAsDataURL(file);
   }
 }
 
-async function uploadPhotos(spotId, files) {
+async function uploadPhotos(spotId) {
+  if (!uploadedFiles.length) return;
+
   const formData = new FormData();
   formData.append("spot", spotId);
-  for (const file of files) {
+  for (const file of uploadedFiles) {
     formData.append("image", file);
   }
 
