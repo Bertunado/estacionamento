@@ -5,6 +5,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
     <title>{% block title %}ParkShare{% endblock %}</title>
 
     <!-- Tailwind CSS CDN -->
@@ -42,37 +44,13 @@
     © 2025 ParkShare
 </footer>
 
+
 {% block extra_scripts %}
-<script>
-  window.initMap = function() {
-    const mapElement = document.getElementById('map');
-    if (!mapElement) return;
-
-    mapElement.style.height = '400px';
-    mapElement.style.width = '100%';
-
-    const center = { lat: -23.55052, lng: -46.633308 };
-
-    const map = new google.maps.Map(mapElement, {
-      zoom: 12,
-      center: center,
-    });
-
-    new google.maps.Marker({
-      position: center,
-      map: map,
-      title: "Centro",
-    });
-  };
-</script>
-
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places&callback=initMap"
-  async defer
-></script>
-
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places&callback=initMap" async defer></script>
 <script src="{% static 'parking/css/js/main.js' %}"></script>
 {% endblock %}
+
+
 
 </body>
 </html>

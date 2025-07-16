@@ -3,6 +3,14 @@ from django.conf import settings
 
 # Vaga de estacionamento
 class ParkingSpot(models.Model):
+    TIPOS_DE_VAGA = [
+        ('rua_coberta', 'Rua (Coberta)'),
+        ('rua_descoberta', 'Rua (Descoberta)'),
+        ('garagem', 'Garagem'),
+        ('predio_coberta', 'Prédio (Coberta)'),
+        ('predio_descoberta', 'Prédio (Descoberta)'),
+    ]
+
     owner = models.ForeignKey('accounts.CustomUser', on_delete=models.CASCADE)
     title = models.CharField(max_length=120)
     description = models.TextField()
@@ -11,7 +19,7 @@ class ParkingSpot(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     price_hour = models.DecimalField(max_digits=6, decimal_places=2)
     price_day = models.DecimalField(max_digits=6, decimal_places=2)
-    covered = models.BooleanField(default=False)
+    tipo_vaga = models.CharField(max_length=20, choices=TIPOS_DE_VAGA)
     has_camera = models.BooleanField(default=False)
     size = models.CharField(max_length=30, default="Médio")  # se quiser manter
     created_at = models.DateTimeField(auto_now_add=True)
@@ -19,6 +27,11 @@ class ParkingSpot(models.Model):
 
     def __str__(self):
         return f"{self.title} – {self.address}"
+    
+class ParkingSpotPhoto(models.Model):
+    spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="parking_spot_photos/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class Perfil(models.Model):
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

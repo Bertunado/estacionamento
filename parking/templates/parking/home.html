@@ -4,14 +4,7 @@
 {% block title %}Vagas Disponíveis{% endblock %}
 
 {% block extra_head %}
-
 <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
-
-{% csrf_token %}
-
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places" async defer></script>
-<meta name="csrf-token" content="{{ csrf_token }}">
-
 {% endblock %}
 
 {% block content %}
@@ -153,15 +146,14 @@
             autocomplete="off"
           />
 
-          <label class="block text-gray-700 font-medium mt-4 mb-2">Tipo de Vaga</label>
-          <div class="flex space-x-4">
-            <label class="flex items-center">
-              <input type="radio" name="covered" value="true" checked> Coberta
-            </label>
-            <label class="flex items-center">
-              <input type="radio" name="covered" value="false"> Descoberta
-            </label>
-          </div>
+        <label for="tipo_vaga" class="block text-gray-700 font-medium mt-4 mb-2">Tipo de Vaga</label>
+        <select id="tipo_vaga" name="tipo_vaga" class="w-full border border-gray-300 rounded px-3 py-2">
+            <option value="rua_coberta">Rua (Coberta)</option>
+            <option value="rua_descoberta">Rua (Descoberta)</option>
+            <option value="garagem">Garagem</option>
+            <option value="predio_coberta">Prédio (Coberta)</option>
+            <option value="predio_descoberta">Prédio (Descoberta)</option>
+        </select>
 
           <label class="block text-gray-700 font-medium mt-4 mb-2">Tamanho</label>
           <select name="size" id="sizeInput" class="border border-gray-300 rounded w-full p-2">
@@ -201,10 +193,11 @@
           </div>
 
           <label class="block text-gray-700 font-medium mt-4 mb-2">Fotos da Vaga</label>
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+          <div id="photoDropzone" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer">
             <i class="fas fa-camera text-3xl text-gray-400 mb-2"></i>
             <p>Arraste e solte fotos aqui ou clique para selecionar</p>
-            <input type="file" class="hidden" multiple>
+            <input id="photosInput" type="file" class="hidden" multiple accept="image/*">
+            <div id="previewContainer" class="mt-2 flex flex-wrap justify-center gap-2"></div>
           </div>
 
           <label class="block text-gray-700 font-medium mt-4 mb-2">Descrição</label>
@@ -243,10 +236,10 @@
 
         <div class="mt-3 flex items-center justify-between">
           <div class="flex space-x-2">
-            <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700" data-id="${vaga.id}">Editar</button>
+            <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700" data-id="${spot.id}" data-action="editar">Editar</button>
             <button class="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-200">Ver Estatísticas</button>
-            <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200" data-id="${vaga.id}">Desativar</button>
-            <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200 btn-excluir" data-id="${vaga.id}" data-action="excluir">Excluir</button>
+            <button class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" data-id="${spot.id}" data-action="desativar"> Desativar</button>
+            <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200 btn-excluir" data-id="${spot.id}" data-action="excluir">Excluir</button>
           </div>
         </div>
       </div>
@@ -460,12 +453,68 @@
                 Salvar Configurações
             </button>
         </div>
-    </div>
-    
+    </div> 
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
-  {{ block.super }}
-  <script src="{% static 'parking/css/js/main.js' %}"></script>
+
+<!-- Botoes -->
+<div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-80 p-6">
+        <div class="text-center mb-4">
+            <h3 class="text-xl font-medium text-gray-800">Tem certeza que deseja excluir essa vaga?</h3>
+        </div>
+        <div class="flex justify-center space-x-4">
+            <button id="confirm-delete" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Confirmar</button>
+            <button id="cancel-delete" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+        </div>
+    </div>
+</div>
+<div id="delete-success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-80 p-6">
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-medium text-gray-800">Vaga excluída com sucesso!</h3>
+        </div>
+        <div class="flex justify-center">
+            <button id="success-ok" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="deactivate-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl w-80 p-6">
+    <div class="text-center mb-4">
+      <h3 class="text-xl font-medium text-gray-800">Deseja desativar essa vaga?</h3>
+    </div>
+    <div class="flex justify-center space-x-4">
+      <button id="confirm-deactivate" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Confirmar</button>
+      <button id="cancel-deactivate" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="edit-spot-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+    <h2 class="text-xl font-semibold mb-4">Editar Vaga</h2>
+    <form id="edit-spot-form" class="space-y-3">
+  <input type="hidden" id="edit-spot-id">
+
+  <label class="block text-sm font-medium text-gray-700">Título</label>
+  <input type="text" id="edit-title" class="w-full border px-3 py-2 rounded" required>
+
+  <label class="block text-sm font-medium text-gray-700">Descrição</label>
+  <textarea id="edit-description" class="w-full border px-3 py-2 rounded" required></textarea>
+
+  <label class="block text-sm font-medium text-gray-700">Preço por hora</label>
+  <input type="number" id="edit-price-hour" class="w-full border px-3 py-2 rounded" step="0.01" required>
+
+  <label class="block text-sm font-medium text-gray-700">Preço por dia</label>
+  <input type="number" id="edit-price-day" class="w-full border px-3 py-2 rounded" step="0.01" required>
+
+  <div class="flex justify-end space-x-2 mt-4">
+    <button type="button" id="cancel-edit" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Salvar</button>
+  </div>
+</form>
+  </div>
+</div>
 {% endblock %}

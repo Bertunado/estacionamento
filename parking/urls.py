@@ -7,11 +7,15 @@ from .forms import EmailAuthenticationForm
 from django.contrib.auth.views import LogoutView
 from .views import MinhasVagasView
 from .views import ParkingSpotDetailAPIView
-
+from rest_framework import routers
+from .views import ParkingSpotPhotoViewSet
+from django.urls import include
 
 
 
 app_name = 'parking'
+router = routers.DefaultRouter()
+router.register(r'photos', ParkingSpotPhotoViewSet, basename='photos')
 
 urlpatterns = [
     path("",               spots_list,                   name="spots_list"),
@@ -30,5 +34,6 @@ urlpatterns = [
     path('perfil/buscar-veiculos/', views.buscar_veiculos, name='buscar_veiculos'),
     path('api/minhas-vagas/', MinhasVagasView.as_view(), name='minhas-vagas'),
     path("api/spots/<int:pk>/", ParkingSpotDetailAPIView.as_view(), name="spot-detail"),
+    path('api/', include(router.urls)),
 
 ]

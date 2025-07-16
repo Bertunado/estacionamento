@@ -23,7 +23,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-
+from .models import ParkingSpotPhoto
+from .serializers import ParkingSpotPhotoSerializer
 import logging
 import requests
 
@@ -43,15 +44,22 @@ def home(request):
         'perfil': perfil
     })
 
+class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
+    queryset = ParkingSpotPhoto.objects.all()
+    serializer_class = ParkingSpotPhotoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        spot_id = self.request.data.get("spot")
+        serializer.save(spot_id=spot_id)
+
 class ParkingSpotListCreateAPIView(generics.ListCreateAPIView):
-    """
-    GET  /api/spots/   → lista todas as vagas
-    POST /api/spots/   → cria nova vaga (JSON)
-    """
-    queryset = ParkingSpot.objects.all()
     serializer_class = ParkingSpotSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        return ParkingSpot.objects.filter(status="Ativa")
+    
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
     

@@ -1,7 +1,18 @@
 let map;
-const csrfToken = getCookie("csrftoken");
+let uploadedFiles = [];
+
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+if (!csrfToken) {
+  console.error('CSRF token não encontrado no HTML. Verifique se a meta tag está presente.');
+}
+
 // --------------- INICIALIZAÇÃO DO MAPA E AUTOCOMPLETE --------------------
 window.initMap = () => {
+  if (!window.google) {
+    console.error("Google Maps API não carregou ainda.");
+    return;
+  }
+
   const defaultCenter = { lat: -23.55052, lng: -46.633308 };
 
   map = new google.maps.Map(document.getElementById("map"), {
@@ -36,10 +47,13 @@ function localizarUsuario() {
 
 // --------------- CARREGA VAGAS DO BACKEND ------------------------------
 function carregarSpots() {
+  const list = document.querySelector("#parkings .overflow-y-auto");
+  if (list) list.innerHTML = ""; // limpa antes de adicionar
+
   fetch("/parking/api/spots/")
     .then(r => r.json())
     .then(data => {
-      const spots = data.results || data; // se for paginado, pega results, se não, pega data direto
+      const spots = data.results || data;
       spots.forEach(renderSpot);
     })
     .catch(err => console.error("Falha ao buscar vagas:", err));
@@ -115,7 +129,7 @@ async function handleSubmitSpot(e) {
   const price_hour = formData.get("price_hour") || "0";
   const price_day = formData.get("price_day") || "0";
   const size = formData.get("size") || "Indefinido";
-  const covered = formData.get("covered") === "true";
+  const tipo_vaga = formData.get("tipo_vaga");
   const description = formData.get("description")?.trim();
 
   if (!title || !address) {
@@ -146,7 +160,7 @@ async function handleSubmitSpot(e) {
     price_hour,
     price_day,
     size,
-    covered,
+    tipo_vaga,
     description,
   };
 
@@ -168,10 +182,16 @@ async function handleSubmitSpot(e) {
   }
 
   const spot = await resp.json();
+  const files = photosInput.files;
+if (files.length > 0) {
+  await uploadPhotos(spot.id, files);
+     }
   alert("Vaga publicada com sucesso!");
   form.reset();
+  previewContainer.innerHTML = "";
   renderSpot(spot);
-  renderMySpot(spot);
+  carregarMinhasVagas();
+  
 }
 
 // --------------- HELPERS ----------------------------------------------
@@ -187,33 +207,62 @@ function geocode(address) {
   });
 }
 
-  function renderSpot(spot) {
+function renderSpot(spot) {
+  if (!spot || !spot.id) {
+    console.warn("Spot inválido:", spot);
+    return;
+  }
+
+  // Adiciona marcador ao mapa
   if (window.map) {
-    new google.maps.Marker({
+    const marker = new google.maps.Marker({
       map,
       position: { lat: Number(spot.latitude), lng: Number(spot.longitude) },
       title: spot.title,
       icon: {
         url: "/static/parking/css/images/marcador.png",
-        scaledSize: new google.maps.Size(55, 55) 
+        scaledSize: new google.maps.Size(55, 55)
       }
     });
+    marker._spotId = spot.id;
+    if (!window.spotMarkers) window.spotMarkers = {};
+    window.spotMarkers[spot.id] = marker;
   }
 
+  // Renderiza card da vaga
   const list = document.querySelector("#parkings .overflow-y-auto");
   if (!list) return;
 
   const card = document.createElement("div");
   card.className = "border border-gray-200 rounded-lg p-3 hover:bg-gray-50 mb-2";
+  card.setAttribute("data-spot-id", spot.id);
   card.innerHTML = `
     <div class="flex justify-between">
       <h4 class="font-medium">${spot.title}</h4>
-      <span class="text-sm text-gray-500">${spot.covered ? "Coberta" : "Descoberta"}</span>
+      <span class="text-sm text-gray-500">${formatarTipoVaga(spot.tipo_vaga)}</span>
     </div>
     <p class="text-sm text-gray-600 mt-1">${spot.address}</p>
     <p class="text-sm text-gray-600 mt-1">R$ ${spot.price_hour}/h | R$ ${spot.price_day}/dia</p>
+    <div class="mt-2">
+      <img
+        src="${spot.photos && spot.photos.length > 0 ? spot.photos[0].image : 'https://placehold.co/600x300'}"
+        alt="${spot.description || spot.title}"
+        class="w-full h-32 object-cover rounded"
+      />
+    </div>
   `;
   list.prepend(card);
+}
+
+function formatarTipoVaga(tipo) {
+  const tipos = {
+    rua_coberta: "Rua (Coberta)",
+    rua_descoberta: "Rua (Descoberta)",
+    garagem: "Garagem",
+    predio_coberta: "Prédio (Coberta)",
+    predio_descoberta: "Prédio (Descoberta)",
+  };
+  return tipos[tipo] || "Tipo desconhecido";
 }
 
 // --------------- TROCA DE ABAS ------------------------------------------
@@ -222,16 +271,20 @@ function switchTab(btn) {
     b.classList.toggle("border-indigo-600", b === btn);
     b.classList.toggle("text-indigo-600", b === btn);
     b.classList.toggle("text-gray-500", b !== btn);
-    if (btn.dataset.tab === "my-parkings") {
-      carregarMinhasVagas();  // ✅ chama aqui quando o usuário abre "Minhas Vagas"
-}
   });
 
   document.querySelectorAll(".tab-content").forEach((c) => {
     c.classList.toggle("active", c.id === btn.dataset.tab);
   });
 
-  // Inicializa autocomplete só na aba "add-parking", e só uma vez
+  if (btn.dataset.tab === "my-parkings") {
+    carregarMinhasVagas();
+  }
+
+  if (btn.dataset.tab === "parkings") {
+    carregarSpots(); // ✅ Só carrega as vagas próximas quando necessário
+  }
+
   if (btn.dataset.tab === "add-parking" && !window.autocompleteInicializado) {
     setTimeout(() => {
       initializeAutocomplete();
@@ -240,47 +293,49 @@ function switchTab(btn) {
   }
 }
 
-// --------------- PEGAR CSRF TOKEN ----------------------------------------
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(";");
-    for (let cookie of cookies) {
-      cookie = cookie.trim();
-      if (cookie.startsWith(name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
 function renderMySpot(spot) {
   const container = document.getElementById("myVagasContainer");
   if (!container) return;
 
+  const desativada = spot.status === "Desativada";
   const card = document.createElement("div");
-  card.className = "border border-gray-200 rounded-lg p-4";
+
+  card.className = `
+    border rounded-lg p-4 mb-2 transition
+    ${desativada ? "bg-gray-100 text-gray-500 border-gray-300" : "bg-white text-gray-800 border-gray-200"}
+  `;
+  card.setAttribute("data-spot-id", spot.id);
 
   card.innerHTML = `
     <div class="flex justify-between items-center">
       <div>
-        <h3 class="font-semibold text-lg text-gray-800">${spot.title}</h3>
-        <p class="text-sm text-gray-500">${spot.address}</p>
-        <p class="text-sm text-gray-500 mt-1">R$ ${spot.price_hour}/hora ou R$ ${spot.price_day}/dia</p>
+        <h3 class="font-semibold text-lg">${spot.title}</h3>
+        <p class="text-sm">${spot.address}</p>
+        <p class="text-sm mt-1">R$ ${spot.price_hour}/h ou R$ ${spot.price_day}/dia</p>
       </div>
       <div>
-        <span class="text-green-600 bg-green-100 text-sm px-2 py-1 rounded">Ativa</span>
+        <span class="${desativada 
+          ? "text-gray-600 bg-gray-200" 
+          : "text-green-600 bg-green-100"} text-sm px-2 py-1 rounded">
+          ${spot.status || "Ativa"}
+        </span>
       </div>
     </div>
 
     <div class="mt-3 flex items-center justify-between">
       <div class="flex space-x-2">
-        <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700">Editar</button>
-        <button class="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-200">Ver Estatísticas</button>
-        <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200">Desativar</button>
-        <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200">Excluir</button>
+        <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700" data-id="${spot.id}" data-action="editar">
+          Editar
+        </button>
+        <button class="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-200">
+          Ver Estatísticas
+        </button>
+        <button class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" data-id="${spot.id}" data-action="${desativada ? "ativar" : "desativar"}">
+          ${desativada ? "Ativar" : "Desativar"}
+        </button>
+        <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200" data-id="${spot.id}" data-action="excluir">
+          Excluir
+        </button>
       </div>
     </div>
   `;
@@ -301,16 +356,6 @@ function carregarMinhasVagas() {
     .catch(err => console.error("Erro ao carregar minhas vagas:", err));
 }
 
-document.addEventListener("click", (e) => {
-  if (e.target.matches("button[data-action='excluir']")) {
-    const vagaId = e.target.getAttribute("data-id");
-
-    if (confirm("Tem certeza que deseja excluir esta vaga?")) {
-      excluirVaga(vagaId, e.target);
-    }
-  }
-});
-
 function excluirVaga(vagaId, botao) {
   fetch(`/parking/api/spots/${vagaId}/`, {
     method: "DELETE",
@@ -318,15 +363,253 @@ function excluirVaga(vagaId, botao) {
       "X-CSRFToken": csrfToken,
     },
   })
-    .then((res) => {
-      if (!res.ok) throw new Error("Erro ao excluir a vaga");
+  .then((res) => {
+    if (!res.ok) throw new Error("Erro ao excluir a vaga");
 
-      // Remove o card da vaga visualmente
-      const card = botao.closest(".border");
-      if (card) card.remove();
+    // Remove o card da aba "Minhas Vagas"
+    const card = botao.closest(".border");
+    if (card) card.remove();
+
+    // Remove o card da aba "Vagas Próximas"
+    const cardProxima = document.querySelector(`[data-spot-id="${vagaId}"]`);
+    if (cardProxima) cardProxima.remove();
+
+    // Remove marcador do mapa
+    if (window.spotMarkers && window.spotMarkers[vagaId]) {
+      window.spotMarkers[vagaId].setMap(null);
+      delete window.spotMarkers[vagaId];
+    }
+
+    // Exibe modal de sucesso
+    document.getElementById("delete-success-modal").classList.remove("hidden");
+  })
+  .catch((err) => {
+    console.error(err);
+    alert("Erro ao excluir a vaga.");
+  });
+}
+
+let vagaParaDesativar = null;
+let idParaExcluir = null;
+
+document.addEventListener("click", (e) => {
+  const target = e.target;
+
+  // -------- Botão Desativar --------
+  if (target.matches("button[data-action='desativar']")) {
+    vagaParaDesativar = target.getAttribute("data-id");
+    document.getElementById("deactivate-confirm-modal").classList.remove("hidden");
+  }
+
+  // -------- Confirmar Desativação --------
+  if (target.id === "confirm-deactivate" && vagaParaDesativar) {
+    fetch(`/parking/api/spots/${vagaParaDesativar}/`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      body: JSON.stringify({ status: "Desativada" }),
     })
-    .catch((err) => {
-      console.error(err);
-      alert("Erro ao excluir a vaga.");
+    .then(res => {
+      if (!res.ok) throw new Error("Erro ao desativar vaga.");
+      return res.json();
+    })
+    .then(() => {
+      if (window.spotMarkers && window.spotMarkers[vagaParaDesativar]) {
+        window.spotMarkers[vagaParaDesativar].setMap(null);
+        delete window.spotMarkers[vagaParaDesativar];
+      }
+
+      carregarMinhasVagas();
+      carregarSpots();
+      document.getElementById("deactivate-confirm-modal").classList.add("hidden");
+      vagaParaDesativar = null;
+    })
+    .catch(err => {
+      console.error("Erro ao desativar:", err);
+      alert("Erro ao desativar vaga.");
+    });
+  }
+
+  // -------- Cancelar Desativação --------
+  if (target.id === "cancel-deactivate") {
+    document.getElementById("deactivate-confirm-modal").classList.add("hidden");
+    vagaParaDesativar = null;
+  }
+
+  // -------- Botão Ativar --------
+  if (target.matches("button[data-action='ativar']")) {
+    const id = target.getAttribute("data-id");
+    fetch(`/parking/api/spots/${id}/`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      body: JSON.stringify({ status: "Ativa" }),
+    })
+    .then(res => res.json())
+    .then(() => {
+      carregarMinhasVagas();
+      carregarSpots();
+    })
+    .catch(err => {
+      console.error("Erro ao ativar vaga:", err);
+      alert("Erro ao ativar a vaga.");
+    });
+  }
+
+  // -------- Botão Excluir --------
+  if (target.matches("button[data-action='excluir']")) {
+    idParaExcluir = target.getAttribute("data-id");
+    document.getElementById("delete-confirm-modal").classList.remove("hidden");
+  }
+
+  if (target.id === "confirm-delete" && idParaExcluir) {
+    const botao = document.querySelector(`button[data-id='${idParaExcluir}'][data-action='excluir']`);
+    excluirVaga(idParaExcluir, botao);
+    document.getElementById("delete-confirm-modal").classList.add("hidden");
+    idParaExcluir = null;
+  }
+
+  if (target.id === "cancel-delete") {
+    document.getElementById("delete-confirm-modal").classList.add("hidden");
+    idParaExcluir = null;
+  }
+
+  if (target.id === "success-ok") {
+    document.getElementById("delete-success-modal").classList.add("hidden");
+  }
+
+  // -------- Botão Editar --------
+ const editarBtn = target.closest("button[data-action='editar']") || (target.matches("button[data-action='editar']") ? target : null);
+if (editarBtn) {
+  const spotId = editarBtn.getAttribute("data-id");
+  console.log("Botão editar clicado para o ID:", spotId);
+
+  fetch(`/parking/api/spots/${spotId}/`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("edit-spot-id").value = data.id;
+      document.getElementById("edit-title").value = data.title;
+      document.getElementById("edit-description").value = data.description;
+      document.getElementById("edit-price-hour").value = data.price_hour;
+      document.getElementById("edit-price-day").value = data.price_day;
+
+      document.getElementById("edit-spot-modal").classList.remove("hidden");
+    })
+    .catch(err => {
+      console.error("Erro ao carregar vaga para edição:", err);
+      alert("Erro ao carregar os dados da vaga.");
     });
 }
+
+
+});
+
+document.getElementById("cancel-edit").addEventListener("click", () => {
+  document.getElementById("edit-spot-modal").classList.add("hidden");
+});
+
+document.getElementById("edit-spot-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const spotId = document.getElementById("edit-spot-id").value;
+
+  const payload = {
+    title: document.getElementById("edit-title").value,
+    description: document.getElementById("edit-description").value,
+    price_hour: document.getElementById("edit-price-hour").value,
+    price_day: document.getElementById("edit-price-day").value
+  };
+
+  fetch(`/parking/api/spots/${spotId}/`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Erro ao salvar alterações.");
+    return res.json();
+  })
+  .then(() => {
+    document.getElementById("edit-spot-modal").classList.add("hidden");
+    carregarMinhasVagas();
+    carregarSpots();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Erro ao salvar alterações.");
+  });
+});
+
+const dropzone = document.getElementById("photoDropzone");
+const photosInput = document.getElementById("photosInput");
+const previewContainer = document.getElementById("previewContainer");
+
+dropzone.addEventListener("click", () => photosInput.click());
+
+dropzone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropzone.classList.add("border-blue-400", "bg-blue-50");
+});
+
+dropzone.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("border-blue-400", "bg-blue-50");
+});
+
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("border-blue-400", "bg-blue-50");
+  const files = e.dataTransfer.files;
+  handleFiles(files);
+});
+
+photosInput.addEventListener("change", (e) => {
+  handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) continue;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = document.createElement("img");
+      img.src = event.target.result;
+      img.className = "w-20 h-20 object-cover rounded border";
+      previewContainer.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function uploadPhotos(spotId, files) {
+  const formData = new FormData();
+  formData.append("spot", spotId);
+  for (const file of files) {
+    formData.append("image", file);
+  }
+
+  const resp = await fetch("/parking/api/photos/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+    },
+    body: formData,
+  });
+
+  if (!resp.ok) {
+    alert("Erro ao enviar fotos.");
+    return;
+  }
+
+  const data = await resp.json();
+  console.log("Fotos enviadas", data);
+}
+
