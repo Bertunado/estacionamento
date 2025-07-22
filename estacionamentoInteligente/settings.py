@@ -1,12 +1,14 @@
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-up*sx#if(&6zvy3%5nds%e_j$q9#$$f31rsar6nv_pvy&*!v&p'
 
-DEBUG = True
 
 ALLOWED_HOSTS = []
+
+DEBUG = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -29,6 +31,8 @@ INSTALLED_APPS = [
     'estacionamentoInteligente',
     'widget_tweaks',
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -94,11 +98,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / 'parking' / 'static',
+    # Isso instrui o Django a procurar diretamente dentro da pasta 'static' do seu app 'parking'.
+    # O {% static 'parking/js/main.js' %} buscará 'parking/js/main.js' dentro dessas pastas listadas.
+    os.path.join(BASE_DIR, 'parking', 'static'),
 ]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles_collected'
 
 LOGIN_URL = '/parking/login/'
 

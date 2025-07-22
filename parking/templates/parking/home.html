@@ -53,62 +53,8 @@
 
             <div class="w-1/2 pl-4">
                 <h3 class="text-lg font-semibold">Vagas Próximas</h3>
-                <div class="mt-4 space-y-4 overflow-y-auto" style="max-height: 350px;">
-                    <div class="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Vaga coberta - Centro</h4>
-                            <div class="rating-stars">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                                <span class="text-gray-600 text-sm ml-1">4.5 (12)</span>
-                            </div>
-                        </div>
-                        <div class="flex justify-between mt-1 text-sm text-gray-600">
-                            <span><i class="fas fa-map-marker-alt mr-1"></i>500m da sua localização</span>
-                            <span><i class="fas fa-clock mr-1"></i>Disponível agora</span>
-                        </div>
-                        <div class="mt-2">
-                            <img src="https://placehold.co/600x300" alt="Garagem coberta com espaço para 1 carro médio, piso de concreto, iluminação LED" class="w-full h-32 object-cover rounded">
-                        </div>
-                        <div class="flex justify-between items-center mt-3">
-                            <div>
-                                <span class="font-bold text-indigo-600">R$ 15/h</span>
-                                <span class="text-gray-500 text-sm ml-1">ou R$ 50/dia</span>
-                            </div>
-                            <button class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">Reservar</button>
-                        </div>
-                    </div>
+                <div id="parking" class="mt-4 space-y-4 overflow-y-auto" style="max-height: 350px;">
 
-                    <div class="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Vaga em casa - Vila Mariana</h4>
-                            <div class="rating-stars">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                                <span class="text-gray-600 text-sm ml-1">4.2 (8)</span>
-                            </div>
-                        </div>
-                        <div class="flex justify-between mt-1 text-sm text-gray-600">
-                            <span><i class="fas fa-map-marker-alt mr-1"></i>750m da sua localização</span>
-                            <span><i class="fas fa-clock mr-1"></i>Disponível após 18h</span>
-                        </div>
-                        <div class="mt-2">
-                            <img src="https://placehold.co/600x300" alt="Vaga descoberta em residência, cerca elétrica, portão automático" class="w-full h-32 object-cover rounded">
-                        </div>
-                        <div class="flex justify-between items-center mt-3">
-                            <div>
-                                <span class="font-bold text-indigo-600">R$ 12/h</span>
-                                <span class="text-gray-500 text-sm ml-1">ou R$ 40/dia</span>
-                            </div>
-                            <button class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">Reservar</button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -202,6 +148,7 @@
             <span class="text-sm">Confirmo que sou o proprietário/autorizado e que esta vaga não viola nenhuma lei local</span>
           </div>
 
+          
           <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded mt-6 w-full hover:bg-indigo-700">
             Publicar Vaga
           </button>
@@ -214,15 +161,9 @@
 <div id="my-parkings" class="tab-content mt-4">
   <div class="bg-white rounded-lg shadow-md p-6">
     <h2 class="text-xl font-bold text-gray-800 mb-4">Minhas Vagas Cadastradas</h2>
-
     <div id="myVagasContainer" class="space-y-4">
       <div class="border border-gray-200 rounded-lg p-4">
         <div class="flex justify-between items-center">
-          <div>
-            <h3 class="font-semibold text-lg text-gray-800">Garagem Coberta - Mooca</h3>
-            <p class="text-sm text-gray-500">Rua das Flores, 123 - Mooca, São Paulo</p>
-            <p class="text-sm text-gray-500 mt-1">R$ 10/hora ou R$ 35/dia</p>
-          </div>
           <div>
             <span class="text-green-600 bg-green-100 text-sm px-2 py-1 rounded">Ativa</span>
           </div>
@@ -270,9 +211,6 @@
     <!-- JSON seguro do convId -->
     {{ conversation.id|json_script:"convIdData" }}
     
-    <script>
-      window.convId = JSON.parse(document.getElementById('convIdData').textContent);
-    </script>
 </div>
 
 <!-- Profile Tab -->
@@ -450,12 +388,125 @@
     </div> 
 </div>
 
+ <div id="parking-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+                <div class="bg-white rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800" id="modal-parking-title">(Titulo da Vaga)</h3>
+                            <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/193711e1-47a8-44c3-86af-4c20ef678c94.png" alt="Vista ampla de garagem residencial com espaço para um carro médio e prateleiras de armazenamento" class="w-full h-48 object-cover rounded-lg mb-4">
+                        
+                        <div class="mb-4">
+                            <p class="text-gray-800" id="modal-parking-address">(Endereço da Vaga)</p>
+                            <p class="text-gray-600 text-sm mt-1" id="modal-parking-description">(Descrição da Vaga)</p>
+                        </div>
+                        
+                        <div class="flex items-center mb-4">
+                            <span class="text-yellow-500">★★★★☆</span>
+                            <span class="text-gray-500 text-sm ml-1">(12 avaliações)</span>
+                        </div>
+                        
+                            <div id="vagas-container" class="mt-6 mb-6">
+                            <h4 class="font-bold text-gray-800 mb-2">Selecione sua vaga</h4>
+                            <div id="vagas-grid" class="grid grid-cols-5 gap-2">
+                            </div>
+                        </div>
+
+		                    <div class="mb-4">
+                                
+                            <label for="reservation-date" class="block text-gray-700 mb-2">Data</label>
+                            <input type="date" id="reservation-date" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label for="start-time" class="block text-gray-700 mb-2">Hora de entrada</label>
+                                <input type="time" id="start-time" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="end-time" class="block text-gray-700 mb-2">Hora de saída</label>
+                                <input type="time" id="end-time" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-100 rounded-lg p-4 mb-4">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-700">Valor por hora:</span>
+                                <span class="font-bold" id="hourly-price">R$ 8,00</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-700">Total de horas:</span>
+                                <span class="font-bold" id="total-hours">0</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-lg">
+                                <span>Total:</span>
+                                <span id="total-price">R$ 0,00</span>
+                            </div>
+                        </div>
+			<button id="confirm-reservation-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                            Confirmar reserva
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reservation Confirmation Modal -->
+            <div id="reservation-confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+                <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
+                    <div class="text-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Reserva confirmada!</h3>
+                        <p class="text-gray-600">Sua reserva foi confirmada com sucesso.</p>
+                    </div>
+                    
+                    <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-700">Local:</span>
+                            <span class="font-bold" id="confirmation-location">Garagem residencial</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-700">Endereço:</span>
+                            <span class="font-bold" id="confirmation-address">Rua das Flores, 123 - Centro</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-700">Data:</span>
+                            <span class="font-bold" id="confirmation-date">15/06/2023</span>
+                        </div>
+				<div class="flex justify-between mb-2">
+                            <span class="text-gray-700">Horário:</span>
+                            <span class="font-bold" id="confirmation-time">14:00 - 17:00</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-700">Vaga:</span>
+                            <span class="font-bold" id="confirmation-spot">Vaga A1</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-lg mt-3 pt-2 border-t border-gray-300">
+                            <span>Total:</span>
+                            <span id="confirmation-total">R$ 24,00</span>
+                        </div>
+                    </div>
+                    
+                    <button id="close-confirmation-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        Fechar
+                    </button>
+                </div>
+            </div> 
+
 
 <!-- Botoes -->
 <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-80 p-6">
         <div class="text-center mb-4">
-            <h3 class="text-xl font-medium text-gray-800">Tem certeza que deseja excluir essa vaga?</h3>
+            <h3 class="text-xl font-medium text-gray-800">Confirmação de Exclusão</h3>
+            <p class="modal-message-placeholder text-base text-gray-700 mt-2">Tem certeza que deseja excluir essa vaga?</p>
         </div>
         <div class="flex justify-center space-x-4">
             <button id="confirm-delete" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Confirmar</button>
@@ -463,10 +514,12 @@
         </div>
     </div>
 </div>
+
 <div id="delete-success-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-80 p-6">
         <div class="text-center mb-6">
-            <h3 class="text-xl font-medium text-gray-800">Vaga excluída com sucesso!</h3>
+            <h3 class="text-xl font-medium text-gray-800">Sucesso!</h3>
+            <p class="modal-message-placeholder text-base text-gray-700 mt-2">Vaga excluída com sucesso!</p>
         </div>
         <div class="flex justify-center">
             <button id="success-ok" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">OK</button>
@@ -474,10 +527,24 @@
     </div>
 </div>
 
+<div id="error-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-80 p-6">
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-medium text-red-600">Erro!</h3>
+            <p class="modal-message-placeholder text-base text-gray-700 mt-2">Ocorreu um erro inesperado.</p>
+        </div>
+        <div class="flex justify-center">
+            <button id="error-ok" class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">OK</button>
+        </div>
+    </div>
+</div>
+
+
 <div id="deactivate-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
   <div class="bg-white rounded-lg shadow-xl w-80 p-6">
     <div class="text-center mb-4">
-      <h3 class="text-xl font-medium text-gray-800">Deseja desativar essa vaga?</h3>
+      <h3 class="text-xl font-medium text-gray-800">Confirmação de Ação</h3>
+      <p class="modal-message-placeholder text-base text-gray-700 mt-2">Deseja desativar essa vaga?</p>
     </div>
     <div class="flex justify-center space-x-4">
       <button id="confirm-deactivate" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Confirmar</button>
@@ -489,26 +556,51 @@
 <div id="edit-spot-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded-lg shadow-xl w-96">
     <h2 class="text-xl font-semibold mb-4">Editar Vaga</h2>
-    <form id="edit-spot-form" class="space-y-3">
-  <input type="hidden" id="edit-spot-id">
+    <form id="editParkingForm" class="space-y-3">
+      <input type="hidden" id="edit-spot-id" name="edit-spot-id">
 
-  <label class="block text-sm font-medium text-gray-700">Título</label>
-  <input type="text" id="edit-title" class="w-full border px-3 py-2 rounded" required>
+      <label class="block text-sm font-medium text-gray-700">Título</label>
+      <input type="text" id="edit-title" name="edit-title" class="w-full border px-3 py-2 rounded" required>
 
-  <label class="block text-sm font-medium text-gray-700">Descrição</label>
-  <textarea id="edit-description" class="w-full border px-3 py-2 rounded" required></textarea>
+      <div>
+          <label for="edit-address" class="block text-sm font-medium text-gray-700">Endereço</label>
+          <input type="text" id="edit-address" name="edit-address" required
+                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+      </div>
+      <label class="block text-sm font-medium text-gray-700">Descrição</label>
+      <textarea id="edit-description" name="edit-description" class="w-full border px-3 py-2 rounded" required></textarea>
 
-  <label class="block text-sm font-medium text-gray-700">Preço por hora</label>
-  <input type="number" id="edit-price-hour" class="w-full border px-3 py-2 rounded" step="0.01" required>
+      <label class="block text-sm font-medium text-gray-700">Preço por hora</label>
+      <input type="number" id="edit-price_hour" name="edit-price_hour" class="w-full border px-3 py-2 rounded" step="0.01" required>
 
-  <label class="block text-sm font-medium text-gray-700">Preço por dia</label>
-  <input type="number" id="edit-price-day" class="w-full border px-3 py-2 rounded" step="0.01" required>
+      <label class="block text-sm font-medium text-gray-700">Preço por dia</label>
+      <input type="number" id="edit-price_day" name="edit-price_day" class="w-full border px-3 py-2 rounded" step="0.01" required>
 
-  <div class="flex justify-end space-x-2 mt-4">
-    <button type="button" id="cancel-edit" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Salvar</button>
-  </div>
-</form>
+      <div>
+          <label for="edit-size" class="block text-sm font-medium text-gray-700">Tamanho da Vaga</label>
+          <select id="edit-size" name="edit-size"
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+              <option value="Pequeno">Pequeno</option>
+              <option value="Médio">Médio</option>
+              <option value="Grande">Grande</option>
+              <option value="Indefinido">Indefinido</option> </select>
+      </div>
+
+      <div>
+          <label for="edit-tipo_vaga" class="block text-sm font-medium text-gray-700">Tipo de Vaga</label>
+          <select id="edit-tipo_vaga" name="edit-tipo_vaga"
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+              <option value="Carro">Carro</option>
+              <option value="Moto">Moto</option>
+              <option value="Caminhão">Caminhão</option>
+              </select>
+      </div>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button type="button" id="cancel-edit" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Salvar</button>
+      </div>
+    </form>
   </div>
 </div>
+
 {% endblock %}

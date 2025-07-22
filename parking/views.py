@@ -25,6 +25,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from .models import ParkingSpotPhoto
 from .serializers import ParkingSpotPhotoSerializer
+from .models import Availability
+from django.utils.dateparse import parse_time
 import logging
 import requests
 
@@ -36,6 +38,19 @@ from .models import (
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+dias_dict = {
+    "Segunda-feira": 0,
+    "Terça-feira": 1,
+    "Quarta-feira": 2,
+    "Quinta-feira": 3,
+    "Sexta-feira": 4,
+    "Sábado": 5,
+    "Domingo": 6,
+}
+
+def diasSemanaParaInt(dia_nome):
+    return dias_dict.get(dia_nome, 0)
 
 @login_required
 def home(request):
@@ -49,9 +64,60 @@ class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
     serializer_class = ParkingSpotPhotoSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        return ParkingSpot.objects.filter(status="Ativa")
+
     def perform_create(self, serializer):
-        spot_id = self.request.data.get("spot")
-        serializer.save(spot_id=spot_id)
+        spot = serializer.save(owner=self.request.user)
+
+        disponibilidades_raw = self.request.data.get("disponibilidades")
+        if disponibilidades_raw:
+            try:
+                disponibilidades = json.loads(disponibilidades_raw)
+                for d in disponibilidades:
+                    Availability.objects.create(
+                        spot=spot,
+                        weekday=diasSemanaParaInt(d["dia"]),  # convertendo nome para número
+                        start=d["hora_inicio"],
+                        end=d["hora_fim"]
+                    )
+            except Exception as e:
+                print("Erro ao salvar disponibilidade:", e)
+
+@csrf_exempt
+def salvar_disponibilidade(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        spot_id = data.get("spot_id")
+        availabilities_data = data.get("availabilities", [])
+
+        try:
+            spot = ParkingSpot.objects.get(id=spot_id)
+        except ParkingSpot.DoesNotExist:
+            return JsonResponse({"error": "Vaga não encontrada"}, status=404)
+
+        # Apaga disponibilidades anteriores, se necessário
+        Availability.objects.filter(spot=spot).delete()
+
+        # Cria novas disponibilidades
+        for item in availabilities_data:
+            weekday = item.get("weekday")
+            start = parse_time(item.get("start"))
+            end = parse_time(item.get("end"))
+            quantity = item.get("quantity", 1)
+
+            Availability.objects.create(
+                spot=spot,
+                weekday=weekday,
+                start=start,
+                end=end,
+                quantity=quantity
+            )
+
+        return JsonResponse({"success": True, "spot_id": spot.id})
+
+    return JsonResponse({"error": "Método não permitido"}, status=405)
 
 class ParkingSpotListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ParkingSpotSerializer

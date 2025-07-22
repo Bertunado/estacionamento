@@ -35,5 +35,5 @@ urlpatterns = [
     path('api/minhas-vagas/', MinhasVagasView.as_view(), name='minhas-vagas'),
     path("api/spots/<int:pk>/", ParkingSpotDetailAPIView.as_view(), name="spot-detail"),
     path('api/', include(router.urls)),
-
+    path('salvar-disponibilidade/', views.salvar_disponibilidade, name='salvar_disponibilidade'),
 ]

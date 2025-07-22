@@ -1,15 +1,22 @@
 from rest_framework import serializers
 from .models import ParkingSpot
 from .models import ParkingSpotPhoto
+from .models import Availability
 
 
 class ParkingSpotPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParkingSpotPhoto
         fields = ['id', 'image']
+        
+class AvailabilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Availability
+        fields = ['weekday', 'start', 'end']
 
 class ParkingSpotSerializer(serializers.ModelSerializer):
     photos = ParkingSpotPhotoSerializer(many=True, read_only=True)
+    availabilities = AvailabilitySerializer(many=True, read_only=True)
 
     class Meta:
         model  = ParkingSpot
@@ -20,6 +27,6 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
             'price_hour', 'price_day',
             'tipo_vaga', 'size', 'has_camera',
             'owner', 'created_at', 'status',
-            'photos',
+            'photos', 'availabilities',
         ]
         read_only_fields = ['id', 'owner', 'created_at']

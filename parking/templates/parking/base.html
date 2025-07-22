@@ -3,19 +3,23 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <link rel="icon" href="{% static 'parking/css/images/icon3.png' %}" type="image/x-icon">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token }}">
 
     <title>{% block title %}ParkShare{% endblock %}</title>
 
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-    <!-- CSS estático do projeto -->
+    <script 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places,marker&map_ids=78fe22b3d0432217499196a4&libraries=places">
+        async
+        defer
+    </script>
+
     <link rel="stylesheet" href="{% static 'parking/css/style.css' %}" />
 
     {% block extra_head %}{% endblock %}
@@ -44,13 +48,16 @@
     © 2025 ParkShare
 </footer>
 
-
 {% block extra_scripts %}
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places&callback=initMap" async defer></script>
-<script src="{% static 'parking/css/js/main.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/globals.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/api_services.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/map_utilities.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/form_handlers.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/availability_manager.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/photo_upload.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/ui_handlers.js' %}"></script>
+    <script type="module" src="{% static 'parking/css/js/main.js' %}"></script>
 {% endblock %}
-
-
 
 </body>
 </html>
