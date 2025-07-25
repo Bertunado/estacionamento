@@ -24,11 +24,25 @@ class ParkingSpot(models.Model):
     size = models.CharField(max_length=30, default="Médio")  # se quiser manter
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default="Ativa")
-
-
+    quantity = models.IntegerField(default=1, help_text="Número total de vagas neste local.")
 
     def __str__(self):
         return f"{self.title} – {self.address}"
+
+class SpotAvailability(models.Model):
+    spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name='availabilities_by_date')
+    available_date = models.DateField() 
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    available_quantity = models.IntegerField(default=1, help_text="Número de vagas disponíveis neste período da data.")
+
+    class Meta:
+        # Garante que não haja slots de disponibilidade duplicados para o mesmo spot na mesma data/período
+        unique_together = ('spot', 'available_date', 'start_time', 'end_time')
+        ordering = ['available_date', 'start_time']
+
+    def __str__(self):
+        return f"{self.spot.title} - {self.available_date} ({self.start_time}-{self.end_time}) - Vagas: {self.available_quantity}"
     
 class ParkingSpotPhoto(models.Model):
     spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name="photos")
@@ -55,6 +69,7 @@ class Perfil(models.Model):
     
 # Disponibilidade (dias e horários em que a vaga pode ser reservada)
 class Availability(models.Model):
+    parking_spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name='legacy_availabilities')
     spot     = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name="availabilities")
     weekday  = models.IntegerField(choices=[(i, i) for i in range(7)])  # 0 = segunda‑feira
     start    = models.TimeField()
@@ -70,6 +85,8 @@ class Reservation(models.Model):
     renter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     start_time  = models.DateTimeField()
     end_time    = models.DateTimeField()
+    total_price = models.DecimalField(max_digits=8, decimal_places=2, default=0.00) 
+    status      = models.CharField(max_length=20, default='pending')
     created_at  = models.DateTimeField(auto_now_add=True)
 
     # cria automaticamente uma conversa assim que a reserva é inserida
@@ -82,6 +99,9 @@ class Reservation(models.Model):
                 seller=self.spot.owner,
                 buyer=self.renter
             )
+
+    def __str__(self):
+        return f"Reserva de {self.renter.username} para {self.spot.title} de {self.start_time.strftime('%d/%m %H:%M')} a {self.end_time.strftime('%d/%m %H:%M')}"
 
 # Chat
 class Conversation(models.Model):

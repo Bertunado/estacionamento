@@ -4,3 +4,6 @@ django-cors-headers
 channels
 python-dotenv
 geopy   
+django-filters
+django-widget-tweaks
+Pillow

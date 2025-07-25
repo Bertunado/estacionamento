@@ -13,9 +13,6 @@ import { uploadedFiles } from './globals.js';
 import { coletarDisponibilidades } from './availability_manager.js';
 import { clearPhotoPreviews } from './photo_upload.js'; // Para limpar o preview após o upload
 
-
-
-
 export async function handleSubmitSpot(e) {
   e.preventDefault();
   const form = e.target;
@@ -63,7 +60,7 @@ export async function handleSubmitSpot(e) {
         // --- LÓGICA DE UPLOAD DE FOTOS ---
         if (uploadedFiles.length > 0) {
             console.log(`Subindo ${uploadedFiles.length} fotos para a vaga ID: ${spot.id}`);
-            await apiUploadPhotos(spot.id, uploadedFiles); // Chama a função de upload!
+            await apiUploadPhotos(spot.id, uploadedFiles); // Chama a função de upload
             console.log("Fotos enviadas com sucesso!");
         } else {
             console.log("Nenhuma foto para subir.");
@@ -96,8 +93,8 @@ export function setupNewSpotForm() {
       const preco = document.getElementById("preco").value;
       const cep = document.getElementById("cep").value;
 
-      const latInput = document.getElementById("latInput"); // Exemplo
-      const lngInput = document.getElementById("lngInput"); // Exemplo
+      const latInput = document.getElementById("latInput");
+      const lngInput = document.getElementById("lngInput"); 
       let latitude = latInput ? latInput.value : null;
       let longitude = lngInput ? lngInput.value : null;
       let imagemBase64 = null;
@@ -145,7 +142,7 @@ export function setupNewSpotForm() {
 
 export function setupEditSpotForm(spotToEdit) {
     const editModal = document.getElementById("edit-spot-modal");
-    const editForm = document.getElementById("editParkingForm"); // Certifique-se que o ID do formulário de edição está correto
+    const editForm = document.getElementById("editParkingForm");
 
     if (!editModal || !editForm) {
         console.error("Modal de edição ou formulário de edição não encontrados.");
@@ -162,7 +159,7 @@ export function setupEditSpotForm(spotToEdit) {
         document.getElementById("edit-size").value = spotToEdit.size;
         document.getElementById("edit-tipo_vaga").value = spotToEdit.tipo_vaga;
         document.getElementById("edit-description").value = spotToEdit.description;
-        // Você também precisaria lidar com as disponibilidades e fotos aqui, se houver
+        
     }
 
     editModal.classList.remove("hidden"); // Mostra o modal de edição
@@ -200,31 +197,21 @@ export function setupEditSpotForm(spotToEdit) {
         const latitude = Number(loc.lat.toFixed(6));
         const longitude = Number(loc.lng.toFixed(6));
 
-        // Lógica para coletar disponibilidades do formulário de edição, se aplicável
-        // const disponibilidade = coletarDisponibilidadesDoFormularioDeEdicao();
-
         const payload = {
             title,
             address,
             latitude,
             longitude,
-            price_hour,
+            price_hour, 
             price_day,
             size,
             tipo_vaga,
             description,
-            // Adicione 'disponibilidade' se você coletar do formulário de edição
-            // disponibilidade: disponibilidade,
+            availabilities: disponibilidade,
         };
 
         try {
-            await updateSpot(spotId, payload); // Use a função updateSpot da API
-
-            // Lógica para upload de novas fotos ou remoção de antigas, se aplicável
-            // if (uploadedFilesParaEdicao.length > 0) {
-            //     await apiUploadPhotos(spotId, uploadedFilesParaEdicao);
-            // }
-
+            await updateSpot(spotId, payload);           
             alert("Vaga atualizada com sucesso!");
             editModal.classList.add("hidden"); // Esconde o modal
             carregarMinhasVagas(); // Recarrega a lista de minhas vagas para mostrar as alterações

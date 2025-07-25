@@ -1,40 +1,28 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q            # ←  Q vem do django.db.models
+from django.db.models import Q
 from django.http import JsonResponse, Http404
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from .serializers import ParkingSpotSerializer
-from rest_framework import generics, permissions
-from .forms import PerfilForm
+from .serializers import ParkingSpotSerializer, ReservationSerializer, ParkingSpotPhotoSerializer, SpotAvailabilitySerializer
+from rest_framework import generics, permissions, serializers, viewsets
+from .forms import PerfilForm, RegistroUsuarioForm
 from django.contrib.auth.forms import UserCreationForm
-from django.shortcuts import redirect
-from django.contrib.auth import get_user_model
-from django.contrib.auth import login
-from .forms import RegistroUsuarioForm
-from django.contrib.auth import authenticate
-from .models import Perfil
+from django.contrib.auth import get_user_model, login
+from .models import Perfil, ParkingSpot, ParkingSpotPhoto, SpotAvailability, Availability, Reservation, Conversation,  Message
 from django.views.decorators.csrf import csrf_exempt
 from django import forms
 import os
 import json
-from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-from .models import ParkingSpotPhoto
-from .serializers import ParkingSpotPhotoSerializer
-from .models import Availability
 from django.utils.dateparse import parse_time
 import logging
-import requests
-
-from .models import (
-    ParkingSpot,
-    Conversation,
-    Message,
-)
+from rest_framework.parsers import MultiPartParser, FormParser
+from decimal import Decimal
+from datetime import datetime
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -60,29 +48,98 @@ def home(request):
     })
 
 class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
-    queryset = ParkingSpotPhoto.objects.all()
+    queryset = ParkingSpotPhoto.objects.all() # Queryset padrão para listar todas as fotos
     serializer_class = ParkingSpotPhotoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser] # ESSENCIAL para lidar com uploads de arquivos
+
+    def get_queryset(self):
+        # Este ViewSet lida com fotos, então o queryset deve ser de ParkingSpotPhoto.
+        return ParkingSpotPhoto.objects.all()
+
+    def perform_create(self, serializer):
+        # 1. Obtenha o 'spot_id' que vem do frontend no FormData
+        spot_id_from_request = self.request.data.get('spot')
+
+        if not spot_id_from_request:
+            raise serializers.ValidationError({"spot": "O ID do spot é obrigatório para o upload da foto."})
+
+        try:
+            # 2. Encontre a instância do ParkingSpot e verifique se pertence ao usuário logado
+            spot_instance = ParkingSpot.objects.get(id=spot_id_from_request, owner=self.request.user)
+            
+            # 3. Salve a foto associando-a à instância do spot
+            serializer.save(spot=spot_instance) # Passa a instância do Spot validada para o serializer
+
+        except ParkingSpot.DoesNotExist:
+            # Se o spot não existir ou não pertencer ao usuário
+            raise serializers.ValidationError(
+                {"detail": "Spot inválido ou você não tem permissão para adicionar fotos a este spot."}
+            )
+class ReservationViewSet(viewsets.ModelViewSet):
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return ParkingSpot.objects.filter(status="Ativa")
+        # Um usuário só pode ver as reservas que ele fez (como renter)
+        return Reservation.objects.filter(renter=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):
-        spot = serializer.save(owner=self.request.user)
+        # 1. Pega os dados do corpo da requisição
+        spot_id = self.request.data.get('spot')
+        start_time_str = self.request.data.get('start_time')
+        end_time_str = self.request.data.get('end_time')
 
-        disponibilidades_raw = self.request.data.get("disponibilidades")
-        if disponibilidades_raw:
-            try:
-                disponibilidades = json.loads(disponibilidades_raw)
-                for d in disponibilidades:
-                    Availability.objects.create(
-                        spot=spot,
-                        weekday=diasSemanaParaInt(d["dia"]),  # convertendo nome para número
-                        start=d["hora_inicio"],
-                        end=d["hora_fim"]
-                    )
-            except Exception as e:
-                print("Erro ao salvar disponibilidade:", e)
+        # 2. Valida se os dados essenciais estão presentes
+        if not all([spot_id, start_time_str, end_time_str]):
+            raise serializers.ValidationError({"detail": "Dados de reserva incompletos (spot, start_time, end_time são obrigatórios)."})
+
+        # 3. Encontra a instância da vaga (ParkingSpot)
+        try:
+            spot = ParkingSpot.objects.get(id=spot_id)
+        except ParkingSpot.DoesNotExist:
+            raise serializers.ValidationError({"spot": "Vaga de estacionamento não encontrada."})
+
+        # 4. Converte as strings de data/hora para objetos datetime
+        try:
+            # Garanta que o frontend envia no formato ISO 8601 (ex: "2025-07-23T10:00:00")
+            start_time = datetime.fromisoformat(start_time_str)
+            end_time = datetime.fromisoformat(end_time_str)
+        except ValueError:
+            raise serializers.ValidationError({"time": "Formato de data/hora inválido. Use YYYY-MM-DDTHH:MM:SS."})
+
+        # 5. Valida a lógica de tempo
+        if end_time <= start_time:
+            raise serializers.ValidationError({"time": "A hora de saída deve ser após a hora de entrada."})
+        if start_time < timezone.now(): # Import timezone do django.utils
+            raise serializers.ValidationError({"time": "Não é possível reservar uma vaga no passado."})
+
+        # Exemplo BÁSICO de verificação de sobreposição (para uma vaga única):
+        overlapping_reservations = Reservation.objects.filter(
+            spot=spot,
+            # Uma reserva existente começa antes do fim da nova E termina depois do início da nova
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+            status__in=['pending', 'confirmed'] # Considere status que bloqueiam a vaga
+        ).exists()
+
+        if overlapping_reservations:
+            raise serializers.ValidationError({"spot": "A vaga já está reservada para parte ou todo o período selecionado."})
+        # 7. Calcular o preço total
+        duration_hours = Decimal((end_time - start_time).total_seconds()) / Decimal(3600)
+        total_price = duration_hours * spot.price_hour
+        total_price = total_price.quantize(Decimal('0.00'))
+
+        # 8. Salvar a reserva com os dados calculados e o usuário logado
+        serializer.save(
+            renter=self.request.user, # O usuário logado é o 'renter'
+            spot=spot, # A instância do spot encontrada
+            start_time=start_time,
+            end_time=end_time,
+            total_price=total_price,
+            status='pending' # Define o status inicial
+        )
 
 @csrf_exempt
 def salvar_disponibilidade(request):
@@ -144,6 +201,19 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+class SpotAvailabilityViewSet(viewsets.ModelViewSet):
+    queryset = SpotAvailability.objects.all().order_by('available_date', 'start_time') 
+    serializer_class = SpotAvailabilitySerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    # Você pode querer filtrar por spot aqui
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        spot_id = self.request.query_params.get('spot_id', None)
+        if spot_id is not None:
+            queryset = queryset.filter(spot__id=spot_id)
+        return queryset
 
 class ParkingSpotDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = ParkingSpot.objects.all()

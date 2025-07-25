@@ -1,8 +1,6 @@
 
 // Importante: Este arquivo NÃO é um módulo ES6.
 // Ele define a função global initMap que será chamada pelo Google Maps API.
-
-
 // A FUNÇÃO initMap DEVE SER GLOBAL
 window.initMap = function() { 
     console.log("initMap foi chamada! Inicializando mapa...");

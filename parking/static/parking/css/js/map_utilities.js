@@ -7,7 +7,7 @@ let MapClass;
 let GeocoderClass;
 let PlacesServiceClass;
 let AutocompleteClass;
-let SearchBoxClass; // Agora está no escopo do módulo
+let SearchBoxClass;
 
 window.userMarker = null;
 window.spotMarkers = {};
@@ -16,13 +16,13 @@ window.autocompleteInicializado = false;
 
 export function limparMarkers() {
     if (window.spotMarkers) {
-        // Para Advanced Markers, defina 'map' como null
+        
         Object.values(window.spotMarkers).forEach(marker => marker.map = null);
         window.spotMarkers = {}; // Reinicializa o objeto de marcadores
     }
 }
 
-// ÚNICA E CORRETA FUNÇÃO adicionarMarkerSpot para AdvancedMarkerElement
+
 export function adicionarMarkerSpot(spot) {
     if (!map || !MarkerClass) {
         console.warn("adicionarMarkerSpot: Mapa ou MarkerClass (AdvancedMarkerElement) não disponíveis.");
@@ -37,17 +37,17 @@ export function adicionarMarkerSpot(spot) {
 
     const position = { lat: Number(spot.latitude), lng: Number(spot.longitude) };
 
-    // Criar um elemento personalizado para o ícone
+    // Criando um elemento personalizado para o ícone
     const markerContent = document.createElement('div');
     markerContent.className = 'custom-marker-spot'; // Classe para estilizar este marcador específico
-    markerContent.innerHTML = `<i class="fas fa-map-marker-alt text-indigo-600 text-3xl"></i>`; // Exemplo: ícone Font Awesome
+    markerContent.innerHTML = `<i class="fas fa-map-marker-alt text-indigo-600 text-3xl"></i>`;
 
     const marker = new MarkerClass({ // Usando MarkerClass (que será AdvancedMarkerElement)
         map: map, // Usando a variável 'map' exportada
         position: position,
         title: spot.title,
-        content: markerContent, // Use 'content' para AdvancedMarkerElement
-        gmpDraggable: false, // Advanced Markers usam gmpDraggable, defina como false se não for arrastável
+        content: markerContent,
+        gmpDraggable: false, 
     });
 
     // Dispara um evento customizado que ui_handlers.js pode ouvir
@@ -98,7 +98,7 @@ export function localizarUsuario() {
                     map: map, // Usando 'map' exportado
                     position: you,
                     title: "Você está aqui",
-                    content: userMarkerContent, // Use 'content' para AdvancedMarkerElement
+                    content: userMarkerContent,
                 });
             } else {
                 window.userMarker.position = you; // Atualiza a posição para AdvancedMarkerElement
@@ -178,7 +178,7 @@ export function configurarBuscaEndereco() {
                 map: map, // Usando 'map' exportado
                 position: location,
                 title: address,
-                content: searchMarkerContent, // Use 'content'
+                content: searchMarkerContent,
             });
         });
         window.buscarCepBtnListener = true;
@@ -228,7 +228,7 @@ export function initializeAutocomplete() {
                 position: place.geometry.location,
                 gmpDraggable: true, // Advanced Markers usam gmpDraggable
                 title: "Local da Vaga",
-                content: addParkingMarkerContent, // Use 'content'
+                content: addParkingMarkerContent, 
             });
             window.userMarker.addListener('dragend', () => {
                 const newPos = window.userMarker.position; // Posição para AdvancedMarkerElement
@@ -275,7 +275,7 @@ export async function initMap() {
         const placesLib = await google.maps.importLibrary("places");
         PlacesServiceClass = placesLib.PlacesService;
         AutocompleteClass = placesLib.Autocomplete;
-        SearchBoxClass = placesLib.SearchBox; // CORRIGIDO: Era 'placesLib.Service' antes
+        SearchBoxClass = placesLib.SearchBox; 
 
         const geocodingLib = await google.maps.importLibrary("geocoding");
         GeocoderClass = geocodingLib.Geocoder;

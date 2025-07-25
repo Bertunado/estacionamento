@@ -1,9 +1,27 @@
 // ui_handlers.js
 // Funções responsáveis por renderizar elementos na interface e gerenciar modais/abas
 
-import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus } from './api_services.js'; // Adicione deleteSpot e updateSpotStatus
+import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus } from './api_services.js';
 import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregarSpots as carregarSpotsDoMapa } from './map_utilities.js';
-import { setupEditSpotForm } from './form_handlers.js'; // Adicione setupEditSpotForm
+import { setupEditSpotForm } from './form_handlers.js';
+
+// Variáveis para guardar o estado do modal de reserva
+let currentSpotId = null; 
+let currentSpotPriceHour = 0;
+let currentSelectedVaga = null; // Para guardar 'V1', 'V2', etc
+let currentSpotAvailabilities = [];
+let selectedAvailabilitySlot = null;
+let reservationDatePicker;
+let startTimeInput;
+let endTimeInput;
+let totalHoursSpan;
+let totalPriceSpan;
+let availableSlotsForDateDiv;
+let dynamicTimeSlotsDiv;
+let noSlotsMessageP;
+let vagasGridContainerDiv;
+let vagasGridDiv;
+let reserveButton;
 
 export async function activateTab(tabName) {
     console.log(`activateTab: Ativando aba '${tabName}'`);
@@ -25,10 +43,9 @@ export async function activateTab(tabName) {
         if (content.id === tabName) {
             content.classList.add('active');
             content.classList.remove('hidden');
-            // Adicione 'flex' se este for o display padrão para abas ativas
-            // e 'hidden' removeu essa classe
-            if (content.dataset.displayFlex === 'true') { // Adicione data-attribute no HTML se precisar
-                 content.classList.add('flex');
+            
+            if (content.dataset.displayFlex === 'true') { 
+                content.classList.add('flex');
             }
         } else {
             content.classList.remove('active');
@@ -40,7 +57,7 @@ export async function activateTab(tabName) {
     // Lógica para inicializar/interagir com o mapa APENAS quando a aba 'parkings' estiver ativa
     if (tabName === 'parkings') {
         console.log("activateTab: Aba 'parkings' ativada.");
-        // initMap() será chamada uma vez pelo main.js e subsequentemente retornará rapidamente
+        
         await initMap(); // Garante que o mapa esteja carregado
 
         // Pequeno delay para garantir que o elemento do mapa esteja visível e renderizado
@@ -50,7 +67,7 @@ export async function activateTab(tabName) {
                 google.maps.event.trigger(map, 'resize');
                 map.setCenter(map.getCenter()); // Re-centraliza o mapa
                 console.log("activateTab: Mapa redimensionado e centralizado.");
-                carregarSpotsDaListaEdoMapa(); // Esta função está neste arquivo (ui_handlers)
+                carregarSpotsDaListaEdoMapa();
                 configurarBuscaEndereco(); // Garante que o search/autocomplete funciona
             } else {
                 console.warn("activateTab: Mapa ou bibliotecas Google Maps não disponíveis para redimensionar ou carregar spots.");
@@ -69,7 +86,8 @@ export async function activateTab(tabName) {
 
 export async function carregarMinhasVagas() {
     try {
-        const vagas = await fetchMySpots();
+        // Se o fetchMySpots agora pega o token internamente, esta chamada está correta
+        const vagas = await fetchMySpots(); 
         const container = document.getElementById("myVagasContainer");
         if (container) {
             container.innerHTML = "";
@@ -81,6 +99,11 @@ export async function carregarMinhasVagas() {
         }
     } catch (error) {
         console.error("Erro ao carregar minhas vagas na UI:", error);
+        // Opcional: Mostrar uma mensagem de erro na UI
+        const container = document.getElementById("myVagasContainer");
+        if (container) {
+            container.innerHTML = `<p class="text-center text-red-500 mt-6">Erro ao carregar suas vagas: ${error.message}.</p>`;
+        }
     }
 }
 
@@ -90,7 +113,7 @@ export async function carregarSpotsDaListaEdoMapa() {
         const spots = await fetchSpots(); // Pega os spots da API
         console.log("carregarSpotsDaListaEdoMapa: Spots recebidos:", spots);
 
-        window.allSpots = spots; // <--- Importante para que a busca por ID funcione em main.js
+        window.allSpots = spots; // Importante para que a busca por ID funcione em main.js
 
         const list = document.querySelector("#parkings .overflow-y-auto");
         if (list) {
@@ -219,7 +242,6 @@ export function renderMySpot(spot) {
     container.prepend(card);
 
     // --- ADIÇÃO DOS LISTENERS DE EVENTO ---
-
     const editBtn = card.querySelector('[data-action="editar"]');
     if (editBtn) {
         editBtn.addEventListener('click', (event) => {
@@ -237,7 +259,7 @@ export function renderMySpot(spot) {
             const newStatus = currentAction === 'desativar' ? 'Desativada' : 'Ativa';
             const modalConfirm = document.getElementById("deactivate-confirm-modal");
             const confirmBtn = document.getElementById("confirm-deactivate");
-            // NOVO: Adicione o elemento de mensagem dinâmica aqui
+
             const modalMessage = modalConfirm?.querySelector('.modal-message-placeholder'); // Use uma classe para flexibilidade
 
             if (modalConfirm && confirmBtn && modalMessage) {
@@ -253,12 +275,12 @@ export function renderMySpot(spot) {
                 if (confirm(`Tem certeza que deseja ${currentAction} esta vaga?`)) {
                     updateSpotStatus(spot.id, newStatus)
                         .then(() => {
-                            // Cuidado: aqui você deve chamar o modal de sucesso, não alert()
+                            // Chamando o modal de sucesso
                             alert(`Vaga ${newStatus.toLowerCase()} com sucesso!`); // Temporário
                             carregarMinhasVagas();
                         })
                         .catch(error => {
-                            // Cuidado: aqui você deve chamar o modal de erro, não alert()
+                            // Chamando o modal de erro
                             console.error(`Erro ao ${currentAction} vaga:`, error);
                             alert(`Erro ao ${currentAction} vaga.`); // Temporário
                         });
@@ -273,8 +295,7 @@ export function renderMySpot(spot) {
             event.stopPropagation();
             const modalConfirm = document.getElementById("delete-confirm-modal");
             const confirmBtn = document.getElementById("confirm-delete");
-            // NOVO: Adicione o elemento de mensagem dinâmica aqui
-            const modalMessage = modalConfirm?.querySelector('.modal-message-placeholder'); // Use uma classe para flexibilidade
+            const modalMessage = modalConfirm?.querySelector('.modal-message-placeholder');
 
             if (modalConfirm && confirmBtn && modalMessage) {
                 modalMessage.textContent = "Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita."; // Atualiza a mensagem
@@ -287,13 +308,13 @@ export function renderMySpot(spot) {
                 if (confirm("Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.")) {
                     deleteSpot(spot.id)
                         .then(() => {
-                            // Cuidado: aqui você deve chamar o modal de sucesso, não alert()
+                            // Chamando o modal de sucesso
                             alert("Vaga excluída com sucesso!"); // Temporário
                             card.remove();
                             carregarMinhasVagas();
                         })
                         .catch(error => {
-                            // Cuidado: aqui você deve chamar o modal de erro, não alert()
+                            // Chamando o modal de erro
                             console.error("Erro ao excluir vaga:", error);
                             alert("Erro ao excluir vaga."); // Temporário
                         });
@@ -301,60 +322,277 @@ export function renderMySpot(spot) {
             }
         });
     }
+}
 
-    card.addEventListener("click", () => {
-        openReservationModal(spot);
+export function openReservationModal(spotDetails) {
+    const modal = document.getElementById('parking-detail-modal');
+    if (!modal) {
+        console.error("Erro: Modal de detalhes da vaga não encontrado.");
+        return;
+    }
+
+    modal.classList.remove('hidden'); // Torna o modal visível
+
+    currentSpotId = spotDetails.id;
+    const priceHour = parseFloat(spotDetails.price_hour); 
+    const priceHourFormatted = isNaN(priceHour) ? 'N/A' : priceHour.toFixed(2).replace('.', ',');
+
+
+    document.getElementById('modal-spot-price-hour').textContent = `Preço por hora: R$ ${priceHourFormatted}`;
+    document.getElementById('modal-parking-title').textContent = spotDetails.title;
+    document.getElementById('modal-parking-address').textContent = spotDetails.address;
+    document.getElementById('modal-parking-description').textContent = spotDetails.description;
+    // Formato com vírgula para moeda
+    document.getElementById('hourly-price').textContent = `R$ ${priceHourFormatted}`;
+
+    reservationDatePicker = document.getElementById("reservation-date-picker");
+    startTimeInput = document.getElementById("start-time");
+    endTimeInput = document.getElementById("end-time");
+    totalHoursSpan = document.getElementById("total-hours");
+    totalPriceSpan = document.getElementById("total-price");
+    availableSlotsForDateDiv = document.getElementById("available-slots-for-date");
+    dynamicTimeSlotsDiv = document.getElementById("dynamic-time-slots");
+    noSlotsMessageP = document.getElementById("no-slots-message");
+    vagasGridContainerDiv = document.getElementById("vagas-grid-container");
+    vagasGridDiv = document.getElementById("vagas-grid");
+    reserveButton = document.getElementById("confirm-reservation-btn");
+
+    const reservationDatePicker = document.getElementById("reservation-date-picker");
+    const startTimeInput = document.getElementById("start-time");
+    const endTimeInput = document.getElementById("end-time");
+    const totalHoursSpan = document.getElementById("total-hours");
+    const totalPriceSpan = document.getElementById("total-price");
+    const hourlyPriceSpan = document.getElementById("hourly-price");
+    const availableSlotsContainer = document.getElementById("available-slots-for-date");
+    const dynamicTimeSlots = document.getElementById("dynamic-time-slots");
+    const noSlotsMessage = document.getElementById("no-slots-message");
+    const vagasGridContainer = document.getElementById("vagas-grid-container");
+    const vagasGrid = document.getElementById("vagas-grid");
+    const confirmReservationBtn = document.getElementById("confirm-reservation-btn");
+
+    console.log("startTimeInput:", startTimeInput);
+    console.log("endTimeInput:", endTimeInput);   
+
+    // Usar removeEventListener antes para evitar múltiplos listeners em reaberturas do modal
+     if (startTimeInput) startTimeInput.removeEventListener("change", calculateTotalPrice);
+    if (endTimeInput) endTimeInput.removeEventListener("change", calculateTotalPrice);
+    if (reserveButton) reserveButton.removeEventListener("click", handleReserveButtonClick);
+    // Adicionar listeners APENAS SE OS ELEMENTOS EXISTEM
+    if (startTimeInput) startTimeInput.addEventListener("change", calculateTotalPrice);
+    if (endTimeInput) endTimeInput.addEventListener("change", calculateTotalPrice);
+    if (reserveButton) reserveButton.addEventListener("click", handleReserveButtonClick);
+
+    // Inicialize o Flatpickr
+    if (reservationDatePicker) {
+        if (reservationDatePicker._flatpickr) {
+            reservationDatePicker._flatpickr.destroy();
+        }
+        flatpickr(reservationDatePicker, {
+            // Suas configurações flatpickr
+            minDate: "today", // Garante que não se pode selecionar datas passadas
+            dateFormat: "Y-m-d",
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length > 0) {
+                    fetchAndRenderAvailability(spotDetails.id, dateStr);
+                }
+            }
+        });
+        // define a data inicial como hoje
+        reservationDatePicker.value = flatpickr.formatDate(new Date(), "Y-m-d");
+        reservationDatePicker.dispatchEvent(new Event('change'));
+    } else {
+        console.error("Erro: reservation-date-picker não encontrado.");
+    }
+
+    calculateTotalPrice();
+
+    fetchAndRenderAvailability(spotDetails.id, reservationDatePicker.value);
+}
+
+function renderAvailabilityForDate(selectedDateStr) {
+    if (!dynamicTimeSlotsDiv || !noSlotsMessageP || !vagasGridDiv || !vagasGridContainerDiv) {
+        console.error("Elementos de exibição de disponibilidade não encontrados.");
+        return;
+    }
+
+    dynamicTimeSlotsDiv.innerHTML = ''; 
+    vagasGridDiv.innerHTML = ''; 
+
+    const dailyAvailabilities = currentSpotAvailabilities.filter(avail => avail.available_date === selectedDateStr);
+
+    if (dailyAvailabilities.length === 0) {
+        noSlotsMessageP.textContent = "Nenhum horário disponível para esta data.";
+        noSlotsMessageP.classList.remove('hidden');
+        vagasGridContainerDiv.classList.add('hidden');
+        return;
+    }
+    noSlotsMessageP.classList.add('hidden');
+
+    dailyAvailabilities.forEach(slot => {
+        const slotDiv = document.createElement("div");
+        slotDiv.className = "flex items-center p-2 border rounded-md cursor-pointer hover:bg-blue-50 focus:bg-blue-100 time-slot-item";
+        slotDiv.dataset.slotId = slot.id || JSON.stringify(slot); 
+        slotDiv.innerHTML = `
+            <span class="font-medium">${slot.start_time.substring(0, 5)} - ${slot.end_time.substring(0, 5)}</span>
+            <span class="ml-auto text-blue-600">${slot.available_quantity} vagas disponíveis</span>
+        `;
+        dynamicTimeSlotsDiv.appendChild(slotDiv);
+
+        slotDiv.addEventListener('click', () => {
+            dynamicTimeSlotsDiv.querySelectorAll('.time-slot-item').forEach(div => {
+                div.classList.remove("bg-blue-200");
+            });
+            slotDiv.classList.add("bg-blue-200"); 
+
+            selectedAvailabilitySlot = slot; 
+
+            startTimeInput.value = slot.start_time;
+            endTimeInput.value = slot.end_time;
+            startTimeInput.disabled = false; 
+            endTimeInput.disabled = false;   
+
+            renderVagasGrid(slot.available_quantity); 
+            vagasGridContainerDiv.classList.remove('hidden');
+            calculateTotalPrice(); 
+        });
     });
 }
 
 
-export function openReservationModal(spot) {
-    const modal = document.getElementById("parking-detail-modal");
-    if (!modal) return;
-
-    document.getElementById("modal-parking-title").textContent = spot.title;
-    document.getElementById("modal-parking-address").textContent = spot.address;
-    document.getElementById("modal-parking-description").textContent = spot.description;
-
-    const priceHour = parseFloat(spot.price_hour);
-    document.getElementById("hourly-price").textContent = `R$ ${spot.price_hour ? spot.price_hour.toFixed(2).replace('.', ',') : '0,00'}`;
-    const modalImage = modal.querySelector('img');
-    if (modalImage && spot.photos && spot.photos.length > 0) {
-        modalImage.src = spot.photos[0].image;
-        modalImage.alt = spot.title;
-    } else if (modalImage) {
-        modalImage.src = '/static/parking/css/images/placeholder.png';
-        modalImage.alt = 'Vaga sem imagem';
-    }
-
-    document.getElementById("total-hours").textContent = "0";
-    document.getElementById("total-price").textContent = "R$ 0,00";
-
-    const vagasGrid = document.getElementById("vagas-grid");
-    if (!vagasGrid) {
-        console.error("Elemento 'vagas-grid' não encontrado.");
+function renderVagasGrid(quantity) {
+    if (!vagasGridDiv) {
+        console.error("Elemento vagas-grid não encontrado.");
         return;
     }
-    vagasGrid.innerHTML = "";
+    vagasGridDiv.innerHTML = ""; 
+    currentSelectedVaga = null; 
 
-    const numVagasDisplay = spot.quantity_vagas || 1;
+    if (quantity <= 0) {
+        vagasGridDiv.innerHTML = "<p class='text-red-500'>Nenhuma vaga disponível neste horário.</p>";
+        return;
+    }
 
-    for (let i = 1; i <= numVagasDisplay; i++) {
+    for (let i = 1; i <= quantity; i++) {
         const div = document.createElement("div");
         div.textContent = `V${i}`;
         div.className = "text-center p-2 rounded border cursor-pointer bg-green-100 hover:bg-blue-100";
         div.dataset.seat = `V${i}`;
         div.addEventListener("click", () => {
-            vagasGrid.querySelectorAll("div").forEach(d => d.classList.remove("bg-blue-500", "text-white"));
+            vagasGridDiv.querySelectorAll("div").forEach(d => d.classList.remove("bg-blue-500", "text-white"));
             div.classList.add("bg-blue-500", "text-white");
-            window.selectedVaga = `V${i}`;
+            currentSelectedVaga = `V${i}`; 
         });
-        vagasGrid.appendChild(div);
+        vagasGridDiv.appendChild(div);
     }
-
-    modal.classList.remove("hidden");
 }
 
+
+// --- Funções de Cálculo e Requisição de Reserva
+function calculateTotalPrice() {
+    const startTimeInput = document.getElementById("start-time");
+    const endTimeInput = document.getElementById("end-time");
+    const totalHoursSpan = document.getElementById("total-hours");
+    const totalPriceSpan = document.getElementById("total-price");
+    const hourlyPriceSpan = document.getElementById("hourly-price");
+
+    // Verificações antes de prosseguir com o cálculo
+    if (!startTimeInput || !endTimeInput || !totalHoursSpan || !totalPriceSpan || !hourlyPriceSpan) {
+        console.warn("calculateTotalPrice: Um ou mais elementos de cálculo não encontrados. O cálculo não será realizado.");
+        return;
+    }
+
+    const startTime = startTimeInput.value;
+    const endTime = endTimeInput.value;
+    const hourlyPriceText = hourlyPriceSpan.textContent; // "R$ 8,00"
+    const hourlyPrice = parseFloat(hourlyPriceText.replace('R$', '').replace(',', '.').trim());
+
+    if (!startTime || !endTime || isNaN(hourlyPrice)) {
+        totalHoursSpan.textContent = "0";
+        totalPriceSpan.textContent = "R$ 0,00";
+        return;
+    }
+
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+
+    if (end < start) {
+        totalHoursSpan.textContent = "0";
+        totalPriceSpan.textContent = "R$ 0,00";
+        alert("A hora final não pode ser antes da hora de início.");
+        return;
+    }
+
+    const diffMs = end - start; // Diferença em milissegundos
+    const diffHours = diffMs / (1000 * 60 * 60); // Diferença em horas
+
+    totalHoursSpan.textContent = diffHours.toFixed(2).replace('.', ',');
+    totalPriceSpan.textContent = `R$ ${(diffHours * hourlyPrice).toFixed(2).replace('.', ',')}`;
+}
+
+function handleConfirmReservation(spotDetails) {
+    // Lógica para confirmar a reserva
+    console.log("Reserva confirmada para:", spotDetails);
+    // Exibir modal de confirmação, enviar para a API, etc.
+}
+
+async function handleReserveButtonClick() { // Tornar uma função separada
+    // Validação antes de enviar
+    if (!currentSpotId || !selectedAvailabilitySlot || !currentSelectedVaga || 
+        !reservationDatePicker.value ||
+        !startTimeInput.value ||
+        !endTimeInput.value) {
+        alert("Por favor, selecione uma data, horário e vaga para a reserva.");
+        return;
+    }
+
+    const reservationData = {
+        spot: currentSpotId,
+        reservation_date: reservationDatePicker.value,
+        start_time: startTimeInput.value,
+        end_time: endTimeInput.value,
+        selected_vaga: currentSelectedVaga, 
+    };
+
+    try {
+        const response = await fetch('/api/reservations/', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') 
+            },
+            body: JSON.stringify(reservationData)
+        });
+
+        if (response.ok) {
+            alert("Reserva realizada com sucesso!");
+            document.getElementById("parking-detail-modal").classList.add("hidden");
+        } else {
+            const errorData = await response.json();
+            alert(`Erro ao reservar: ${JSON.stringify(errorData)}`);
+        }
+    } catch (error) {
+        console.error("Erro na requisição de reserva:", error);
+        alert("Ocorreu um erro ao tentar reservar a vaga.");
+    }
+}
+
+// Helper para CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// --- Setup dos Listeners de Modais e Botões de Ação ---
 export function setupModalClosers() {
     document.getElementById("close-modal")?.addEventListener("click", () => {
         const modal = document.getElementById("parking-detail-modal");
@@ -382,11 +620,11 @@ export function setupModalClosers() {
     });
 
     document.getElementById("error-ok")?.addEventListener("click", () => {
-    document.getElementById("error-modal").classList.add("hidden");
-});
+        document.getElementById("error-modal").classList.add("hidden");
+    });
 
 
- const confirmDeactivateBtn = document.getElementById("confirm-deactivate");
+    const confirmDeactivateBtn = document.getElementById("confirm-deactivate");
     if (confirmDeactivateBtn) {
         confirmDeactivateBtn.addEventListener("click", async () => {
             const spotId = confirmDeactivateBtn.dataset.spotId;
@@ -400,8 +638,8 @@ export function setupModalClosers() {
                 try {
                     await updateSpotStatus(spotId, newStatus);
                     // Mostra o modal de sucesso
-                    const successModal = document.getElementById("delete-success-modal"); // Você pode renomear este para algo mais genérico ou criar um novo
-                    const successMessage = successModal?.querySelector('.modal-message-placeholder'); // Adicione um placeholder para mensagem dinâmica
+                    const successModal = document.getElementById("delete-success-modal"); 
+                    const successMessage = successModal?.querySelector('.modal-message-placeholder');
                     if (successModal && successMessage) {
                         successMessage.textContent = `Vaga ${actionType === 'desativar' ? 'desativada' : 'ativada'} com sucesso!`;
                         successModal.classList.remove("hidden");
@@ -462,5 +700,5 @@ export function setupModalClosers() {
                 }
             }
         });
-    }
+    }    
 }
