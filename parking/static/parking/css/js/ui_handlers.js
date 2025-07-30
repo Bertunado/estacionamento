@@ -16,7 +16,7 @@ let dynamicVagaSquaresDiv;
 let noSlotsMessageP;
 let reserveButton;
 let reservationModal; 
-let reservationCalendarInstance;
+let reservationCalendarInstance = null;
 let currentSpotDetails;
 let modalParkingTitle;
 let modalParkingAddress;
@@ -26,6 +26,11 @@ let modalParkingQuantity;
 let modalSpotPriceHourElement; // Renomeado para evitar conflito de nome com a variável global `currentSpotPriceHour`
 let modalSpotLocationElement; // Esta é a que estava faltando!
 let modalParkingImage;
+let currentSelectedSlot = {
+    date: null,
+    slotNumber: null
+};
+
 
 document.addEventListener('DOMContentLoaded', () => {
     reservationModal = document.getElementById('parking-detail-modal');
@@ -429,6 +434,88 @@ export function renderMySpot(spot) {
     }
 }
 
+// Calculadora que atualiza os valores da reserva no card do modal
+function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endTime) {
+    // Referências para a calculadora "Por Hora"
+    const hourlyPriceElement = document.getElementById('hourly-price');
+    const totalHoursElement = document.getElementById('total-hours');
+    const totalPriceElement = document.getElementById('total-price');
+
+    // Referências para a calculadora "Por Dia"
+    const dailyPriceElement = document.getElementById('daily-price');
+    const dailyTimesElement = document.getElementById('daily-times');
+    const dailyTotalPriceElement = document.getElementById('daily-total-price');
+
+    // Verifica se os elementos HTML da calculadora por hora existem
+    if (!hourlyPriceElement || !totalHoursElement || !totalPriceElement) {
+        console.error("Erro: Elementos da calculadora 'Por hora' não encontrados no modal.");
+        return;
+    }
+    // Verifica se os elementos HTML da calculadora por dia existem
+    if (!dailyPriceElement || !dailyTimesElement || !dailyTotalPriceElement) {
+        console.error("Erro: Elementos da calculadora 'Por dia' não encontrados no modal.");
+        return;
+    }
+
+    const priceHour = parseFloat(spotDetails.price_hour);
+    const priceDay = parseFloat(spotDetails.price_day); // Assumindo que você tem um 'price_day' nos spotDetails
+    const availableStartTime = spotDetails.daily_start_time; 
+    const availableEndTime = spotDetails.daily_end_time;  
+
+    // --- LÓGICA DA CALCULADORA "POR HORA" ---
+    hourlyPriceElement.textContent = `R$ ${priceHour.toFixed(2).replace('.', ',')}`;
+
+    if (!selectedSlotDate || !startTime || !endTime) {
+        totalHoursElement.textContent = '0';
+        totalPriceElement.textContent = 'R$ 0,00';
+    } else {
+        const startDateTime = new Date(`${selectedSlotDate}T${startTime}`);
+        const endDateTime = new Date(`${selectedSlotDate}T${endTime}`);
+
+        if (endDateTime <= startDateTime) {
+            totalHoursElement.textContent = 'Inválido';
+            totalPriceElement.textContent = 'R$ 0,00';
+        } else {
+            const durationMs = endDateTime - startDateTime;
+            const durationMinutes = durationMs / (1000 * 60);
+            const pricePerMinute = priceHour / 60;
+            const totalPrice = durationMinutes * pricePerMinute;
+
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = Math.round(durationMinutes % 60);
+
+            let totalDurationText = '';
+            if (hours > 0) {
+                totalDurationText += `${hours}h`;
+            }
+            if (minutes > 0 || (hours === 0 && minutes === 0 && durationMinutes === 0)) {
+                if (totalDurationText !== '') totalDurationText += ' ';
+                totalDurationText += `${minutes}m`;
+            }
+            
+            totalHoursElement.textContent = totalDurationText || '0';
+            totalPriceElement.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+        }
+    }
+
+    // LÓGICA DA CALCULADORA "POR DIA" 
+    if (!isNaN(priceDay) && priceDay > 0) { // Verifica se há um preço diário válido
+        dailyPriceElement.textContent = `R$ ${priceDay.toFixed(2).replace('.', ',')}`;
+        dailyTotalPriceElement.textContent = `R$ ${priceDay.toFixed(2).replace('.', ',')}`;
+    } else {
+        dailyPriceElement.textContent = `N/A`;
+        dailyTotalPriceElement.textContent = `R$ 0,00`; // Ou desabilitar/esconder a seção
+    }
+
+    // Exibe os horários de entrada e saída disponíveis para a diária
+    if (availableStartTime && availableEndTime) {
+        dailyTimesElement.textContent = `${availableStartTime.substring(0, 5)} até ${availableEndTime.substring(0, 5)}`; // "HH:MM"
+    } else {
+        dailyTimesElement.textContent = `Não informado`;
+    }
+}
+
+
 // Atualiza os cards de vagas no mapa e na lista
 export function openParkingDetailModal(spotDetails) {
     const modal = document.getElementById('parking-detail-modal');
@@ -439,14 +526,237 @@ export function openParkingDetailModal(spotDetails) {
 
     modal.classList.remove('hidden');
 
-    currentSpotDetails = spotDetails; // Armazena os detalhes da vaga sendo reservada globalmente
+    console.log("Spot Details completo recebido na função:", spotDetails);
+
+    currentSpotDetails = spotDetails;
     currentSpotId = spotDetails.id;
 
-    // Preenche os detalhes da vaga no modal
+    const modalParkingTitle = modal.querySelector('#modal-parking-title');
+    const modalParkingAddress = modal.querySelector('#modal-parking-address');
+    const modalParkingDescription = modal.querySelector('#modal-parking-description');
+    const modalParkingType = modal.querySelector('#modal-parking-type');
+    const modalParkingQuantity = modal.querySelector('#modal-parking-quantity');
+    const modalSpotPriceHourElement = modal.querySelector('#modal-spot-price-hour');
+    const modalSpotLocationElement = modal.querySelector('#modal-spot-location');
+    const modalParkingImage = modal.querySelector('#modal-parking-image');
+    
+    const availabilityCalendar = modal.querySelector('#reservation-calendar'); 
+
+    const selectedDatesDisplay = modal.querySelector('#selected-reservation-dates-display');
+    const availableSlotsForDateContainer = modal.querySelector('#available-slots-for-date');
+    const dynamicVagaSquares = modal.querySelector('#dynamic-vaga-squares');
+    const noSlotsMessage = modal.querySelector('#no-slots-message');
+
+    const selectedSlotDetailsSection = modal.querySelector('#selected-slot-details-section');
+    const selectedSlotNumberDisplay = modal.querySelector('#selected-slot-number');
+    const selectedSlotDateDisplay = modal.querySelector('#selected-slot-date-display');
+    const startTimeInput = modal.querySelector('#start-time-input');
+    const endTimeInput = modal.querySelector('#end-time-input');
+
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceHourFormatted = isNaN(priceHour) ? 'N/A' : priceHour.toFixed(2).replace('.', ',');
 
-    // Preenche os elementos do modal usando as variáveis referenciadas
+    if (modalParkingTitle) modalParkingTitle.textContent = spotDetails.title || '(Título não disponível)';
+    if (modalParkingAddress) modalParkingAddress.textContent = spotDetails.address || '(Endereço não disponível)';
+
+    let availabilityArray = [];
+
+    if (spotDetails && Array.isArray(spotDetails.dates_availability)) {
+        availabilityArray = spotDetails.dates_availability;
+        console.log("openParkingDetailModal: Usando spotDetails.dates_availability diretamente como array.");
+     } 
+    else if (spotDetails && spotDetails.dates_availability && Array.isArray(spotDetails.dates_availability.dates_availability)) {
+        availabilityArray = spotDetails.dates_availability.dates_availability;
+        console.log("openParkingDetailModal: Array de disponibilidade encontrado aninhado em spotDetails.dates_availability.dates_availability.");
+    }
+    else if (spotDetails && Array.isArray(spotDetails.availabilities_by_date)) {
+        availabilityArray = spotDetails.availabilities_by_date;
+        console.log("openParkingDetailModal: Array de disponibilidade encontrado em 'availabilities_by_date'.");
+    }
+    else {
+         console.warn("openParkingDetailModal: Não foi possível encontrar o array de datas de disponibilidade no formato esperado. Default para vazio.");
+     }
+
+    console.log("Array de disponibilidade RAW (antes do filtro):", availabilityArray);
+
+    const availableDates = availabilityArray
+        .filter(av => av.available_quantity > 0)
+        .map(av => av.available_date);
+        
+    console.log("Datas disponíveis para o Flatpickr (enable):", availableDates);
+
+    if (reservationCalendarInstance) {
+        reservationCalendarInstance.destroy();
+        console.log("Instância anterior do Flatpickr destruída.");
+    }
+
+    if (availabilityCalendar) {
+        reservationCalendarInstance = flatpickr(availabilityCalendar, {
+            mode: "multiple",
+            dateFormat: "Y-m-d",
+            locale: flatpickr.l10ns.pt,
+            minDate: "today",
+            enable: availableDates,
+            onChange: function(selectedDates, dateStr, instance) {
+                console.log("Datas selecionadas para reserva:", selectedDates);
+
+                currentSelectedSlot = { date: null, slotNumber: null };
+                if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
+                if (startTimeInput) startTimeInput.value = '';
+                if (endTimeInput) endTimeInput.value = '';
+                updateReservationSummary(currentSpotDetails, null, null, null);
+
+
+                if (dynamicVagaSquares) {
+                    dynamicVagaSquares.querySelectorAll('.bg-purple-600, .hover\\:scale-110').forEach(el => {
+                        el.classList.remove('bg-purple-600');
+                        el.classList.add('bg-green-500');
+                        el.classList.remove('scale-110');
+                    });
+                }
+
+
+                if (selectedDates.length > 0) {
+                    if (selectedDatesDisplay) {
+                        selectedDatesDisplay.textContent = "Datas selecionadas: " + selectedDates.map(d => flatpickr.formatDate(d, "d/m/Y")).join(', ');
+                    }
+                    
+                    if (availableSlotsForDateContainer) {
+                        availableSlotsForDateContainer.classList.remove('hidden');
+                    }
+
+                    if (dynamicVagaSquares) {
+                        dynamicVagaSquares.innerHTML = '';
+                    }
+
+                    let hasSlotsToShow = false;
+
+                    selectedDates.forEach(selectedDate => {
+                        const formattedSelectedDate = flatpickr.formatDate(selectedDate, "Y-m-d");
+                        const slotInfo = availabilityArray.find(av => av.available_date === formattedSelectedDate);
+
+                        if (slotInfo && slotInfo.available_quantity > 0) {
+                            hasSlotsToShow = true;
+                            const dateHeader = document.createElement('h4');
+                            dateHeader.className = 'text-md font-semibold text-gray-700 w-full mt-2 mb-1';
+                            dateHeader.textContent = `Vagas para ${flatpickr.formatDate(selectedDate, "d/m/Y")}:`;
+                            if (dynamicVagaSquares) dynamicVagaSquares.appendChild(dateHeader);
+
+                            for (let i = 0; i < slotInfo.available_quantity; i++) {
+                                const vagaSquare = document.createElement('div');
+                                vagaSquare.className = 'vaga-square w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white font-bold text-sm m-1 transition-transform duration-200 ease-in-out cursor-pointer';
+                                vagaSquare.textContent = `${i + 1}`;
+                                vagaSquare.dataset.slotNumber = i + 1;
+                                vagaSquare.dataset.slotDate = formattedSelectedDate;
+
+                                vagaSquare.addEventListener('mouseenter', () => {
+                                    vagaSquare.classList.add('scale-110');
+                                });
+                                vagaSquare.addEventListener('mouseleave', () => {
+                                    if (!vagaSquare.classList.contains('bg-purple-600')) {
+                                        vagaSquare.classList.remove('scale-110');
+                                    }
+                                });
+
+                                vagaSquare.addEventListener('click', () => {
+                                    dynamicVagaSquares.querySelectorAll('.vaga-square').forEach(sq => {
+                                        sq.classList.remove('bg-purple-600', 'scale-110');
+                                        sq.classList.add('bg-green-500');
+                                    });
+
+                                    vagaSquare.classList.remove('bg-green-500');
+                                    vagaSquare.classList.add('bg-purple-600', 'scale-110');
+
+                                    currentSelectedSlot.date = formattedSelectedDate;
+                                    currentSelectedSlot.slotNumber = parseInt(vagaSquare.dataset.slotNumber);
+                                    console.log("Vaga selecionada:", currentSelectedSlot);
+
+                                    if (selectedSlotDetailsSection) {
+                                        selectedSlotDetailsSection.classList.remove('hidden');
+                                    }
+                                    if (selectedSlotNumberDisplay) {
+                                        selectedSlotNumberDisplay.textContent = currentSelectedSlot.slotNumber;
+                                    }
+                                    if (selectedSlotDateDisplay) {
+                                        const displayDate = flatpickr.formatDate(selectedDate, "d/m/Y");
+                                        selectedSlotDateDisplay.textContent = displayDate;
+                                    }
+                                    
+                                    updateReservationSummary(
+                                        currentSpotDetails,
+                                        currentSelectedSlot.date,
+                                        startTimeInput ? startTimeInput.value : null,
+                                        endTimeInput ? endTimeInput.value : null
+                                    );
+                                });
+
+                                if (dynamicVagaSquares) dynamicVagaSquares.appendChild(vagaSquare);
+                            }
+                        }
+                    });
+
+                    if (noSlotsMessage) {
+                        if (hasSlotsToShow) {
+                            noSlotsMessage.classList.add('hidden');
+                        } else {
+                            noSlotsMessage.classList.remove('hidden');
+                            noSlotsMessage.textContent = 'Não há vagas disponíveis para as datas selecionadas.';
+                        }
+                    }
+
+                } else {
+                    if (selectedDatesDisplay) {
+                        selectedDatesDisplay.textContent = "Nenhuma data selecionada ainda.";
+                    }
+                    if (availableSlotsForDateContainer) {
+                        availableSlotsForDateContainer.classList.add('hidden');
+                    }
+                    if (dynamicVagaSquares) {
+                        dynamicVagaSquares.innerHTML = '';
+                    }
+                    if (noSlotsMessage) {
+                        noSlotsMessage.classList.remove('hidden');
+                        noSlotsMessage.textContent = 'Selecione uma data para ver as vagas disponíveis.';
+                    }
+                    if (selectedSlotDetailsSection) {
+                        selectedSlotDetailsSection.classList.add('hidden');
+                    }
+                    currentSelectedSlot = { date: null, slotNumber: null };
+                    updateReservationSummary(currentSpotDetails, null, null, null);
+                }
+            }
+        });
+    } else {
+        console.error("Erro: Elemento do calendário de disponibilidade (reservation-calendar) não encontrado.");
+    }
+
+    if (startTimeInput) {
+        startTimeInput.addEventListener('change', () => {
+            updateReservationSummary(
+                currentSpotDetails,
+                currentSelectedSlot.date,
+                startTimeInput.value,
+                endTimeInput ? endTimeInput.value : null
+            );
+        });
+    }
+
+    if (endTimeInput) {
+        endTimeInput.addEventListener('change', () => {
+            updateReservationSummary(
+                currentSpotDetails,
+                currentSelectedSlot.date,
+                startTimeInput ? startTimeInput.value : null,
+                endTimeInput.value
+            );
+        });
+    }
+
+    // INICIALIZA A CALCULADORA QUANDO O MODAL ABRE, garantindo que os valores apareçam corretamente
+    updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
+
+
+    // ... (restante dos preenchimentos de elementos do modal) ...
     if (modalParkingTitle) modalParkingTitle.textContent = spotDetails.title || '(Título não disponível)';
     if (modalParkingAddress) modalParkingAddress.textContent = spotDetails.address || '(Endereço não disponível)';
     if (modalParkingDescription) modalParkingDescription.textContent = spotDetails.description || '(Descrição não disponível)';
@@ -456,7 +766,6 @@ export function openParkingDetailModal(spotDetails) {
 
     if (modalParkingQuantity) modalParkingQuantity.textContent = `Vagas disponíveis: ${spotDetails.quantity || '1'}`;
     
-    // Usando a nova referência para o preço por hora
     if (modalSpotPriceHourElement) modalSpotPriceHourElement.textContent = `Preço por hora: R$ ${priceHourFormatted}`;
 
     if (modalSpotLocationElement) {
@@ -473,16 +782,9 @@ export function openParkingDetailModal(spotDetails) {
         if (spotDetails.photos && spotDetails.photos.length > 0 && spotDetails.photos[0].image) {
             modalParkingImage.src = spotDetails.photos[0].image;
         } else {
-            // Fallback para imagem placeholder se não houver foto
             modalParkingImage.src = '/static/parking/css/images/placeholder.png';
         }
         modalParkingImage.alt = spotDetails.description || spotDetails.title || 'Imagem da vaga';
-    }
-
-    if (reservationCalendarInstance) {
-        reservationCalendarInstance.clear(); // Limpa todas as datas selecionadas no Flatpickr
-    } else {
-        console.warn("Flatpickr instance for reservation not initialized. Cannot clear dates.");
     }
 }
 
