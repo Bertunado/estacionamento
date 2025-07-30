@@ -28,6 +28,7 @@ class ParkingSpot(models.Model):
 
     def __str__(self):
         return f"{self.title} – {self.address}"
+        
 
 class SpotAvailability(models.Model):
     spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name='availabilities_by_date')

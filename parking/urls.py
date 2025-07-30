@@ -5,6 +5,7 @@ from django.contrib.auth import views as auth_views
 from .forms import EmailAuthenticationForm
 from rest_framework.routers import DefaultRouter 
 from rest_framework.authtoken.views import obtain_auth_token
+from .views import get_spot_availability_by_spot_id
 
 router = DefaultRouter()
 router.register(r'spots', views.ParkingSpotViewSet, basename='parking_spot') 
@@ -26,9 +27,9 @@ urlpatterns = [
     path('salvar-disponibilidade/', views.salvar_disponibilidade, name='salvar_disponibilidade'),
     path('api/token/login/', obtain_auth_token, name='api_token_auth'), # Endpoint para obter o token
 
-    
-    # Coloque a URL específica da API de minhas-vagas ANTES do include do router.urls
-    path('api/minhas-vagas/', views.MinhasVagasView.as_view(), name='minhas_vagas_api'), 
+    path('api/spots/<int:spot_id>/availability/', get_spot_availability_by_spot_id, name='spot-availability-by-spot-id'),
+
+    path('api/minhas-vagas/', views.MinhasVagasView.as_view(), name='minhas_vagas_api'),
     
     # URLs de autenticação do Django
     path('login/', auth_views.LoginView.as_view(

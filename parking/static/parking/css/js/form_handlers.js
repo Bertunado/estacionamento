@@ -16,7 +16,6 @@ import { clearPhotoPreviews } from './photo_upload.js'; // Para limpar o preview
 export async function handleSubmitSpot(e) {
   e.preventDefault();
   const form = e.target;
-
   const formData = new FormData(form);
   const title = formData.get("title")?.trim();
   const address = formData.get("address")?.trim();
@@ -25,6 +24,9 @@ export async function handleSubmitSpot(e) {
   const size = formData.get("size") || "Indefinido";
   const tipo_vaga = formData.get("tipo_vaga");
   const description = formData.get("description")?.trim();
+  const quantity = formData.get("quantity"); 
+  const disponibilidadesParaSalvar = coletarDisponibilidades(); 
+
 
   if (!title || !address || !description) {
     alert("Preencha título, endereço e descrição.");
@@ -39,7 +41,6 @@ export async function handleSubmitSpot(e) {
 
   const latitude = Number(loc.lat.toFixed(6));
   const longitude = Number(loc.lng.toFixed(6));
-  const disponibilidade = coletarDisponibilidades(); // Usa a função do módulo de disponibilidade
 
   const payload = {
     title,
@@ -51,11 +52,18 @@ export async function handleSubmitSpot(e) {
     size,
     tipo_vaga,
     description,
-    disponibilidade,
+    quantity: parseInt(quantity || '1'),
   };
 
   try {
         const spot = await createSpot(payload); // Cria a vaga sem as fotos
+
+         if (disponibilidadesParaSalvar.length > 0) {
+            await saveAvailabilities(spot.id, disponibilidadesParaSalvar); 
+            console.log("Disponibilidades salvas com sucesso!");
+        } else {
+            console.log("Nenhuma disponibilidade para salvar.");
+        }
 
         // --- LÓGICA DE UPLOAD DE FOTOS ---
         if (uploadedFiles.length > 0) {
@@ -207,7 +215,9 @@ export function setupEditSpotForm(spotToEdit) {
             size,
             tipo_vaga,
             description,
-            availabilities: disponibilidade,
+            availabilities: disponibilidadesPorData, 
+            quantity: parseInt(quantity || '1'), // Certifique-se de que é um número, fallback para 1
+
         };
 
         try {

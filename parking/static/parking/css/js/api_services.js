@@ -1,4 +1,5 @@
 // Contém as funções para fazer requisições a API.
+import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
 
 function getCsrfToken() {
     // Busca o token CSRF do cookie, que é o método padrão do Django
@@ -148,28 +149,28 @@ export async function uploadPhotos(spotId, files) {
 }
 
 export async function saveAvailabilities(spotId, availabilities) {
-    const csrfToken = getCsrfToken(); // Obtendo o token aqui
-    if (!csrfToken) {
-        throw new Error("CSRF token ausente. Não foi possível salvar disponibilidades.");
-    }
-    const data = {
-        spot_id: spotId,
-        availabilities: availabilities
-    };
+    try {
+        const response = await fetch('/parking/salvar-disponibilidade/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'), // Certifique-se de ter essa função
+            },
+            body: JSON.stringify({
+                spot_id: spotId,
+                availabilities: availabilities // O array de objetos de disponibilidade
+            })
+        });
 
-    const response = await fetch("/salvar-disponibilidade/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken // Usando a função para obter o token
-        },
-        body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-        throw new Error("Erro ao salvar disponibilidades");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao salvar disponibilidades.');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Erro na API saveAvailabilities:", error);
+        throw error;
     }
-    return response.json();
 }
 
 export async function fetchMySpots() {

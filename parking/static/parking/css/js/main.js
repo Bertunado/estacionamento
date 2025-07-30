@@ -3,7 +3,7 @@
 // Importando diretamente o que é necessário de cada arquivo
 import { initMap, localizarUsuario, configurarBuscaEndereco, initializeAutocomplete, limparMarkers, adicionarMarkerSpot, map } from './map_utilities.js';
 import { handleSubmitSpot, setupEditSpotForm } from './form_handlers.js';
-import { openReservationModal, renderMySpot, renderSpot, setupModalClosers, activateTab, carregarSpotsDaListaEdoMapa } from './ui_handlers.js';
+import { openParkingDetailModal, renderMySpot, renderSpot, setupModalClosers, activateTab, carregarSpotsDaListaEdoMapa } from './ui_handlers.js';
 import { setupAvailabilityFields } from './availability_manager.js';
 import { setupPhotoUpload } from './photo_upload.js';
 import { fetchSpotDetails, deleteSpot, updateSpotStatus, fetchSpots, fetchMySpots } from './api_services.js';
@@ -48,7 +48,7 @@ async function initializeApplication() {
 
         // Event listener para marcadores do mapa (recebe do map_utilities)
         document.addEventListener("spotMarkerClicked", (event) => {
-            openReservationModal(event.detail); // Usa a função importada
+            openParkingDetailModal(event.detail); // Usa a função importada
         });
 
         // Event listener para abrir modal de reserva (clique no card da lista)
@@ -60,13 +60,13 @@ async function initializeApplication() {
             // É crucial que window.allSpots seja atualizado por carregarSpotsDaListaEdoMapa
             const spot = window.allSpots?.find((s) => s.id == spotId); // Assume que allSpots é global
             if (spot) {
-                openReservationModal(spot);
+                openParkingDetailModal(spot);
             } else {
                 console.warn(`Spot com ID ${spotId} não encontrado em allSpots. Tentando buscar detalhes...`);
                 try {
                     const fetchedSpot = await fetchSpotDetails(spotId);
                     if (fetchedSpot) {
-                        openReservationModal(fetchedSpot);
+                        openParkingDetailModal(fetchedSpot);
                     } else {
                         console.error(`Não foi possível encontrar ou buscar detalhes para o spot ID: ${spotId}`);
                         alert("Detalhes da vaga não encontrados.");

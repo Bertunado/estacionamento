@@ -1,4 +1,5 @@
 // static/parking/js/login_handler.js
+import { getCookie } from './utils.js'; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
@@ -60,20 +61,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
-// Helper para obter o CSRF token de um cookie
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Verifica se o cookie começa com o nome desejado
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}

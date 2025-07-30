@@ -5,7 +5,7 @@ from django.http import JsonResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from .serializers import ParkingSpotSerializer, ReservationSerializer, ParkingSpotPhotoSerializer, SpotAvailabilitySerializer
-from rest_framework import generics, permissions, serializers, viewsets
+from rest_framework import generics, permissions, serializers, viewsets, status
 from .forms import PerfilForm, RegistroUsuarioForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model, login
@@ -23,6 +23,9 @@ import logging
 from rest_framework.parsers import MultiPartParser, FormParser
 from decimal import Decimal
 from datetime import datetime
+from rest_framework.decorators import api_view, permission_classes
+
+
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -145,7 +148,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
 def salvar_disponibilidade(request):
     if request.method == "POST":
         data = json.loads(request.body)
-
         spot_id = data.get("spot_id")
         availabilities_data = data.get("availabilities", [])
 
@@ -154,26 +156,38 @@ def salvar_disponibilidade(request):
         except ParkingSpot.DoesNotExist:
             return JsonResponse({"error": "Vaga não encontrada"}, status=404)
 
-        # Apaga disponibilidades anteriores, se necessário
-        Availability.objects.filter(spot=spot).delete()
+        # APAGA TODAS AS DISPONIBILIDADES EXISTENTES PARA ESTE SPOT
+        SpotAvailability.objects.filter(spot=spot).delete() 
 
-        # Cria novas disponibilidades
         for item in availabilities_data:
-            weekday = item.get("weekday")
-            start = parse_time(item.get("start"))
-            end = parse_time(item.get("end"))
-            quantity = item.get("quantity", 1)
+            available_date_str = item.get("available_date")
+            start_time_str = item.get("start_time")
+            end_time_str = item.get("end_time")
+            available_quantity = item.get("available_quantity", 1) 
 
-            Availability.objects.create(
+            if not all([available_date_str, start_time_str, end_time_str, available_quantity is not None]):
+                logger.error(f"Dados incompletos para SpotAvailability (salvar): {item}")
+                continue
+
+            try:
+                # Parsear a data para objeto date
+                available_date = datetime.strptime(available_date_str, '%Y-%m-%d').date()
+                # Parsear os horários
+                start_time = parse_time(start_time_str)
+                end_time = parse_time(end_time_str)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Erro de formato de data/hora ou tipo em SpotAvailability ao salvar: {e}, dados: {item}")
+                continue
+
+            # Cria o registro no modelo
+            SpotAvailability.objects.create(
                 spot=spot,
-                weekday=weekday,
-                start=start,
-                end=end,
-                quantity=quantity
+                available_date=available_date,
+                start_time=start_time,
+                end_time=end_time,
+                available_quantity=available_quantity
             )
-
-        return JsonResponse({"success": True, "spot_id": spot.id})
-
+        return JsonResponse({"success": True, "spot_id": spot.id}, status=200)
     return JsonResponse({"error": "Método não permitido"}, status=405)
 
 class ParkingSpotListCreateAPIView(generics.ListCreateAPIView):
@@ -214,6 +228,62 @@ class SpotAvailabilityViewSet(viewsets.ModelViewSet):
         if spot_id is not None:
             queryset = queryset.filter(spot__id=spot_id)
         return queryset
+    
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny]) 
+def get_spot_availability_by_spot_id(request, spot_id):
+    """
+    Retorna a capacidade total de vagas para um ParkingSpot específico e a disponibilidade
+    para as datas solicitadas (ou uma simulação se não houver dados específicos).
+    """
+    try:
+        spot = ParkingSpot.objects.get(pk=spot_id) 
+    except ParkingSpot.DoesNotExist:
+        return Response({'detail': 'Vaga de estacionamento (Spot) não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+    data = {
+        'spot_id': spot.id,
+        'capacity': spot.quantity, # Mantém a capacidade total da vaga
+        'dates_availability': []
+    }
+
+    dates_param = request.query_params.get('dates', None)
+    if dates_param:
+        date_strings = dates_param.split(',')
+        for date_str in date_strings:
+            try:
+                # Converte a string da data para um objeto date
+                query_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                
+                availability_for_date = SpotAvailability.objects.filter(
+                    spot=spot, 
+                    available_date=query_date
+                ).first() # Pega a primeira entrada para essa data
+
+                if availability_for_date:
+                    available_q = availability_for_date.available_quantity
+                else:
+                    # Se não houver uma entrada de SpotAvailability para esta data,
+                    # consideramos que não há vagas disponíveis para aluguel naquele dia específico.
+                    available_q = 0 
+
+                data['dates_availability'].append({
+                    'date': date_str,
+                    'available_slots': available_q 
+                })
+            except ValueError:
+                data['dates_availability'].append({
+                    'date': date_str,
+                    'available_slots': 0, 
+                    'error': 'Formato de data inválido'
+                })
+    else:
+        data['dates_availability'].append({
+            'date': 'N/A', 
+            'available_slots': spot.quantity # Mantém o fallback para a capacidade total se não houver datas solicitadas
+        })
+
+    return Response(data, status=status.HTTP_200_OK)
 
 class ParkingSpotDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = ParkingSpot.objects.all()
