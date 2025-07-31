@@ -5,6 +5,7 @@ import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus } from './api_se
 import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregarSpots as carregarSpotsDoMapa } from './map_utilities.js';
 import { setupEditSpotForm } from './form_handlers.js';
 import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
+import { setupAvailabilityFields } from './availability_manager.js';
 
 
 // Variáveis para guardar o estado do modal de reserva
@@ -17,7 +18,8 @@ let noSlotsMessageP;
 let reserveButton;
 let reservationModal; 
 let reservationCalendarInstance = null;
-let currentSpotDetails;
+let currentSpotDetails = null;
+let currentSelectedReservationOption = null;
 let modalParkingTitle;
 let modalParkingAddress;
 let modalParkingDescription;
@@ -159,8 +161,12 @@ export async function activateTab(tabName) {
     } else if (tabName === 'my-parkings') {
         carregarMinhasVagas();
     } else if (tabName === "add-parking") {
+        console.log("activateTab: Aba 'add-parking' ativada.");
         setTimeout(() => {
             initializeAutocomplete();
+            // --- ADICIONAR A CHAMADA PARA setupAvailabilityFields AQUI ---
+            setupAvailabilityFields(); 
+            console.log("setupAvailabilityFields() chamado ao ativar a aba 'add-parking'.");
         }, 100);
     }
 }
@@ -458,9 +464,7 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
     }
 
     const priceHour = parseFloat(spotDetails.price_hour);
-    const priceDay = parseFloat(spotDetails.price_day); // Assumindo que você tem um 'price_day' nos spotDetails
-    const availableStartTime = spotDetails.daily_start_time; 
-    const availableEndTime = spotDetails.daily_end_time;  
+    const priceDay = parseFloat(spotDetails.price_day);
 
     // --- LÓGICA DA CALCULADORA "POR HORA" ---
     hourlyPriceElement.textContent = `R$ ${priceHour.toFixed(2).replace('.', ',')}`;
@@ -470,51 +474,62 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
         totalPriceElement.textContent = 'R$ 0,00';
     } else {
         const startDateTime = new Date(`${selectedSlotDate}T${startTime}`);
-        const endDateTime = new Date(`${selectedSlotDate}T${endTime}`);
+        let endDateTime = new Date(`${selectedSlotDate}T${endTime}`);
 
+        // Adição para tratar virada de dia (ex: 22:00 até 02:00)
         if (endDateTime <= startDateTime) {
-            totalHoursElement.textContent = 'Inválido';
-            totalPriceElement.textContent = 'R$ 0,00';
-        } else {
-            const durationMs = endDateTime - startDateTime;
-            const durationMinutes = durationMs / (1000 * 60);
-            const pricePerMinute = priceHour / 60;
-            const totalPrice = durationMinutes * pricePerMinute;
-
-            const hours = Math.floor(durationMinutes / 60);
-            const minutes = Math.round(durationMinutes % 60);
-
-            let totalDurationText = '';
-            if (hours > 0) {
-                totalDurationText += `${hours}h`;
-            }
-            if (minutes > 0 || (hours === 0 && minutes === 0 && durationMinutes === 0)) {
-                if (totalDurationText !== '') totalDurationText += ' ';
-                totalDurationText += `${minutes}m`;
-            }
-            
-            totalHoursElement.textContent = totalDurationText || '0';
-            totalPriceElement.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
+            endDateTime.setDate(endDateTime.getDate() + 1); // Adiciona um dia
         }
+
+        const durationMs = endDateTime - startDateTime;
+        const durationMinutes = durationMs / (1000 * 60);
+        const pricePerMinute = priceHour / 60;
+        const totalPrice = durationMinutes * pricePerMinute;
+
+        const hours = Math.floor(durationMinutes / 60);
+        const minutes = Math.round(durationMinutes % 60);
+
+        let totalDurationText = '';
+        if (hours > 0) {
+            totalDurationText += `${hours}h`;
+        }
+        if (minutes > 0 || (hours === 0 && minutes === 0 && durationMinutes === 0)) { // Garante que 0m seja exibido se for o caso
+            if (totalDurationText !== '') totalDurationText += ' ';
+            totalDurationText += `${minutes}m`;
+        }
+        
+        totalHoursElement.textContent = totalDurationText || '0';
+        totalPriceElement.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
     }
 
-    // LÓGICA DA CALCULADORA "POR DIA" 
-    if (!isNaN(priceDay) && priceDay > 0) { // Verifica se há um preço diário válido
+    // --- LÓGICA DA CALCULADORA "POR DIA" ---
+    if (!isNaN(priceDay) && priceDay > 0) {
         dailyPriceElement.textContent = `R$ ${priceDay.toFixed(2).replace('.', ',')}`;
         dailyTotalPriceElement.textContent = `R$ ${priceDay.toFixed(2).replace('.', ',')}`;
     } else {
         dailyPriceElement.textContent = `N/A`;
-        dailyTotalPriceElement.textContent = `R$ 0,00`; // Ou desabilitar/esconder a seção
+        dailyTotalPriceElement.textContent = `R$ 0,00`;
     }
 
-    // Exibe os horários de entrada e saída disponíveis para a diária
-    if (availableStartTime && availableEndTime) {
-        dailyTimesElement.textContent = `${availableStartTime.substring(0, 5)} até ${availableEndTime.substring(0, 5)}`; // "HH:MM"
+    let dailyDisplayStartTime = 'Não informado';
+    let dailyDisplayEndTime = '';
+
+    if (selectedSlotDate && spotDetails && spotDetails.availabilities_by_date) {
+        const selectedDayAvailability = spotDetails.availabilities_by_date.find(
+            av => av.available_date === selectedSlotDate
+        );
+
+        if (selectedDayAvailability && selectedDayAvailability.start_time && selectedDayAvailability.end_time) {
+            dailyDisplayStartTime = selectedDayAvailability.start_time.substring(0, 5);
+            dailyDisplayEndTime = selectedDayAvailability.end_time.substring(0, 5);
+            dailyTimesElement.textContent = `${dailyDisplayStartTime} até ${dailyDisplayEndTime}`;
+        } else {
+            dailyTimesElement.textContent = `Não informado para este dia`;
+        }
     } else {
-        dailyTimesElement.textContent = `Não informado`;
+        dailyTimesElement.textContent = `Selecione uma data`;
     }
 }
-
 
 // Atualiza os cards de vagas no mapa e na lista
 export function openParkingDetailModal(spotDetails) {
@@ -553,6 +568,64 @@ export function openParkingDetailModal(spotDetails) {
     const startTimeInput = modal.querySelector('#start-time-input');
     const endTimeInput = modal.querySelector('#end-time-input');
 
+    // Destrua instâncias anteriores para evitar duplicação (se o modal for reaberto)
+    if (startTimeInput && startTimeInput._flatpickr) {
+        startTimeInput._flatpickr.destroy();
+    }
+    if (endTimeInput && endTimeInput._flatpickr) {
+        endTimeInput._flatpickr.destroy();
+    }
+
+    if (startTimeInput) {
+        flatpickr(startTimeInput, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i", // Formato 24 horas (HH:MM)
+            time_24hr: true,   // Força o formato 24 horas
+            minuteIncrement: 15, // Incrementos de 15 minutos (opcional)
+            onReady: function(selectedDates, dateStr, instance) {
+                // Define um valor padrão ao carregar, se o campo estiver vazio
+                if (!instance.input.value) {
+                    instance.setDate("08:00", false); // Default 08:00 se vazio
+                }
+            },
+            // Chama updateReservationSummary ao mudar o horário de entrada ---
+            onChange: function() {
+                updateReservationSummary(
+                    currentSpotDetails,
+                    currentSelectedSlot.date, // Passa a data atualmente selecionada do calendário
+                    startTimeInput.value,
+                    endTimeInput ? endTimeInput.value : null
+                );
+            }
+        });
+    }
+
+    if (endTimeInput) {
+        flatpickr(endTimeInput, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            minuteIncrement: 15,
+            onReady: function(selectedDates, dateStr, instance) {
+                // Define um valor padrão ao carregar, se o campo estiver vazio
+                if (!instance.input.value) {
+                    instance.setDate("18:00", false); // Default 18:00 se vazio
+                }
+            },
+            // Chamar updateReservationSummary ao mudar o horário de saída 
+            onChange: function() {
+                updateReservationSummary(
+                    currentSpotDetails,
+                    currentSelectedSlot.date, // Passa a data atualmente selecionada do calendário
+                    startTimeInput ? startTimeInput.value : null,
+                    endTimeInput.value
+                );
+            }
+        });
+    }
+
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceHourFormatted = isNaN(priceHour) ? 'N/A' : priceHour.toFixed(2).replace('.', ',');
 
@@ -564,7 +637,7 @@ export function openParkingDetailModal(spotDetails) {
     if (spotDetails && Array.isArray(spotDetails.dates_availability)) {
         availabilityArray = spotDetails.dates_availability;
         console.log("openParkingDetailModal: Usando spotDetails.dates_availability diretamente como array.");
-     } 
+    } 
     else if (spotDetails && spotDetails.dates_availability && Array.isArray(spotDetails.dates_availability.dates_availability)) {
         availabilityArray = spotDetails.dates_availability.dates_availability;
         console.log("openParkingDetailModal: Array de disponibilidade encontrado aninhado em spotDetails.dates_availability.dates_availability.");
@@ -574,8 +647,8 @@ export function openParkingDetailModal(spotDetails) {
         console.log("openParkingDetailModal: Array de disponibilidade encontrado em 'availabilities_by_date'.");
     }
     else {
-         console.warn("openParkingDetailModal: Não foi possível encontrar o array de datas de disponibilidade no formato esperado. Default para vazio.");
-     }
+        console.warn("openParkingDetailModal: Não foi possível encontrar o array de datas de disponibilidade no formato esperado. Default para vazio.");
+    }
 
     console.log("Array de disponibilidade RAW (antes do filtro):", availabilityArray);
 
@@ -592,7 +665,7 @@ export function openParkingDetailModal(spotDetails) {
 
     if (availabilityCalendar) {
         reservationCalendarInstance = flatpickr(availabilityCalendar, {
-            mode: "multiple",
+            mode: "multiple", // Seu código usa "multiple", mantendo
             dateFormat: "Y-m-d",
             locale: flatpickr.l10ns.pt,
             minDate: "today",
@@ -600,13 +673,17 @@ export function openParkingDetailModal(spotDetails) {
             onChange: function(selectedDates, dateStr, instance) {
                 console.log("Datas selecionadas para reserva:", selectedDates);
 
+                // Reinicia a seleção visual de slots e a seção de detalhes
                 currentSelectedSlot = { date: null, slotNumber: null };
                 if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
-                if (startTimeInput) startTimeInput.value = '';
-                if (endTimeInput) endTimeInput.value = '';
-                updateReservationSummary(currentSpotDetails, null, null, null);
 
+                // Remove a seleção das caixas de opção de reserva ao mudar a data
+                document.querySelectorAll('.reservation-option').forEach(option => {
+                    option.classList.remove('selected-reservation-option');
+                });
+                currentSelectedReservationOption = null; // Garante que nenhuma opção está logicamente selecionada
 
+                // Limpa a seleção visual dos quadradinhos de vaga
                 if (dynamicVagaSquares) {
                     dynamicVagaSquares.querySelectorAll('.bg-purple-600, .hover\\:scale-110').forEach(el => {
                         el.classList.remove('bg-purple-600');
@@ -615,8 +692,10 @@ export function openParkingDetailModal(spotDetails) {
                     });
                 }
 
-
                 if (selectedDates.length > 0) {
+                    // Atualiza currentSelectedSlot.date com a primeira data selecionada (para single mode)
+                    currentSelectedSlot.date = flatpickr.formatDate(selectedDates[0], "Y-m-d");
+
                     if (selectedDatesDisplay) {
                         selectedDatesDisplay.textContent = "Datas selecionadas: " + selectedDates.map(d => flatpickr.formatDate(d, "d/m/Y")).join(', ');
                     }
@@ -631,6 +710,7 @@ export function openParkingDetailModal(spotDetails) {
 
                     let hasSlotsToShow = false;
 
+                    // Itera sobre todas as datas selecionadas para exibir vagas
                     selectedDates.forEach(selectedDate => {
                         const formattedSelectedDate = flatpickr.formatDate(selectedDate, "Y-m-d");
                         const slotInfo = availabilityArray.find(av => av.available_date === formattedSelectedDate);
@@ -667,7 +747,7 @@ export function openParkingDetailModal(spotDetails) {
                                     vagaSquare.classList.remove('bg-green-500');
                                     vagaSquare.classList.add('bg-purple-600', 'scale-110');
 
-                                    currentSelectedSlot.date = formattedSelectedDate;
+                                    currentSelectedSlot.date = formattedSelectedDate; // Atualiza a data do slot selecionado
                                     currentSelectedSlot.slotNumber = parseInt(vagaSquare.dataset.slotNumber);
                                     console.log("Vaga selecionada:", currentSelectedSlot);
 
@@ -682,6 +762,7 @@ export function openParkingDetailModal(spotDetails) {
                                         selectedSlotDateDisplay.textContent = displayDate;
                                     }
                                     
+                                    // Atualiza a calculadora quando a vaga é selecionada
                                     updateReservationSummary(
                                         currentSpotDetails,
                                         currentSelectedSlot.date,
@@ -703,8 +784,12 @@ export function openParkingDetailModal(spotDetails) {
                             noSlotsMessage.textContent = 'Não há vagas disponíveis para as datas selecionadas.';
                         }
                     }
+                    
+                    // Chama updateReservationSummary após atualizar currentSelectedSlot.date 
+                    updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
 
-                } else {
+
+                } else { // Nenhuma data selecionada no calendário
                     if (selectedDatesDisplay) {
                         selectedDatesDisplay.textContent = "Nenhuma data selecionada ainda.";
                     }
@@ -722,41 +807,71 @@ export function openParkingDetailModal(spotDetails) {
                         selectedSlotDetailsSection.classList.add('hidden');
                     }
                     currentSelectedSlot = { date: null, slotNumber: null };
-                    updateReservationSummary(currentSpotDetails, null, null, null);
+                    // Zera a calculadora se não houver data selecionada
+                    updateReservationSummary(currentSpotDetails, null, null, null); 
+                    document.querySelectorAll('.reservation-option').forEach(option => {
+                        option.classList.remove('selected-reservation-option');
+                    });
+                    currentSelectedReservationOption = null;
                 }
             }
         });
+    
+        // Inicializar o calendário e a calculadora na abertura ---
+        let initialSelectedDateStr = null;
+        if (availableDates.length > 0) {
+            initialSelectedDateStr = availableDates[0];
+            // Pré-seleciona a primeira data no calendário Flatpickr visualmente.
+            reservationCalendarInstance.setDate(initialSelectedDateStr, true);
+        } else {
+            // Se não há datas disponíveis, zera a calculadora
+            updateReservationSummary(currentSpotDetails, null, null, null);
+        }
+
     } else {
         console.error("Erro: Elemento do calendário de disponibilidade (reservation-calendar) não encontrado.");
     }
 
-    if (startTimeInput) {
-        startTimeInput.addEventListener('change', () => {
-            updateReservationSummary(
-                currentSpotDetails,
-                currentSelectedSlot.date,
-                startTimeInput.value,
-                endTimeInput ? endTimeInput.value : null
-            );
+    const hourlyOptionBox = document.getElementById('reservation-option-hourly');
+    const dailyOptionBox = document.getElementById('reservation-option-daily');
+
+    if (hourlyOptionBox) {
+        hourlyOptionBox.addEventListener('click', () => {
+            if (currentSelectedReservationOption === 'hourly') {
+                hourlyOptionBox.classList.remove('selected-reservation-option');
+                currentSelectedReservationOption = null;
+                // Ao desmarcar a opção "por hora", passa null para os horários
+                updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, null, null);
+            } else {
+                document.querySelectorAll('.reservation-option').forEach(option => {
+                    option.classList.remove('selected-reservation-option');
+                });
+                hourlyOptionBox.classList.add('selected-reservation-option');
+                currentSelectedReservationOption = 'hourly';
+                // Chame a calculadora para exibir o cálculo por hora com os valores dos inputs
+                updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
+            }
         });
     }
 
-    if (endTimeInput) {
-        endTimeInput.addEventListener('change', () => {
-            updateReservationSummary(
-                currentSpotDetails,
-                currentSelectedSlot.date,
-                startTimeInput ? startTimeInput.value : null,
-                endTimeInput.value
-            );
+    if (dailyOptionBox) {
+        dailyOptionBox.addEventListener('click', () => {
+            if (currentSelectedReservationOption === 'daily') {
+                dailyOptionBox.classList.remove('selected-reservation-option');
+                currentSelectedReservationOption = null;
+                // usando os valores atuais dos inputs de tempo.
+                updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
+            } else {
+                document.querySelectorAll('.reservation-option').forEach(option => {
+                    option.classList.remove('selected-reservation-option');
+                });
+                dailyOptionBox.classList.add('selected-reservation-option');
+                currentSelectedReservationOption = 'daily';
+                updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, null, null); 
+            }
         });
     }
 
-    // INICIALIZA A CALCULADORA QUANDO O MODAL ABRE, garantindo que os valores apareçam corretamente
-    updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
-
-
-    // ... (restante dos preenchimentos de elementos do modal) ...
     if (modalParkingTitle) modalParkingTitle.textContent = spotDetails.title || '(Título não disponível)';
     if (modalParkingAddress) modalParkingAddress.textContent = spotDetails.address || '(Endereço não disponível)';
     if (modalParkingDescription) modalParkingDescription.textContent = spotDetails.description || '(Descrição não disponível)';

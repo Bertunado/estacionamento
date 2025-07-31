@@ -25,8 +25,6 @@ class ParkingSpot(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default="Ativa")
     quantity = models.IntegerField(default=1, help_text="Número total de vagas neste local.")
-    daily_start_time = models.TimeField(null=True, blank=True, help_text="Horário de início da diária (ex: 10:00)")
-    daily_end_time = models.TimeField(null=True, blank=True, help_text="Horário de término da diária (ex: 22:00)")
 
     def __str__(self):
         return f"{self.title} – {self.address}"

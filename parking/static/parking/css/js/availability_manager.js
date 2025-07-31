@@ -4,19 +4,18 @@ let selectedDatesConfigDiv;
 let selectedAvailabilities = {}; // Armazena as disponibilidades configuradas pelo publicador
 let noDatesMessage;
 
+// Gerenciar a seleção de datas e disponibilidades para a publicação de vagas
 function updateSelectedDatesConfig(dates) {
-    // Limpa o conteúdo anterior, mas mantém a mensagem oculta se já estiver
     selectedDatesConfigDiv.innerHTML = '';
-    noDatesMessage.classList.add('hidden'); // Sempre oculta a mensagem ao renderizar
+    noDatesMessage.classList.add('hidden');
 
     if (dates.length === 0) {
-        noDatesMessage.classList.remove('hidden'); // Mostra a mensagem se não houver datas
+        noDatesMessage.classList.remove('hidden');
         selectedDatesConfigDiv.appendChild(noDatesMessage);
-        selectedAvailabilities = {}; // Limpa as disponibilidades se não houver datas
+        selectedAvailabilities = {};
         return;
     }
 
-    // Cabeçalho para os campos dia, horarios e quantidade
     const header = document.createElement('div');
     header.classList.add('grid', 'grid-cols-3', 'gap-4', 'font-bold', 'mb-2');
     header.innerHTML = `
@@ -26,116 +25,113 @@ function updateSelectedDatesConfig(dates) {
     `;
     selectedDatesConfigDiv.appendChild(header);
 
-    // Ordena as datas para que fiquem em ordem cronológica
     dates.sort((a, b) => a.getTime() - b.getTime()).forEach(date => {
         const dayOfWeek = new Date(date).toLocaleDateString('pt-BR', { weekday: 'long' });
-        // Formata a data para 'DD/MM/YYYY' para exibição e para usar como chave
         const formattedDate = new Date(date).toLocaleDateString('pt-BR');
-        // Formato 'YYYY-MM-DD' para o backend, ideal para o 'available_date' no objeto de dados
         const backendFormattedDate = new Date(date).toISOString().split('T')[0];
 
-        // Cria a linha da data com inputs
         const dateRow = document.createElement('div');
-        // Adiciona uma classe para facilitar a identificação no listener e o data-date
         dateRow.classList.add('grid', 'grid-cols-3', 'gap-4', 'items-center', 'py-2', 'border-t', 'border-gray-200', 'availability-date-row');
-        dateRow.dataset.date = backendFormattedDate; // Armazena a data no formato do backend para fácil acesso
-        
+        dateRow.dataset.date = backendFormattedDate;
+
         const existingData = selectedAvailabilities[backendFormattedDate] || {};
         const currentQuantity = existingData.available_quantity || 1;
-        
-        let initialTime = '';
-        let finalTime = '';
-        
-       // Tenta preencher os campos se já houver um valor em available_times
-        if (existingData.available_times) {
-            const parts = existingData.available_times.split(' às ');
-            if (parts.length === 2) {
-                initialTime = parts[0].trim();
-                finalTime = parts[1].trim();
-            } else {
-                // Se não estiver no formato esperado, usa o valor como inicial (ou limpa)
-                initialTime = existingData.available_times.trim();
-            }
-        }
+        const initialTime = existingData.start_time || '08:00';
+        const finalTime = existingData.end_time || '18:00';
 
-
-         // Gerar as opções do dropdown para quantidade
         let quantityOptionsHtml = '';
         for (let i = 1; i <= 5; i++) {
-            // Seleciona a opção correta se já houver um valor
             const selectedAttribute = (i === currentQuantity) ? 'selected' : '';
             quantityOptionsHtml += `<option value="${i}" ${selectedAttribute}>${i}</option>`;
         }
 
-        // Cria os inputs e selects para a linha de data, horarios e quantidade
-        dateRow.innerHTML = ` 
-  <div class="text-gray-700 col-span-1">${formattedDate} - ${capitalizeFirstLetter(dayOfWeek)}</div>
-
-  <div class="col-span-1">
-    <div class="flex items-center gap-2">
-      <input type="time"
-             name="availability_start_time_${backendFormattedDate}"
-             class="w-24 border border-gray-300 rounded px-2 py-1 text-sm time-input"
-             value="${initialTime}">
-      <span class="text-gray-600 font-semibold">às</span>
-      <input type="time"
-             name="availability_end_time_${backendFormattedDate}"
-             class="w-24 border border-gray-300 rounded px-2 py-1 text-sm time-input"
-             value="${finalTime}">
-    </div>
-  </div>
-  <div class="col-span-1"> <select name="availability_quantity_${backendFormattedDate}"
+        dateRow.innerHTML = `
+            <div class="text-gray-700 col-span-1">${formattedDate} - ${capitalizeFirstLetter(dayOfWeek)}</div>
+            <div class="col-span-1">
+                <div class="flex items-center gap-2">
+                    <input type="text"
+                           id="start-time-${backendFormattedDate}"
+                           name="availability_start_time_${backendFormattedDate}"
+                           class="w-24 border border-gray-300 rounded px-2 py-1 text-sm time-input"
+                           value="${initialTime}" placeholder="HH:MM">
+                    <span class="text-gray-600 font-semibold">às</span>
+                    <input type="text"
+                           id="end-time-${backendFormattedDate}"
+                           name="availability_end_time_${backendFormattedDate}"
+                           class="w-24 border border-gray-300 rounded px-2 py-1 text-sm time-input"
+                           value="${finalTime}" placeholder="HH:MM">
+                </div>
+            </div>
+            <div class="col-span-1">
+                <select name="availability_quantity_${backendFormattedDate}"
                         class="w-full border border-gray-300 rounded px-2 py-1 text-sm quantity-select">
                     ${quantityOptionsHtml}
                 </select>
             </div>
-`;
-selectedDatesConfigDiv.appendChild(dateRow);
-// --- Event Listeners para capturar as mudanças do usuário ---
-    // Obter referências aos elementos que acabaram de ser criados
-    const startTimeInput = dateRow.querySelector(`input[name="availability_start_time_${backendFormattedDate}"]`);
-    const endTimeInput = dateRow.querySelector(`input[name="availability_end_time_${backendFormattedDate}"]`);
-    const quantitySelect = dateRow.querySelector(`select[name="availability_quantity_${backendFormattedDate}"]`);
+        `;
+        selectedDatesConfigDiv.appendChild(dateRow);
 
-    // 2. Inicializar selectedAvailabilities para esta data, se ainda não existir
-    // Isso garante que temos um objeto para a data antes de tentar atualizá-lo.
-    if (!selectedAvailabilities[backendFormattedDate]) {
-        selectedAvailabilities[backendFormattedDate] = {
-            available_date: backendFormattedDate,
-            start_time: startTimeInput ? startTimeInput.value : '08:00', 
-            end_time: endTimeInput ? endTimeInput.value : '18:00',     
-            available_quantity: quantitySelect ? parseInt(quantitySelect.value) : 1 
-        };
-    } else {
-        // Se já existe, apenas atualiza com os valores renderizados (para o caso de re-render)
-        selectedAvailabilities[backendFormattedDate].available_date = backendFormattedDate;
-        selectedAvailabilities[backendFormattedDate].start_time = startTimeInput ? startTimeInput.value : '08:00';
-        selectedAvailabilities[backendFormattedDate].end_time = endTimeInput ? endTimeInput.value : '18:00';
-        selectedAvailabilities[backendFormattedDate].available_quantity = quantitySelect ? parseInt(quantitySelect.value) : 1;
-    }
+        const startTimeInput = dateRow.querySelector(`#start-time-${backendFormattedDate}`);
+        const endTimeInput = dateRow.querySelector(`#end-time-${backendFormattedDate}`);
+        const quantitySelect = dateRow.querySelector(`select[name="availability_quantity_${backendFormattedDate}"]`);
 
-    // 3. Adicionar Listeners de Evento para o campo de quantidade
-    if (quantitySelect) {
-        quantitySelect.addEventListener('change', (e) => {
-            selectedAvailabilities[backendFormattedDate].available_quantity = parseInt(e.target.value);
-            console.log(`[Debug] Quantidade para ${backendFormattedDate} atualizada para:`, selectedAvailabilities[backendFormattedDate].available_quantity);
+        // Flatpickr para o input de hora de início
+        flatpickr(startTimeInput, {
+            enableTime: true, // Habilita o seletor de tempo
+            noCalendar: true, // Desabilita o calendário
+            dateFormat: "H:i", // Formato 24 horas (HH:MM)
+            time_24hr: true,   // Força o formato 24 horas
+            minuteIncrement: 15, // incrementos de 15 minutos
+            defaultDate: initialTime // Define o valor inicial
         });
-    }
 
-    // 4. Adicionar Listeners de Evento para os campos de hora (início e fim)
-    if (startTimeInput) {
-        startTimeInput.addEventListener('change', (e) => {
-            selectedAvailabilities[backendFormattedDate].start_time = e.target.value;
-            console.log(`[Debug] Hora de início para ${backendFormattedDate} atualizada para:`, selectedAvailabilities[backendFormattedDate].start_time);
+        // Flatpickr para o input de hora de fim
+        flatpickr(endTimeInput, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            minuteIncrement: 15,
+            defaultDate: finalTime
         });
-    }
 
-    if (endTimeInput) {
-        endTimeInput.addEventListener('change', (e) => {
-            selectedAvailabilities[backendFormattedDate].end_time = e.target.value;
-            console.log(`[Debug] Hora final para ${backendFormattedDate} atualizada para:`, selectedAvailabilities[backendFormattedDate].end_time);
-        });
-    }
+        // 2. Inicializar selectedAvailabilities para esta data, se ainda não existir
+        if (!selectedAvailabilities[backendFormattedDate]) {
+            selectedAvailabilities[backendFormattedDate] = {
+                available_date: backendFormattedDate,
+                start_time: startTimeInput ? startTimeInput.value : '08:00',
+                end_time: endTimeInput ? endTimeInput.value : '18:00',
+                available_quantity: quantitySelect ? parseInt(quantitySelect.value) : 1
+            };
+        } else {
+            selectedAvailabilities[backendFormattedDate].available_date = backendFormattedDate;
+            selectedAvailabilities[backendFormattedDate].start_time = startTimeInput ? startTimeInput.value : '08:00';
+            selectedAvailabilities[backendFormattedDate].end_time = endTimeInput ? endTimeInput.value : '18:00';
+            selectedAvailabilities[backendFormattedDate].available_quantity = quantitySelect ? parseInt(quantitySelect.value) : 1;
+        }
+
+        // 3. Adicionar Listeners de Evento para o campo de quantidade
+        if (quantitySelect) {
+            quantitySelect.addEventListener('change', (e) => {
+                selectedAvailabilities[backendFormattedDate].available_quantity = parseInt(e.target.value);
+                console.log(`[Debug] Quantidade para ${backendFormattedDate} atualizada para:`, selectedAvailabilities[backendFormattedDate].available_quantity);
+            });
+        }
+
+        // 4. Adicionar Listeners de Evento para os campos de hora (início e fim)
+        if (startTimeInput) {
+            startTimeInput.addEventListener('change', (e) => {
+                selectedAvailabilities[backendFormattedDate].start_time = e.target.value;
+                console.log(`[Debug] Hora de início para ${backendFormattedDate} atualizada para:`, selectedAvailabilities[backendFormattedDate].start_time);
+            });
+        }
+
+        if (endTimeInput) {
+            endTimeInput.addEventListener('change', (e) => {
+                selectedAvailabilities[backendFormattedDate].end_time = e.target.value;
+                console.log(`[Debug] Hora final para ${backendFormattedDate} atualizada para:`, selectedAvailabilities[backendFormattedDate].end_time);
+            });
+        }
     });
 }
 
@@ -157,58 +153,34 @@ export function setupAvailabilityFields() {
 
     console.log("availability_manager.js: Elementos de disponibilidade encontrados. Configurando Flatpickr e listeners.");
 
-    // Se já houver uma instância do Flatpickr, destrua-a antes de criar uma nova.
     if (availabilityCalendar._flatpickr) {
         availabilityCalendar._flatpickr.destroy();
     }
 
-    // Inicializa o calendário com Flatpickr
     flatpickrInstance = flatpickr(availabilityCalendar, {
-        mode: "multiple", // Permite selecionar múltiplas datas
-        dateFormat: "d/m/Y", // Formato para exibição
-        locale: flatpickr.l10ns.pt, // Usa o locale pt.js carregado globalmente
-         minDate: "today", // Impede a seleção de datas passadas
+        mode: "multiple",
+        dateFormat: "d/m/Y",
+        locale: flatpickr.l10ns.pt,
+        minDate: "today",
         onChange: function(selectedDates, dateStr, instance) {
             updateSelectedDatesConfig(selectedDates);
         }
     });
 
-    // Listener para capturar mudanças nos inputs de hora/quantidade
     selectedDatesConfigDiv.addEventListener('change', (e) => {
-        if (e.target.classList.contains('time-range-input') || e.target.classList.contains('quantity-input')) {
+        if (e.target.classList.contains('quantity-select')) { // Apenas para quantity-select agora
             const dateRowContainer = e.target.closest('.availability-date-row');
-
-            if (!dateRowContainer) {
-                console.warn("availability_manager.js: Contêiner da linha de data (availability-date-row) não encontrado para o input.");
-                return;
+            if (dateRowContainer) {
+                const dateKey = dateRowContainer.dataset.date;
+                if (selectedAvailabilities[dateKey]) {
+                    selectedAvailabilities[dateKey].available_quantity = parseInt(e.target.value);
+                    console.log(`Disponibilidade atualizada para ${dateKey}:`, selectedAvailabilities[dateKey]);
+                }
             }
-
-            const dateKey = dateRowContainer.dataset.date;
-
-            if (!selectedAvailabilities[dateKey]) {
-                selectedAvailabilities[dateKey] = {
-                    available_date: dateKey,
-                    available_times: '',
-                    available_quantity: 1
-                };
-            }
-
-            if (e.target.classList.contains('time-range-input')) {
-                selectedAvailabilities[dateKey].available_times = e.target.value;
-            } else if (e.target.classList.contains('quantity-input')) {
-                selectedAvailabilities[dateKey].available_quantity = parseInt(e.target.value);
-            }
-
-            console.log(`Disponibilidade atualizada para ${dateKey}:`, selectedAvailabilities[dateKey]);
         }
     });
 
     console.log("availability_manager.js: Setup de campos de disponibilidade concluído.");
-}
-
-// Função para obter os dados de disponibilidade para envio ao backend, exportada.
-export function getSelectedAvailabilities() {
-    return selectedAvailabilities;
 }
 
 export function loadAvailabilitiesForEdit(spot) {
@@ -233,21 +205,24 @@ export function loadAvailabilitiesForEdit(spot) {
     }
 }
 
+export function getSelectedAvailabilities() {
+    return Object.values(selectedAvailabilities).filter(avail => avail.available_quantity > 0);
+}
+
 export function coletarDisponibilidades() {
     const finalAvailabilities = {};
     if (flatpickrInstance) {
         flatpickrInstance.selectedDates.forEach(date => {
             const dateStr = flatpickr.formatDate(date, "Y-m-d");
             if (selectedAvailabilities[dateStr]) {
-                // Se o usuário selecionou uma data e configurou seus horários, inclua-a.
                 finalAvailabilities[dateStr] = selectedAvailabilities[dateStr];
             } else {
                 console.warn(`coletarDisponibilidades: Data ${dateStr} selecionada, mas sem configurações de horário/quantidade. Usando padrões ou ignorando.`);
                 finalAvailabilities[dateStr] = {
                     available_date: dateStr,
-                    start_time: "08:00", // Padrão
-                    end_time: "18:00",   // Padrão
-                    available_quantity: 1 // Padrão
+                    start_time: "08:00",
+                    end_time: "18:00",
+                    available_quantity: 1
                 };
             }
         });
@@ -256,7 +231,6 @@ export function coletarDisponibilidades() {
         return [];
     }
 
-    // Filtra para retornar apenas as disponibilidades com quantidade > 0 (se 0 significa indisponível)
     return Object.values(finalAvailabilities).filter(avail => avail.available_quantity > 0);
 }
 

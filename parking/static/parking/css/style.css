@@ -15,3 +15,16 @@
             width: 100%;
             height: 100%;
         }
+
+/* Classe para a opção de reserva selecionada */
+.reservation-option.selected-reservation-option {
+    border: 3px solid #8B5CF6; /* Cor roxo/azul - Tailwind purple-500/600 */
+    transform: scale(1.03); /* Fica um pouco maior ao ser selecionado */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Sombra mais forte */
+}
+
+/* Efeito para o indicador de seleção (o "triângulo") */
+.reservation-option.selected-reservation-option .selection-indicator {
+    transform: translate-x-0 -translate-y-0 scale-100; /* Volta para a posição original e tamanho normal */
+    opacity: 1; /* Torna visível */
+}

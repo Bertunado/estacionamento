@@ -40,7 +40,6 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
             'id', 'title', 'address', 'description', 'latitude', 'longitude',
             'price_hour', 'price_day', 'tipo_vaga', 'has_camera', 'size',
             'created_at', 'status', 'photos', 'quantity', 'availabilities_by_date',
-            'daily_end_time', 'daily_start_time',
         ]
         read_only_fields = ['id', 'owner', 'created_at']
 
