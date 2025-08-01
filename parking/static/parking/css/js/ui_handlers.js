@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalParkingType = document.getElementById('modal-parking-type');
     modalParkingQuantity = document.getElementById('modal-parking-quantity');
     modalSpotPriceHourElement = document.getElementById('modal-spot-price-hour');
-    modalSpotLocationElement = document.getElementById('modal-spot-location'); // Você precisa adicionar um ID ao elemento de localização no HTML
+    modalSpotLocationElement = document.getElementById('modal-spot-location'); 
     modalParkingImage = reservationModal.querySelector('img');
 
     if (reservationModal) {
@@ -463,6 +463,21 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
         return;
     }
 
+    if (!selectedSlotDate) {
+        const selectedDateObj = reservationCalendarInstance?.selectedDates[0];
+        if (selectedDateObj) {
+            selectedSlotDate = formatDateToISO(selectedDateObj);
+        }
+    }
+
+    if (!startTime) {
+        startTime = document.getElementById('start-time-input')?.value;
+    }
+
+    if (!endTime) {
+        endTime = document.getElementById('end-time-input')?.value;
+    }
+
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceDay = parseFloat(spotDetails.price_day);
 
@@ -567,6 +582,14 @@ export function openParkingDetailModal(spotDetails) {
     const selectedSlotDateDisplay = modal.querySelector('#selected-slot-date-display');
     const startTimeInput = modal.querySelector('#start-time-input');
     const endTimeInput = modal.querySelector('#end-time-input');
+
+    if (availableSlotsForDateContainer) availableSlotsForDateContainer.classList.add('hidden');
+if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
+if (selectedDatesDisplay) selectedDatesDisplay.textContent = "Selecione uma data para ver as vagas disponíveis.";
+if (noSlotsMessage) {
+    noSlotsMessage.classList.remove('hidden');
+    noSlotsMessage.textContent = "Selecione uma data para ver as vagas disponíveis.";
+}
 
     // Destrua instâncias anteriores para evitar duplicação (se o modal for reaberto)
     if (startTimeInput && startTimeInput._flatpickr) {
@@ -820,13 +843,14 @@ export function openParkingDetailModal(spotDetails) {
         // Inicializar o calendário e a calculadora na abertura ---
         let initialSelectedDateStr = null;
         if (availableDates.length > 0) {
-            initialSelectedDateStr = availableDates[0];
-            // Pré-seleciona a primeira data no calendário Flatpickr visualmente.
-            reservationCalendarInstance.setDate(initialSelectedDateStr, true);
-        } else {
-            // Se não há datas disponíveis, zera a calculadora
+             // Apenas limpa seleção visual, sem setar nenhuma data
+            reservationCalendarInstance.clear();
+            // Zera a calculadora
             updateReservationSummary(currentSpotDetails, null, null, null);
-        }
+            }
+
+        if (startTimeInput) startTimeInput.value = "";
+        if (endTimeInput) endTimeInput.value = "";
 
     } else {
         console.error("Erro: Elemento do calendário de disponibilidade (reservation-calendar) não encontrado.");

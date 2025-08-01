@@ -140,47 +140,52 @@ function capitalizeFirstLetter(string) {
 }
 
 export function setupAvailabilityFields() {
-    console.log("availability_manager.js: Configurando campos de disponibilidade...");
+    console.log("availability_manager.js: Iniciando setup de campos de disponibilidade...");
 
-    selectedDatesConfigDiv = document.getElementById('selected-dates-config');
-    noDatesMessage = document.getElementById('no-dates-message');
-    const availabilityCalendar = document.getElementById('availability-calendar');
+    setTimeout(() => {
+        selectedDatesConfigDiv = document.getElementById('selected-dates-config');
+        noDatesMessage = document.getElementById('no-dates-message');
+        const availabilityCalendar = document.getElementById('availability-calendar');
 
-    if (!selectedDatesConfigDiv || !noDatesMessage || !availabilityCalendar) {
-        console.error("availability_manager.js: Um ou mais elementos do calendário/configuração não foram encontrados. Abortando setup.");
-        return;
-    }
-
-    console.log("availability_manager.js: Elementos de disponibilidade encontrados. Configurando Flatpickr e listeners.");
-
-    if (availabilityCalendar._flatpickr) {
-        availabilityCalendar._flatpickr.destroy();
-    }
-
-    flatpickrInstance = flatpickr(availabilityCalendar, {
-        mode: "multiple",
-        dateFormat: "d/m/Y",
-        locale: flatpickr.l10ns.pt,
-        minDate: "today",
-        onChange: function(selectedDates, dateStr, instance) {
-            updateSelectedDatesConfig(selectedDates);
+        if (!selectedDatesConfigDiv || !noDatesMessage || !availabilityCalendar) {
+            console.warn("availability_manager.js: Um ou mais elementos do calendário/configuração não foram encontrados. A aba pode não estar visível ainda. Abortando setup.");
+            return;
         }
-    });
 
-    selectedDatesConfigDiv.addEventListener('change', (e) => {
-        if (e.target.classList.contains('quantity-select')) { // Apenas para quantity-select agora
-            const dateRowContainer = e.target.closest('.availability-date-row');
-            if (dateRowContainer) {
-                const dateKey = dateRowContainer.dataset.date;
-                if (selectedAvailabilities[dateKey]) {
-                    selectedAvailabilities[dateKey].available_quantity = parseInt(e.target.value);
-                    console.log(`Disponibilidade atualizada para ${dateKey}:`, selectedAvailabilities[dateKey]);
+        console.log("availability_manager.js: Elementos de disponibilidade encontrados. Configurando Flatpickr e listeners.");
+
+        if (availabilityCalendar._flatpickr) {
+            availabilityCalendar._flatpickr.destroy();
+        }
+
+        flatpickrInstance = flatpickr(availabilityCalendar, {
+            mode: "multiple",
+            dateFormat: "d/m/Y",
+            locale: flatpickr.l10ns.pt,
+            minDate: "today",
+            onClose: function(selectedDates, dateStr, instance) {
+                updateSelectedDatesConfig(selectedDates);
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                updateSelectedDatesConfig(selectedDates);
+            }
+        });
+
+        selectedDatesConfigDiv.addEventListener('change', (e) => {
+            if (e.target.classList.contains('quantity-select')) {
+                const dateRowContainer = e.target.closest('.availability-date-row');
+                if (dateRowContainer) {
+                    const dateKey = dateRowContainer.dataset.date;
+                    if (selectedAvailabilities[dateKey]) {
+                        selectedAvailabilities[dateKey].available_quantity = parseInt(e.target.value);
+                        console.log(`Disponibilidade atualizada para ${dateKey}:`, selectedAvailabilities[dateKey]);
+                    }
                 }
             }
-        }
-    });
+        });
 
-    console.log("availability_manager.js: Setup de campos de disponibilidade concluído.");
+        console.log("availability_manager.js: Setup de campos de disponibilidade concluído.");
+    }, 100); // tempo suficiente para garantir que a aba carregou
 }
 
 export function loadAvailabilitiesForEdit(spot) {
