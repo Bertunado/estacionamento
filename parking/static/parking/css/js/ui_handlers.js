@@ -546,6 +546,19 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
     }
 }
 
+function formatarHorarioDisponivelModal(spot) {
+    if (spot.availabilities_by_date && spot.availabilities_by_date.length > 0) {
+        // Para a modal de detalhes, podemos ser mais específicos se houver várias disponibilidades
+        // Ou simplesmente pegar a primeira ou a que representa o "horário comum"
+        const firstAvailability = spot.availabilities_by_date[0];
+        const startTime = firstAvailability.start_time ? firstAvailability.start_time.substring(0, 5) : 'N/A';
+        const endTime = firstAvailability.end_time ? firstAvailability.end_time.substring(0, 5) : 'N/A';
+        return `${startTime} - ${endTime}`;
+    }
+    // Fallback se não houver disponibilidade específica para exibir
+    return '24h/dia (aprox.)'; // Ou 'Horário a combinar', etc.
+}
+
 // Atualiza os cards de vagas no mapa e na lista
 export function openParkingDetailModal(spotDetails) {
     const modal = document.getElementById('parking-detail-modal');
@@ -554,21 +567,57 @@ export function openParkingDetailModal(spotDetails) {
         return;
     }
 
+    // Preenche os dados da modal
+    document.getElementById("modal-parking-title").textContent = spotDetails.title;
+    document.getElementById("modal-parking-address").textContent = spotDetails.address;
+    document.getElementById("modal-parking-description").textContent = spotDetails.description;
+
+    // Atualiza a imagem da vaga
+    const modalImage = document.getElementById("modal-parking-image");
+    if (modalImage) {
+        modalImage.src = spotDetails.photos && spotDetails.photos.length > 0 ? spotDetails.photos[0].image : '/static/parking/css/images/placeholder.png';
+        modalImage.alt = spotDetails.description || spotDetails.title;
+    }
+
+    // Formata o preço por hora
+    const priceHour = parseFloat(spotDetails.price_hour);
+    const priceHourFormatted = isNaN(priceHour) ? 'N/A' : `R$ ${priceHour.toFixed(2).replace('.', ',')}/h`;
+
+
+    // Preenche os novos campos detalhados
+    document.getElementById("modal-parking-type-display").textContent = `Tipo: ${formatarTipoVaga(spotDetails.tipo_vaga)}`;
+    document.getElementById("modal-parking-size-display").textContent = `Tamanho: ${formatarTamanhoVaga(spotDetails.size)}`;
+    document.getElementById("modal-parking-hours-display").textContent = `Disponível: ${formatarHorarioDisponivelModal(spotDetails)}`;
+    document.getElementById("modal-parking-camera-display").textContent = `Câmera de Segurança: ${spotDetails.has_camera ? 'Sim' : 'Não'}`;
+    document.getElementById("modal-parking-price-display").textContent = `Preço por hora: ${priceHourFormatted}`;
+
+
+    // Esconde a seção de detalhes da vaga escolhida e reinicia as opções de reserva
+    document.getElementById("selected-slot-details-section").classList.add("hidden");
+    const reservationOptions = modal.querySelectorAll('.reservation-option');
+    reservationOptions.forEach(option => {
+        option.classList.remove('selected');
+        const indicator = option.querySelector('.selection-indicator');
+        if (indicator) {
+            indicator.classList.remove('scale-100', 'opacity-100');
+            indicator.classList.add('scale-0', 'opacity-0');
+        }
+    });
+
+
     modal.classList.remove('hidden');
+
+    const closeModalBtn = document.getElementById("close-modal");
+    if (closeModalBtn) {
+        closeModalBtn.onclick = () => {
+            modal.classList.add("hidden");
+        };
+    }
 
     console.log("Spot Details completo recebido na função:", spotDetails);
 
     currentSpotDetails = spotDetails;
     currentSpotId = spotDetails.id;
-
-    const modalParkingTitle = modal.querySelector('#modal-parking-title');
-    const modalParkingAddress = modal.querySelector('#modal-parking-address');
-    const modalParkingDescription = modal.querySelector('#modal-parking-description');
-    const modalParkingType = modal.querySelector('#modal-parking-type');
-    const modalParkingQuantity = modal.querySelector('#modal-parking-quantity');
-    const modalSpotPriceHourElement = modal.querySelector('#modal-spot-price-hour');
-    const modalSpotLocationElement = modal.querySelector('#modal-spot-location');
-    const modalParkingImage = modal.querySelector('#modal-parking-image');
     
     const availabilityCalendar = modal.querySelector('#reservation-calendar'); 
 
@@ -584,12 +633,12 @@ export function openParkingDetailModal(spotDetails) {
     const endTimeInput = modal.querySelector('#end-time-input');
 
     if (availableSlotsForDateContainer) availableSlotsForDateContainer.classList.add('hidden');
-if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
-if (selectedDatesDisplay) selectedDatesDisplay.textContent = "Selecione uma data para ver as vagas disponíveis.";
-if (noSlotsMessage) {
-    noSlotsMessage.classList.remove('hidden');
-    noSlotsMessage.textContent = "Selecione uma data para ver as vagas disponíveis.";
-}
+    if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
+    if (selectedDatesDisplay) selectedDatesDisplay.textContent = "Selecione uma data para ver as vagas disponíveis.";
+    if (noSlotsMessage) {
+        noSlotsMessage.classList.remove('hidden');
+        noSlotsMessage.textContent = "Selecione uma data para ver as vagas disponíveis.";
+    }
 
     // Destrua instâncias anteriores para evitar duplicação (se o modal for reaberto)
     if (startTimeInput && startTimeInput._flatpickr) {
@@ -604,7 +653,7 @@ if (noSlotsMessage) {
             enableTime: true,
             noCalendar: true,
             dateFormat: "H:i", // Formato 24 horas (HH:MM)
-            time_24hr: true,   // Força o formato 24 horas
+            time_24hr: true,    // Força o formato 24 horas
             minuteIncrement: 15, // Incrementos de 15 minutos (opcional)
             onReady: function(selectedDates, dateStr, instance) {
                 // Define um valor padrão ao carregar, se o campo estiver vazio
@@ -649,11 +698,9 @@ if (noSlotsMessage) {
         });
     }
 
-    const priceHour = parseFloat(spotDetails.price_hour);
-    const priceHourFormatted = isNaN(priceHour) ? 'N/A' : priceHour.toFixed(2).replace('.', ',');
+    // const priceHour = parseFloat(spotDetails.price_hour); // Already defined above
+    // const priceHourFormatted = isNaN(priceHour) ? 'N/A' : priceHour.toFixed(2).replace('.', ','); // Already defined above
 
-    if (modalParkingTitle) modalParkingTitle.textContent = spotDetails.title || '(Título não disponível)';
-    if (modalParkingAddress) modalParkingAddress.textContent = spotDetails.address || '(Endereço não disponível)';
 
     let availabilityArray = [];
 
@@ -843,7 +890,7 @@ if (noSlotsMessage) {
         // Inicializar o calendário e a calculadora na abertura ---
         let initialSelectedDateStr = null;
         if (availableDates.length > 0) {
-             // Apenas limpa seleção visual, sem setar nenhuma data
+                // Apenas limpa seleção visual, sem setar nenhuma data
             reservationCalendarInstance.clear();
             // Zera a calculadora
             updateReservationSummary(currentSpotDetails, null, null, null);
@@ -896,35 +943,6 @@ if (noSlotsMessage) {
         });
     }
 
-    if (modalParkingTitle) modalParkingTitle.textContent = spotDetails.title || '(Título não disponível)';
-    if (modalParkingAddress) modalParkingAddress.textContent = spotDetails.address || '(Endereço não disponível)';
-    if (modalParkingDescription) modalParkingDescription.textContent = spotDetails.description || '(Descrição não disponível)';
-
-    const formattedTipoVaga = formatarTipoVaga(spotDetails.tipo_vaga);
-    if (modalParkingType) modalParkingType.textContent = `Tipo: ${formattedTipoVaga || 'Não informado'}`;
-
-    if (modalParkingQuantity) modalParkingQuantity.textContent = `Vagas disponíveis: ${spotDetails.quantity || '1'}`;
-    
-    if (modalSpotPriceHourElement) modalSpotPriceHourElement.textContent = `Preço por hora: R$ ${priceHourFormatted}`;
-
-    if (modalSpotLocationElement) {
-        if (spotDetails.latitude && spotDetails.longitude) {
-            modalSpotLocationElement.textContent = `Localização: Lat ${spotDetails.latitude}, Long ${spotDetails.longitude}`;
-        } else {
-            modalSpotLocationElement.textContent = `Localização: Não disponível`;
-        }
-    } else {
-        console.warn("Elemento 'modal-spot-location' não encontrado. As coordenadas não serão exibidas.");
-    }
-
-    if (modalParkingImage) {
-        if (spotDetails.photos && spotDetails.photos.length > 0 && spotDetails.photos[0].image) {
-            modalParkingImage.src = spotDetails.photos[0].image;
-        } else {
-            modalParkingImage.src = '/static/parking/css/images/placeholder.png';
-        }
-        modalParkingImage.alt = spotDetails.description || spotDetails.title || 'Imagem da vaga';
-    }
 }
 
 // Nova função para coletar dados de múltiplas reservas e enviar

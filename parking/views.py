@@ -209,9 +209,13 @@ class MinhasVagasView(APIView):
         return Response(serializer.data)
 
 class ParkingSpotViewSet(viewsets.ModelViewSet):
-    queryset = ParkingSpot.objects.all()
     serializer_class = ParkingSpotSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.action == 'list':  # apenas no GET /spots/
+            return ParkingSpot.objects.filter(status="Ativa")
+        return ParkingSpot.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -361,6 +365,7 @@ def send_message(request, pk):
 class ParkingSpotListAPI(generics.ListAPIView):
     queryset = ParkingSpot.objects.all()
     serializer_class = ParkingSpotSerializer
+    
 
 
 # --------------  Views existentes  -----------------

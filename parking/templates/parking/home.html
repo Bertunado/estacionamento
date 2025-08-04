@@ -405,23 +405,41 @@
                 </button>
             </div>
 
-            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/193711e1-47a8-44c3-86af-4c20ef678c94.png" alt="Vista ampla de garagem residencial com espaço para um carro médio e prateleiras de armazenamento" class="w-full h-48 object-cover rounded-lg mb-4">
+            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/193711e1-47a8-44c3-86af-4c20ef678c94.png" alt="Vista ampla de garagem residencial com espaço para um carro médio e prateleiras de armazenamento" class="w-full h-48 object-cover rounded-lg mb-4" id="modal-parking-image">
 
             <div class="mb-4">
                 <p class="text-gray-800" id="modal-parking-address">(Endereço da Vaga)</p>
                 <p class="text-gray-600 text-sm mt-1" id="modal-parking-description">(Descrição da Vaga)</p>
             </div>
+            
+                <div class="my-3 border-t-2 border-gray-200 mx-4"></div>
 
-            <p id="modal-parking-type" class="text-gray-600 text-sm mt-1">Tipo: </p>
-            <p id="modal-parking-quantity" class="text-gray-600 text-sm mt-1">Quantidade: </p>
 
-            <div class="flex items-center mb-4">
+            <div class="px-2 text-sm text-gray-700 mb-4">
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-building fa-fw text-gray-600 mr-2"></i> <span id="modal-parking-type-display">Tipo: --</span>
+                </div>
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-ruler fa-fw text-gray-600 mr-2"></i> <span id="modal-parking-size-display">Tamanho: --</span>
+                </div>
+                <div class="flex items-center mb-1">
+                    <i class="fa-regular fa-clock fa-fw text-gray-600 mr-2"></i> <span id="modal-parking-hours-display">Disponível: --</span>
+                </div>
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-camera fa-fw text-gray-600 mr-2"></i> <span id="modal-parking-camera-display">Câmera de Segurança: --</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa-solid fa-dollar-sign fa-fw text-gray-600 mr-2"></i> <span id="modal-parking-price-display">Preço por hora: --</span>
+                </div>
+            </div>
+
+            <div class="flex items-center">
                 <span class="text-yellow-500">★★★★☆</span>
                 <span class="text-gray-500 text-sm ml-1">(12 avaliações)</span>
             </div>
 
-            <p id="modal-spot-price-hour" class="text-lg font-semibold text-indigo-600 mb-4">
-                Preço por hora: R$ --,-- </p>
+            <div class="my-3 border-t-2 border-gray-200 mx-4"></div>
+
 
             <div class="mb-4">
                 <label for="reservation-calendar" class="block text-sm font-medium text-gray-700">Selecione as Datas da Reserva</label>
@@ -437,80 +455,80 @@
             </div>
 
            <div id="selected-slot-details-section" class="hidden bg-gray-50 rounded-lg p-4 mb-4">
-    <h3 class="font-semibold text-gray-800 mb-2">Detalhes da Vaga Escolhida:</h3>
-    <p class="text-gray-700 mb-1">Número da vaga: <span id="selected-slot-number" class="font-bold">--</span></p>
-    <p class="text-gray-700 mb-1">Data da vaga: <span id="selected-slot-date-display" class="font-bold">--/--/----</span></p>
+                <h3 class="font-semibold text-gray-800 mb-2">Detalhes da Vaga Escolhida:</h3>
+                <p class="text-gray-700 mb-1">Número da vaga: <span id="selected-slot-number" class="font-bold">--</span></p>
+                <p class="text-gray-700 mb-1">Data da vaga: <span id="selected-slot-date-display" class="font-bold">--/--/----</span></p>
 
-    <div class="mb-4">
-    <label for="start-time-input" class="block text-sm font-medium text-gray-700">Horário de entrada:</label>
-    <input type="text" id="start-time-input" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="HH:MM">
-</div>
+                <div class="mb-4">
+                    <label for="start-time-input" class="block text-sm font-medium text-gray-700">Horário de entrada:</label>
+                    <input type="text" id="start-time-input" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="HH:MM">
+                </div>
 
-    <div class="mb-4">
-    <label for="end-time-input" class="block text-sm font-medium text-gray-700">Horário de saída:</label>
-    <input type="text" id="end-time-input" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="HH:MM">
-</div>
+                <div class="mb-4">
+                    <label for="end-time-input" class="block text-sm font-medium text-gray-700">Horário de saída:</label>
+                    <input type="text" id="end-time-input" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="HH:MM">
+                </div>
 
-    <p class="text-gray-700 font-semibold mb-3">Como você deseja reservar?</p>
+                <p class="text-gray-700 font-semibold mb-3">Como você deseja reservar?</p>
 
-    <div id="reservation-option-hourly" class="reservation-option bg-gray-100 rounded-lg p-4 mb-4 relative
-                cursor-pointer transition-all duration-300 ease-in-out
-                hover:scale-[1.02] hover:shadow-lg">
-        <span class="absolute top-2 left-2 text-xs font-bold text-gray-600 bg-gray-200 px-2 py-1 rounded">Por hora</span>
-        <div class="flex justify-between mb-2 mt-4">
-            <span class="text-gray-700">Valor por hora:</span>
-            <span class="font-bold" id="hourly-price">R$ --,--</span>
-        </div>
-        <div class="flex justify-between mb-2">
-            <span class="text-gray-700">Total de horas:</span>
-            <span class="font-bold" id="total-hours">0</span>
-        </div>
-        <div class="flex justify-between font-bold text-lg">
-            <span>Total:</span>
-            <span id="total-price">R$ 0,00</span>
-        </div>
-        <div class="selection-indicator absolute top-0 right-0 w-8 h-8 rounded-tr-lg
-                    flex items-center justify-center text-white text-xs font-bold
-                    bg-purple-600 transform translate-x-1/2 -translate-y-1/2 scale-0 opacity-0
-                    transition-all duration-300 ease-in-out">
-            ✓
-        </div>
-    </div>
+                <div id="reservation-option-hourly" class="reservation-option bg-gray-100 rounded-lg p-4 mb-4 relative
+                                cursor-pointer transition-all duration-300 ease-in-out
+                                hover:scale-[1.02] hover:shadow-lg">
+                    <span class="absolute top-2 left-2 text-xs font-bold text-gray-600 bg-gray-200 px-2 py-1 rounded">Por hora</span>
+                    <div class="flex justify-between mb-2 mt-4">
+                        <span class="text-gray-700">Valor por hora:</span>
+                        <span class="font-bold" id="hourly-price">R$ --,--</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-700">Total de horas:</span>
+                        <span class="font-bold" id="total-hours">0</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span id="total-price">R$ 0,00</span>
+                    </div>
+                    <div class="selection-indicator absolute top-0 right-0 w-8 h-8 rounded-tr-lg
+                                    flex items-center justify-center text-white text-xs font-bold
+                                    bg-purple-600 transform translate-x-1/2 -translate-y-1/2 scale-0 opacity-0
+                                    transition-all duration-300 ease-in-out">
+                        ✓
+                    </div>
+                </div>
 
-    <p class="text-center text-gray-600 font-semibold mb-4">Ou</p>
+                <p class="text-center text-gray-600 font-semibold mb-4">Ou</p>
 
-    <div id="reservation-option-daily" class="reservation-option bg-gray-100 rounded-lg p-4 relative
-                cursor-pointer transition-all duration-300 ease-in-out
-                hover:scale-[1.02] hover:shadow-lg">
-        <span class="absolute top-2 left-2 text-xs font-bold text-gray-600 bg-gray-200 px-2 py-1 rounded">Por dia</span>
-        <div class="flex justify-between mb-2 mt-4">
-            <span class="text-gray-700">Valor pelo dia:</span>
-            <span class="font-bold" id="daily-price">R$ --,--</span>
-        </div>
-        <div class="flex justify-between mb-2">
-            <span class="text-gray-700">Horário de entrada e saída:</span>
-            <span class="font-bold" id="daily-times">--:-- até --:--</span>
-        </div>
-        <div class="flex justify-between font-bold text-lg">
-            <span>Total:</span>
-            <span id="daily-total-price">R$ 0,00</span>
-        </div>
-        <div class="selection-indicator absolute top-0 right-0 w-8 h-8 rounded-tr-lg
-                    flex items-center justify-center text-white text-xs font-bold
-                    bg-purple-600 transform translate-x-1/2 -translate-y-1/2 scale-0 opacity-0
-                    transition-all duration-300 ease-in-out">
-            ✓
-        </div>
-    </div>
-</div>
-
-            <div class="mt-6 flex justify-end space-x-3">
+                <div id="reservation-option-daily" class="reservation-option bg-gray-100 rounded-lg p-4 relative
+                                cursor-pointer transition-all duration-300 ease-in-out
+                                hover:scale-[1.02] hover:shadow-lg">
+                    <span class="absolute top-2 left-2 text-xs font-bold text-gray-600 bg-gray-200 px-2 py-1 rounded">Por dia</span>
+                    <div class="flex justify-between mb-2 mt-4">
+                        <span class="text-gray-700">Valor pelo dia:</span>
+                        <span class="font-bold" id="daily-price">R$ --,--</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-700">Horário de entrada e saída:</span>
+                        <span class="font-bold" id="daily-times">--:-- até --:--</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span id="daily-total-price">R$ 0,00</span>
+                    </div>
+                    <div class="selection-indicator absolute top-0 right-0 w-8 h-8 rounded-tr-lg
+                                    flex items-center justify-center text-white text-xs font-bold
+                                    bg-purple-600 transform translate-x-1/2 -translate-y-1/2 scale-0 opacity-0
+                                    transition-all duration-300 ease-in-out">
+                        ✓
+                    </div>
+                </div>
+            </div>
+                <div class="mt-6 flex justify-end space-x-3">
                 <button id="close-modal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
                 <button id="confirm-reservation-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Confirmar Reserva</button>
             </div>
         </div>
     </div>
-</div>          
+</div> 
+                    
             <!-- Reservation Confirmation Modal -->
             <div id="reservation-confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
                 <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">

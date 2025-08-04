@@ -4,6 +4,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <link rel="icon" href="{% static 'parking/css/images/icon3.png' %}" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -18,7 +19,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <script 
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places,marker&map_ids=78fe22b3d0432217499196a4&libraries=places">
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places,marker&map_ids=78fe22b3d0432217499196a4">
         async
         defer
     </script>
@@ -53,6 +54,8 @@
 
 {% block extra_scripts %}
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+
     
     <script type="module" src="{% static 'parking/css/js/globals.js' %}"></script>
     <script type="module" src="{% static 'parking/css/js/api_services.js' %}"></script>
