@@ -22,6 +22,8 @@ let currentSpotDetails = null;
 let currentSelectedReservationOption = null;
 let modalParkingTitle;
 let modalParkingAddress;
+let modalSellerProfileImage;
+let modalSellerName;
 let modalParkingDescription;
 let modalParkingType;
 let modalParkingQuantity;
@@ -32,83 +34,6 @@ let currentSelectedSlot = {
     date: null,
     slotNumber: null
 };
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    reservationModal = document.getElementById('parking-detail-modal');
-
-    availableSlotsForDateDiv = document.getElementById('available-slots-for-date');
-    dynamicVagaSquaresDiv = document.getElementById('dynamic-vaga-squares');  
-    noSlotsMessageP = document.getElementById('no-slots-message');
-
-    modalParkingTitle = document.getElementById('modal-parking-title');
-    modalParkingAddress = document.getElementById('modal-parking-address');
-    modalParkingDescription = document.getElementById('modal-parking-description');
-    modalParkingType = document.getElementById('modal-parking-type');
-    modalParkingQuantity = document.getElementById('modal-parking-quantity');
-    modalSpotPriceHourElement = document.getElementById('modal-spot-price-hour');
-    modalSpotLocationElement = document.getElementById('modal-spot-location'); 
-    modalParkingImage = reservationModal.querySelector('img');
-
-    if (reservationModal) {
-        const reservationCalendarInput = document.getElementById('reservation-calendar'); // Input onde o Flatpickr se anexa
-        const selectedDatesDisplay = document.getElementById('selected-reservation-dates-display'); // Div para exibir as datas selecionadas
-
-        if (reservationCalendarInput && selectedDatesDisplay && availableSlotsForDateDiv && dynamicVagaSquaresDiv  && noSlotsMessageP) {
-            reservationCalendarInstance = flatpickr(reservationCalendarInput, {
-                mode: "multiple", // Essencial para selecionar múltiplas datas
-                dateFormat: "d/m/Y",
-                locale: flatpickr.l10ns.pt,
-                minDate: "today",
-                onReady: function(selectedDates, dateStr, instance) {
-                    instance.clear(); // Limpa seleção inicial
-                    selectedDatesDisplay.textContent = 'Nenhuma data selecionada ainda.';
-                    availableSlotsForDateDiv.classList.add('hidden'); // Oculta a área de slots
-                    noSlotsMessageP.classList.remove('hidden'); // Mostra a mensagem inicial de slots
-                    dynamicVagaSquaresDiv .innerHTML = ''; // Limpa os slots dinâmicos
-                },
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (selectedDates.length > 0) {
-                        const formattedDates = selectedDates.map(date =>
-                            new Date(date).toLocaleDateString('pt-BR')
-                        ).join(', ');
-                        selectedDatesDisplay.textContent = `Datas selecionadas: ${formattedDates}`;
-                        availableSlotsForDateDiv.classList.remove('hidden'); // Mostra a área de slots
-                        renderVagaSquares(selectedDates); 
-                    } else {
-                        selectedDatesDisplay.textContent = 'Nenhuma data selecionada ainda.';
-                        availableSlotsForDateDiv.classList.add('hidden'); // Oculta a área de slots
-                        noSlotsMessageP.classList.remove('hidden'); // Mostra a mensagem inicial de slots
-                        dynamicVagaSquaresDiv.innerHTML = ''; // LIMPA OS QUADRADINHOS
-                    }
-                }
-            });
-            console.log("ui_handlers.js: Flatpickr para reserva inicializado.");
-        } else {
-            console.warn("ui_handlers.js: Um ou mais elementos do calendário/slots de reserva (modal) não encontrados. Verifique os IDs.");
-        }
-    } else {
-        console.warn("ui_handlers.js: Elemento 'parking-detail-modal' não encontrado no DOM. O modal de reserva pode não funcionar.");
-    }
-
-    // Listener para o botão de Confirmação de Reserva, se existir no modal.
-    const confirmReservationBtn = document.getElementById("confirm-reservation-btn");
-    if (confirmReservationBtn) {
-        confirmReservationBtn.addEventListener("click", handleReserveButtonClick);
-    } else {
-        console.warn("ui_handlers.js: Botão 'confirm-reservation-btn' não encontrado. A reserva não poderá ser confirmada.");
-    }
-
-    if (reservationModal) {
-        // ...
-        const closeDetailModalButton = document.getElementById('close-modal'); // Já existe no seu HTML
-        if (closeDetailModalButton) {
-            closeDetailModalButton.addEventListener('click', () => {
-                reservationModal.classList.add('hidden'); // Oculta o modal de detalhes/reserva
-            });
-        }
-    }
-});
 
 export async function activateTab(tabName) {
     console.log(`activateTab: Ativando aba '${tabName}'`);
@@ -164,7 +89,6 @@ export async function activateTab(tabName) {
         console.log("activateTab: Aba 'add-parking' ativada.");
         setTimeout(() => {
             initializeAutocomplete();
-            // --- ADICIONAR A CHAMADA PARA setupAvailabilityFields AQUI ---
             setupAvailabilityFields(); 
             console.log("setupAvailabilityFields() chamado ao ativar a aba 'add-parking'.");
         }, 100);
@@ -304,28 +228,36 @@ export function renderSpot(spot) {
     if (reservarBtn) {
         reservarBtn.addEventListener("click", (event) => {
             event.stopPropagation();
+            console.log("Clique no botão 'Reservar'. Abrindo modal de detalhes.");
             openParkingDetailModal(spot);
         });
     }
+
+
+    const editBtn = card.querySelector('[data-action="editar"]');
+    if (editBtn) {
+        editBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); // Impede o clique de abrir o modal de detalhes
+            console.log(`Botão de editar para a vaga ${spot.id} clicado.`);
+            openEditSpotModal(spot); // Chama a função para abrir o modal de edição
+        });
+    }
+    // --- FIM DO NOVO CÓDIGO ---
 
     card.addEventListener("click", () => {
         openParkingDetailModal(spot);
     });
 }
 
-
+// Página de Minhas Vagas
 export function renderMySpot(spot) {
     const container = document.getElementById("myVagasContainer");
     if (!container) return;
 
     const desativada = spot.status === "Desativada";
     const card = document.createElement("div");
+    card.className = "border border-gray-200 rounded-lg p-3 hover:bg-gray-50 mb-2";
 
-    card.className = `
-        border rounded-lg p-4 mb-2 transition
-        ${desativada ? "bg-gray-100 text-gray-500 border-gray-300" : "bg-white text-gray-800 border-gray-200"}
-    `;
-    card.setAttribute("data-spot-id", spot.id);
 
     card.innerHTML = `
         <div class="flex justify-between items-center">
@@ -351,27 +283,30 @@ export function renderMySpot(spot) {
                 <button class="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-200">
                     Ver Estatísticas
                 </button>
-                <button class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" data-id="${spot.id}" data-action="${desativada ? "ativar" : "desativar"}">
+                <button id="toggleStatusBtn-${spot.id}" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" data-id="${spot.id}" data-action="${desativada ? "ativar" : "desativar"}">
                     ${desativada ? "Ativar" : "Desativar"}
                 </button>
-                <button class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200" data-id="${spot.id}" data-action="excluir">
+                <button id="deleteBtn-${spot.id}" class="bg-red-100 text-red-600 px-3 py-1 text-sm rounded hover:bg-red-200" data-id="${spot.id}" data-action="excluir">
                     Excluir
                 </button>
             </div>
         </div>
     `;
+
     container.prepend(card);
 
-    const editBtn = card.querySelector('[data-action="editar"]');
+     const editBtn = card.querySelector('[data-action="editar"]');
     if (editBtn) {
         editBtn.addEventListener('click', (event) => {
             event.stopPropagation();
-            console.log(`Botão Editar clicado para vaga ID: ${spot.id}`);
-            setupEditSpotForm(spot);
+            console.log(`Botão de editar para a vaga ${spot.id} clicado.`);
+            
+            // Aqui você chama a função que irá abrir e preencher o modal de edição
+            openEditSpotModal(spot);
         });
     }
 
-    const toggleStatusBtn = card.querySelector('[data-action="desativar"], [data-action="ativar"]');
+    const toggleStatusBtn = card.querySelector(`#toggleStatusBtn-${spot.id}`);
     if (toggleStatusBtn) {
         toggleStatusBtn.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -379,35 +314,19 @@ export function renderMySpot(spot) {
             const newStatus = currentAction === 'desativar' ? 'Desativada' : 'Ativa';
             const modalConfirm = document.getElementById("deactivate-confirm-modal");
             const confirmBtn = document.getElementById("confirm-deactivate");
-
             const modalMessage = modalConfirm?.querySelector('.modal-message-placeholder');
 
             if (modalConfirm && confirmBtn && modalMessage) {
                 modalMessage.textContent = `Tem certeza que deseja ${currentAction} esta vaga?`;
-
+                // Apenas define o ID da vaga no botão de confirmação
                 confirmBtn.dataset.spotId = spot.id;
                 confirmBtn.dataset.newStatus = newStatus;
-                confirmBtn.dataset.actionType = currentAction;
-
                 modalConfirm.classList.remove("hidden");
-            } else {
-                console.warn("Elemento(s) do modal de desativação/ativação não encontrado(s). Usando confirmação padrão.");
-                if (confirm(`Tem certeza que deseja ${currentAction} esta vaga?`)) {
-                    updateSpotStatus(spot.id, newStatus)
-                        .then(() => {
-                            alert(`Vaga ${newStatus.toLowerCase()} com sucesso!`);
-                            carregarMinhasVagas();
-                        })
-                        .catch(error => {
-                            console.error(`Erro ao ${currentAction} vaga:`, error);
-                            alert(`Erro ao ${currentAction} vaga.`);
-                        });
-                }
             }
         });
     }
 
-    const deleteBtn = card.querySelector('[data-action="excluir"]');
+    const deleteBtn = card.querySelector(`#deleteBtn-${spot.id}`);
     if (deleteBtn) {
         deleteBtn.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -417,27 +336,124 @@ export function renderMySpot(spot) {
 
             if (modalConfirm && confirmBtn && modalMessage) {
                 modalMessage.textContent = "Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.";
-
+                // Apenas define o ID da vaga no botão de confirmação
                 confirmBtn.dataset.spotId = spot.id;
-
                 modalConfirm.classList.remove("hidden");
-            } else {
-                console.warn("Elemento(s) do modal de exclusão não encontrado(s). Usando confirmação padrão.");
-                if (confirm("Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.")) {
-                    deleteSpot(spot.id)
-                        .then(() => {
-                            alert("Vaga excluída com sucesso!");
-                            card.remove();
-                            carregarMinhasVagas();
-                        })
-                        .catch(error => {
-                            console.error("Erro ao excluir vaga:", error);
-                            alert("Erro ao excluir vaga.");
-                        });
-                }
             }
         });
     }
+}
+
+function openEditSpotModal(spotDetails) {
+    const editModal = document.getElementById('edit-spot-modal');
+    if (!editModal) {
+        console.error("Modal de edição não encontrado!");
+        return;
+    }
+    
+    // Preencha o formulário com os dados da vaga
+    document.getElementById('edit-spot-id').value = spotDetails.id;
+    document.getElementById('edit-title').value = spotDetails.title;
+    document.getElementById('edit-address').value = spotDetails.address;
+    document.getElementById('edit-description').value = spotDetails.description;
+    document.getElementById('edit-price_hour').value = spotDetails.price_hour;
+    document.getElementById('edit-price_day').value = spotDetails.price_day;
+    document.getElementById('edit-size').value = spotDetails.size;
+    document.getElementById('edit-tipo_vaga').value = spotDetails.tipo_vaga;
+
+    // Mostra o modal
+    editModal.classList.remove('hidden');
+}
+
+// --- NOVO CÓDIGO AQUI: OUVINTE DE EVENTO GLOBAL PARA O BOTÃO "CANCELAR" E "SALVAR" ---
+document.addEventListener('DOMContentLoaded', () => {
+    const editModal = document.getElementById('edit-spot-modal');
+    if (editModal) {
+        // Evento para o botão de cancelar
+        const cancelBtn = editModal.querySelector('#cancel-edit');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                editModal.classList.add('hidden');
+            });
+        }
+        
+        // Evento para o formulário de edição (submissão)
+        const editForm = document.getElementById('editParkingForm');
+        if (editForm) {
+            editForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                
+                // Reúne os dados do formulário
+                const updatedData = {
+                    title: editForm.querySelector('#edit-title').value,
+                    address: editForm.querySelector('#edit-address').value,
+                    description: editForm.querySelector('#edit-description').value,
+                    price_hour: parseFloat(editForm.querySelector('#edit-price_hour').value),
+                    price_day: parseFloat(editForm.querySelector('#edit-price_day').value),
+                    size: editForm.querySelector('#edit-size').value,
+                    tipo_vaga: editForm.querySelector('#edit-tipo_vaga').value,
+                };
+
+                const spotId = editForm.querySelector('#edit-spot-id').value;
+                
+                try {
+                    // Faça a requisição PATCH para a API
+                    const response = await fetch(`/api/my-parking-spots/${spotId}/`, {
+    method: 'PATCH',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+    },
+    body: JSON.stringify(updatedData),
+});
+                    
+                    if (response.ok) {
+                        console.log("Vaga atualizada com sucesso!");
+                        editModal.classList.add('hidden');
+                        carregarMinhasVagas();
+                    } else {
+                        const errorData = await response.json();
+                        console.error("Erro ao atualizar vaga:", errorData);
+                        alert("Erro ao salvar as alterações. Verifique os dados.");
+                    }
+
+                } catch (error) {
+                    console.error("Erro de rede:", error);
+                    alert("Erro de conexão ao tentar salvar.");
+                }
+            });
+        }
+    }
+});
+
+const confirmDeleteBtn = document.getElementById("confirm-delete");
+if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", async (event) => {
+        const spotId = event.target.dataset.spotId;
+        if (spotId) {
+            await deleteSpot(spotId);
+            document.getElementById("delete-confirm-modal").classList.add("hidden");
+            carregarMinhasVagas();
+        } else {
+            console.error("ID da vaga não encontrado no botão de confirmação de exclusão.");
+        }
+    });
+}
+
+// Adiciona listener para o botão de confirmação de desativação
+const confirmDeactivateBtn = document.getElementById("confirm-deactivate");
+if (confirmDeactivateBtn) {
+    confirmDeactivateBtn.addEventListener("click", async (event) => {
+        const spotId = event.target.dataset.spotId;
+        const newStatus = event.target.dataset.newStatus;
+        if (spotId && newStatus) {
+            await updateSpotStatus(spotId, newStatus);
+            document.getElementById("deactivate-confirm-modal").classList.add("hidden");
+            carregarMinhasVagas();
+        } else {
+            console.error("ID da vaga ou novo status não encontrado no botão de confirmação de desativação.");
+        }
+    });
 }
 
 // Calculadora que atualiza os valores da reserva no card do modal
@@ -548,8 +564,6 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
 
 function formatarHorarioDisponivelModal(spot) {
     if (spot.availabilities_by_date && spot.availabilities_by_date.length > 0) {
-        // Para a modal de detalhes, podemos ser mais específicos se houver várias disponibilidades
-        // Ou simplesmente pegar a primeira ou a que representa o "horário comum"
         const firstAvailability = spot.availabilities_by_date[0];
         const startTime = firstAvailability.start_time ? firstAvailability.start_time.substring(0, 5) : 'N/A';
         const endTime = firstAvailability.end_time ? firstAvailability.end_time.substring(0, 5) : 'N/A';
@@ -583,13 +597,76 @@ export function openParkingDetailModal(spotDetails) {
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceHourFormatted = isNaN(priceHour) ? 'N/A' : `R$ ${priceHour.toFixed(2).replace('.', ',')}/h`;
 
-
     // Preenche os novos campos detalhados
     document.getElementById("modal-parking-type-display").textContent = `Tipo: ${formatarTipoVaga(spotDetails.tipo_vaga)}`;
     document.getElementById("modal-parking-size-display").textContent = `Tamanho: ${formatarTamanhoVaga(spotDetails.size)}`;
     document.getElementById("modal-parking-hours-display").textContent = `Disponível: ${formatarHorarioDisponivelModal(spotDetails)}`;
-    document.getElementById("modal-parking-camera-display").textContent = `Câmera de Segurança: ${spotDetails.has_camera ? 'Sim' : 'Não'}`;
     document.getElementById("modal-parking-price-display").textContent = `Preço por hora: ${priceHourFormatted}`;
+
+    const characteristicsContainer = document.getElementById('modal-characteristics-container');
+    if (characteristicsContainer) {
+        characteristicsContainer.innerHTML = ''; // Limpa o conteúdo anterior
+
+        if (spotDetails.has_camera) {
+            characteristicsContainer.innerHTML += `
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-camera fa-fw text-gray-600 mr-2"></i>
+                    <span>Vaga com câmera</span>
+                </div>
+            `;
+        }
+        if (spotDetails.has_supervision) {
+            characteristicsContainer.innerHTML += `
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-user-shield fa-fw text-gray-600 mr-2"></i>
+                    <span>Supervisão (vigilante)</span>
+                </div>
+            `;
+        }
+        if (spotDetails.has_alarm) {
+            characteristicsContainer.innerHTML += `
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-bell fa-fw text-gray-600 mr-2"></i>
+                    <span>Alarme no local</span>
+                </div>
+            `;
+        }
+        if (spotDetails.has_ev_charger) {
+            characteristicsContainer.innerHTML += `
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-charging-station fa-fw text-gray-600 mr-2"></i>
+                    <span>Tomada para carro elétrico</span>
+                </div>
+            `;
+        }
+        if (spotDetails.has_remote_monitoring) {
+            characteristicsContainer.innerHTML += `
+                <div class="flex items-center mb-1">
+                    <i class="fa-solid fa-desktop fa-fw text-gray-600 mr-2"></i>
+                    <span>Monitoramento remoto</span>
+                </div>
+            `;
+        }
+        if (spotDetails.has_car_wash) {
+        characteristicsContainer.innerHTML += `
+            <div class="flex items-center mb-1">
+                <i class="fa-solid fa-car-wash fa-fw text-gray-600 mr-2"></i>
+                <span>Lavagem de carro no local</span>
+            </div>
+        `;
+    }
+    if (spotDetails.has_valet) {
+        characteristicsContainer.innerHTML += `
+            <div class="flex items-center mb-1">
+                <i class="fa-solid fa-user-tie fa-fw text-gray-600 mr-2"></i>
+                <span>Serviço de manobrista</span>
+            </div>
+        `;
+    }
+    }
+         // Esconde a seção de detalhes da vaga escolhida e reinicia as opções de reserva
+        document.getElementById("selected-slot-details-section").classList.add("hidden");
+
 
 
     // Esconde a seção de detalhes da vaga escolhida e reinicia as opções de reserva
@@ -631,6 +708,11 @@ export function openParkingDetailModal(spotDetails) {
     const selectedSlotDateDisplay = modal.querySelector('#selected-slot-date-display');
     const startTimeInput = modal.querySelector('#start-time-input');
     const endTimeInput = modal.querySelector('#end-time-input');
+    const modalSellerProfileImage = document.getElementById('modal-seller-profile-image');
+    const modalSellerName = document.getElementById('modal-seller-name');
+    const profileImage = document.getElementById('modal-seller-profile-image');
+    const popover = document.getElementById('seller-info-popover');
+
 
     if (availableSlotsForDateContainer) availableSlotsForDateContainer.classList.add('hidden');
     if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
@@ -639,6 +721,50 @@ export function openParkingDetailModal(spotDetails) {
         noSlotsMessage.classList.remove('hidden');
         noSlotsMessage.textContent = "Selecione uma data para ver as vagas disponíveis.";
     }
+
+    if (modalSellerProfileImage && modalSellerName) {
+    // Verifique se os dados do proprietário existem
+    if (spotDetails.owner && spotDetails.owner.perfil) {
+        // Acessa o nome completo do perfil
+        modalSellerName.textContent = spotDetails.owner.perfil.nome_completo || 'Vendedor não disponível';
+
+        // Acessa a URL da foto do perfil e a atribui ao src da imagem.
+        // Se a URL não existir (for null, undefined, etc.), ela irá manter o src do HTML.
+        const sellerPhotoUrl = spotDetails.owner.perfil.foto;
+        if (sellerPhotoUrl) {
+            modalSellerProfileImage.src = sellerPhotoUrl;
+        }
+
+    } else {
+        // Caso os dados não estejam disponíveis
+        modalSellerName.textContent = 'Vendedor não disponível';
+        // A imagem já está configurada como a padrão no HTML, não precisa ser alterada aqui.
+    }
+}
+profileImage.addEventListener('click', (e) => {
+    e.stopPropagation(); // Evita conflito com clique fora
+    popover.classList.toggle('hidden');
+
+    // Atualizar o nome no popover dinamicamente
+    const sellerName = document.getElementById('modal-seller-name');
+    const popoverName = document.getElementById('popover-seller-name');
+    if (sellerName && popoverName) {
+        popoverName.textContent = sellerName.textContent;
+    }
+
+    // Posicionamento relativo à imagem
+    const rect = profileImage.getBoundingClientRect();
+    popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    popover.style.left = `${rect.left + window.scrollX}px`;
+});
+
+// Fecha o popover ao clicar fora dele
+document.addEventListener('click', (e) => {
+    if (!popover.contains(e.target) && !profileImage.contains(e.target)) {
+        popover.classList.add('hidden');
+    }
+});
+
 
     // Destrua instâncias anteriores para evitar duplicação (se o modal for reaberto)
     if (startTimeInput && startTimeInput._flatpickr) {
@@ -697,10 +823,6 @@ export function openParkingDetailModal(spotDetails) {
             }
         });
     }
-
-    // const priceHour = parseFloat(spotDetails.price_hour); // Already defined above
-    // const priceHourFormatted = isNaN(priceHour) ? 'N/A' : priceHour.toFixed(2).replace('.', ','); // Already defined above
-
 
     let availabilityArray = [];
 
@@ -967,23 +1089,27 @@ async function handleReserveButtonClick() {
         return;
     }
 
+    // Adicione o código aqui:
+    // Garante que os modais de confirmação de exclusão e desativação estejam ocultos
+    document.getElementById("delete-confirm-modal")?.classList.add("hidden");
+    document.getElementById("deactivate-confirm-modal")?.classList.add("hidden");
+
     const reservations = [];
     selectedDates.forEach(date => {
         const backendFormattedDate = new Date(date).toISOString().split('T')[0];
         reservations.push({
             spot: currentSpotId,
             reservation_date: backendFormattedDate,
-            start_time: '00:00', 
-            end_time: '23:59',   
+            start_time: '00:00',
+            end_time: '23:59',
             reserved_quantity: reservedQuantity,
         });
     });
 
-
     console.log("Dados de reserva a serem enviados (com quadradinhos):", reservations);
 
     try {
-        const response = await fetch('/api/reservations/bulk_create/', { // ou o endpoint que você usa
+        const response = await fetch('/api/reservations/bulk_create/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1114,18 +1240,6 @@ async function renderVagaSquares(selectedDates) {
     }
 }
 
-// Função auxiliar para capitalizar a primeira letra do dia da semana (se não estiver em availability_manager.js)
-function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// --- Funções de Cálculo e Requisição de Reserva
-
-function handleConfirmReservation(spotDetails) {
-    // Lógica para confirmar a reserva
-    console.log("Reserva confirmada para:", spotDetails);
-}
-
 // --- Setup dos Listeners de Modais e Botões de Ação ---
 export function setupModalClosers() {
     document.getElementById("close-modal")?.addEventListener("click", () => {
@@ -1156,83 +1270,4 @@ export function setupModalClosers() {
     document.getElementById("error-ok")?.addEventListener("click", () => {
         document.getElementById("error-modal").classList.add("hidden");
     });
-
-
-    const confirmDeactivateBtn = document.getElementById("confirm-deactivate");
-    if (confirmDeactivateBtn) {
-        confirmDeactivateBtn.addEventListener("click", async () => {
-            const spotId = confirmDeactivateBtn.dataset.spotId;
-            const newStatus = confirmDeactivateBtn.dataset.newStatus;
-            const actionType = confirmDeactivateBtn.dataset.actionType;
-
-            // Esconde o modal de confirmação imediatamente
-            document.getElementById("deactivate-confirm-modal")?.classList.add("hidden");
-
-            if (spotId && newStatus) {
-                try {
-                    await updateSpotStatus(spotId, newStatus);
-                    // Mostra o modal de sucesso
-                    const successModal = document.getElementById("delete-success-modal"); 
-                    const successMessage = successModal?.querySelector('.modal-message-placeholder');
-                    if (successModal && successMessage) {
-                        successMessage.textContent = `Vaga ${actionType === 'desativar' ? 'desativada' : 'ativada'} com sucesso!`;
-                        successModal.classList.remove("hidden");
-                    } else {
-                        alert(`Vaga ${actionType === 'desativar' ? 'desativada' : 'ativada'} com sucesso!`);
-                    }
-                    carregarMinhasVagas();
-                } catch (error) {
-                    console.error(`Erro ao ${actionType} vaga:`, error);
-                    // Mostra um modal de erro (precisa ser criado no HTML)
-                    const errorModal = document.getElementById("error-modal"); // Crie este modal
-                    const errorMessageDisplay = errorModal?.querySelector('.modal-message-placeholder');
-                    if (errorModal && errorMessageDisplay) {
-                        errorMessageDisplay.textContent = `Erro ao ${actionType} vaga: ${error.message || error}`;
-                        errorModal.classList.remove("hidden");
-                    } else {
-                        alert(`Erro ao ${actionType} vaga.`);
-                    }
-                }
-            }
-        });
-    }
-
-    // Listener para o botão de confirmação do modal de Excluir
-    const confirmDeleteBtn = document.getElementById("confirm-delete");
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener("click", async () => {
-            const spotId = confirmDeleteBtn.dataset.spotId;
-
-            // Esconde o modal de confirmação imediatamente
-            document.getElementById("delete-confirm-modal")?.classList.add("hidden");
-
-            if (spotId) {
-                try {
-                    await deleteSpot(spotId);
-                    // Mostra o modal de sucesso
-                    const successModal = document.getElementById("delete-success-modal");
-                    const successMessage = successModal?.querySelector('.modal-message-placeholder');
-                    if (successModal && successMessage) {
-                        successMessage.textContent = "Vaga excluída com sucesso!"; // Mensagem específica para exclusão
-                        successModal.classList.remove("hidden");
-                    } else {
-                        alert("Vaga excluída com sucesso!");
-                    }
-                    carregarMinhasVagas();
-                    // Opcional: remover o card específico do DOM
-                } catch (error) {
-                    console.error("Erro ao excluir vaga:", error);
-                    // Mostra um modal de erro
-                    const errorModal = document.getElementById("error-modal");
-                    const errorMessageDisplay = errorModal?.querySelector('.modal-message-placeholder');
-                    if (errorModal && errorMessageDisplay) {
-                        errorMessageDisplay.textContent = `Erro ao excluir vaga: ${error.message || error}`;
-                        errorModal.classList.remove("hidden");
-                    } else {
-                        alert("Erro ao excluir vaga.");
-                    }
-                }
-            }
-        });
-    }    
 }

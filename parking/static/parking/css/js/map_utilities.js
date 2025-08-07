@@ -119,7 +119,6 @@ export function configurarBuscaEndereco() {
     // Inicialize o SearchBox apenas uma vez
     if (!window.searchBoxInstance) {
         window.searchBoxInstance = new SearchBoxClass(input);
-        map.controls[google.maps.ControlPosition.TOP_LEFT].push(input); // Usando 'map' exportado
 
         window.searchBoxInstance.addListener('places_changed', async () => {
             const places = window.searchBoxInstance.getPlaces();

@@ -1,3 +1,4 @@
+# parking/urls.py
 
 from django.urls import path, include
 from . import views
@@ -26,6 +27,11 @@ urlpatterns = [
     path('perfil/buscar-veiculos/', views.buscar_veiculos, name='buscar_veiculos'),
     path('salvar-disponibilidade/', views.salvar_disponibilidade, name='salvar_disponibilidade'),
     path('api/token/login/', obtain_auth_token, name='api_token_auth'), # Endpoint para obter o token
+    
+    # URL de logout correta.
+    # Note que a URL é a primeira a ser processada e aponta para a página de login correta.
+    path('logout/', auth_views.LogoutView.as_view(next_page='parking:login'), name='logout'),
+
 
     path('api/spots/<int:spot_id>/availability/', get_spot_availability_by_spot_id, name='spot-availability-by-spot-id'),
 
@@ -36,7 +42,6 @@ urlpatterns = [
         template_name='parking/login.html',
         authentication_form=EmailAuthenticationForm
     ), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
     # Inclui as URLs geradas pelo router (para todos os ViewSets REST)
     path('api/', include(router.urls)), 

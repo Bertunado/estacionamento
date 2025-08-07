@@ -25,17 +25,23 @@
     <div class="bg-white bg-opacity-90 p-8 rounded-lg shadow-md w-96">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Faça Login</h2>
 
-        <p id="login-error-message" class="text-red-600 mb-4 hidden">Usuário ou senha inválidos.</p>
-
-        <form id="loginForm"> 
-            {% csrf_token %} 
-            <div class="mb-4">
-                <label for="id_username" class="block text-gray-700">Email:</label>
-                <input type="text" id="id_username" name="username" class="border rounded-lg w-full p-2" required>
+        {% if form.non_field_errors %}
+            <div class="text-red-600 mb-4 p-2 bg-red-100 rounded">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
             </div>
-            <div class="mb-4">
+        {% endif %}
+
+        <form method="post" action="{% url 'parking:login' %}" class="space-y-4"> 
+            {% csrf_token %} 
+            <div>
+                <label for="id_username" class="block text-gray-700">Email:</label>
+                {% render_field form.username class="border rounded-lg w-full p-2" required="" %}
+            </div>
+            <div>
                 <label for="id_password" class="block text-gray-700">Senha:</label>
-                <input type="password" id="id_password" name="password" class="border rounded-lg w-full p-2" required>
+                {% render_field form.password class="border rounded-lg w-full p-2" required="" %}
             </div>
             <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
                 Entrar
@@ -46,7 +52,5 @@
             Não tem uma conta? <a href="{% url 'parking:registrar' %}" class="text-blue-600 hover:underline">Cadastre-se</a>
         </p>
     </div>
-
-    <script type="module" src="{% static 'parking/css/js/login_handler.js' %}"></script>
 </body>
 </html>

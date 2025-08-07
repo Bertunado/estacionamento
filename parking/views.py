@@ -210,6 +210,7 @@ class MinhasVagasView(APIView):
 
 class ParkingSpotViewSet(viewsets.ModelViewSet):
     serializer_class = ParkingSpotSerializer
+    queryset = ParkingSpot.objects.all().select_related('owner', 'owner__perfil')
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):

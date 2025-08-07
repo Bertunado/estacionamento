@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from accounts.models import CustomUser
+
 
 # Vaga de estacionamento
 class ParkingSpot(models.Model):
@@ -51,7 +53,7 @@ class ParkingSpotPhoto(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class Perfil(models.Model):
-    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    usuario = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     nome_completo = models.CharField(max_length=100)
     foto = models.ImageField(
     upload_to='fotos_perfil/',

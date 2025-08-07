@@ -1,9 +1,18 @@
 from rest_framework import serializers
-from .models import ParkingSpot
-from .models import ParkingSpotPhoto
-from .models import Availability
-from .models import SpotAvailability 
-from .models import Reservation
+from .models import ParkingSpot, ParkingSpotPhoto, Availability, SpotAvailability, Reservation, Perfil
+from accounts.models import CustomUser
+
+class PerfilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Perfil
+        fields = ['nome_completo', 'foto']
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    perfil = PerfilSerializer(read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['perfil']
 
 class ParkingSpotPhotoSerializer(serializers.ModelSerializer):
     spot = serializers.PrimaryKeyRelatedField(queryset=ParkingSpot.objects.all()) 
@@ -33,6 +42,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 class ParkingSpotSerializer(serializers.ModelSerializer):
     photos = ParkingSpotPhotoSerializer(many=True, read_only=True)
     availabilities_by_date = SpotAvailabilitySerializer(many=True, required=False) 
+    owner = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = ParkingSpot
@@ -40,8 +50,9 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
             'id', 'title', 'address', 'description', 'latitude', 'longitude',
             'price_hour', 'price_day', 'tipo_vaga', 'has_camera', 'size',
             'created_at', 'status', 'photos', 'quantity', 'availabilities_by_date',
+            'owner',
         ]
-        read_only_fields = ['id', 'owner', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 def create(self, validated_data):
         availabilities_data = validated_data.pop('availabilities_by_date', [])
