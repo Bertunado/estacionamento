@@ -1,7 +1,7 @@
 // ui_handlers.js
 // Funções responsáveis por renderizar elementos na interface e gerenciar modais/abas
 
-import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus } from './api_services.js';
+import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus, createReservation, fetchMyReservations, fetchSpotReservations } from './api_services.js';
 import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregarSpots as carregarSpotsDoMapa } from './map_utilities.js';
 import { setupEditSpotForm } from './form_handlers.js';
 import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
@@ -85,6 +85,8 @@ export async function activateTab(tabName) {
         }, 100);
     } else if (tabName === 'my-parkings') {
         carregarMinhasVagas();
+    } else if (tabName === 'my-reservations') { // Adicione esta condição
+        carregarMinhasReservas(); 
     } else if (tabName === "add-parking") {
         console.log("activateTab: Aba 'add-parking' ativada.");
         setTimeout(() => {
@@ -138,17 +140,6 @@ export async function carregarSpotsDaListaEdoMapa() {
     } catch (error) {
         console.error("Erro ao carregar spots na UI:", error);
     }
-}
-
-// Função auxiliar para obter a quantidade disponível para uma data específica
-function getAvailableQuantityForDate(spot, selectedDateStr) {
-    if (!spot.availabilities || spot.availabilities.length === 0) {
-        return 0; // Nenhuma disponibilidade cadastrada
-    }
-    const availability = spot.availabilities.find(
-        (avail) => avail.available_date === selectedDateStr
-    );
-    return availability ? availability.available_quantity : 0;
 }
 
 function formatarTipoVaga(tipo) {
@@ -301,7 +292,6 @@ export function renderMySpot(spot) {
             event.stopPropagation();
             console.log(`Botão de editar para a vaga ${spot.id} clicado.`);
             
-            // Aqui você chama a função que irá abrir e preencher o modal de edição
             openEditSpotModal(spot);
         });
     }
@@ -365,8 +355,110 @@ function openEditSpotModal(spotDetails) {
     editModal.classList.remove('hidden');
 }
 
+// Renderizar os horários já reservados
+function renderReservedSlots(reservations) {
+    const reservedSlotsContainer = document.getElementById('reserved-slots-list');
+    const noReservedSlotsMessage = document.getElementById('no-reserved-slots-message');
+
+    reservedSlotsContainer.innerHTML = '';
+    
+    if (reservations && reservations.length > 0) {
+        noReservedSlotsMessage.classList.add('hidden');
+        reservations.forEach(res => {
+            const startTime = new Date(res.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const endTime = new Date(res.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const slot = document.createElement('p');
+            slot.textContent = `Horário: ${startTime} - ${endTime}`;
+            reservedSlotsContainer.appendChild(slot);
+        });
+    } else {
+        noReservedSlotsMessage.classList.remove('hidden');
+    }
+    
+    document.getElementById('reserved-slots-for-date').classList.remove('hidden');
+}
+
+// Carregar as reservas quando a data for selecionada
+export async function handleDateSelection(spotId, date) {
+    // Esconda a mensagem de slots não disponíveis
+    document.getElementById('no-slots-message').classList.add('hidden');
+    
+    // Limpa os quadrados de vagas disponíveis
+    document.getElementById('dynamic-vaga-squares').innerHTML = '';
+
+    try {
+        // Carrega as vagas disponíveis (sua lógica atual)
+        const availableSlots = await fetchAvailableSlots(spotId, date);
+        if (availableSlots && availableSlots.length > 0) {
+            // Lógica para renderizar os slots disponíveis...
+        } else {
+            // Lógica para exibir a mensagem de que não há vagas...
+        }
+        
+        const reservations = await fetchSpotReservations(spotId, date);
+        renderReservedSlots(reservations);
+
+    } catch (error) {
+        console.error("Erro ao carregar os slots:", error);
+        alert("Ocorreu um erro ao carregar os horários disponíveis.");
+    }
+}
+
 // --- NOVO CÓDIGO AQUI: OUVINTE DE EVENTO GLOBAL PARA O BOTÃO "CANCELAR" E "SALVAR" ---
 document.addEventListener('DOMContentLoaded', () => {
+    const confirmReservationBtn = document.getElementById('confirm-reservation-btn');
+     if (confirmReservationBtn) {
+        confirmReservationBtn.addEventListener('click', async () => {
+            console.log('Botão de confirmar reserva clicado!');
+
+            const spotId = document.getElementById('reservation-spot-id').value;
+            const startTime = document.getElementById('start-time-input').value;
+            const endTime = document.getElementById('end-time-input').value;
+            const selectedDateStr = currentSelectedSlot.date; 
+
+            // Adicione estas linhas para ver o que está sendo capturado
+            console.log("Valores para a reserva:");
+            console.log("spotId:", spotId);
+            console.log("selectedDateStr:", selectedDateStr);
+            console.log("startTime:", startTime);
+            console.log("endTime:", endTime);
+            console.log("-------------------");
+
+            if (!spotId || !startTime || !endTime || !selectedDateStr) {
+                alert("Por favor, preencha todos os campos da reserva.");
+                return;
+            }
+            const startDateTime = new Date(`${selectedDateStr}T${startTime}:00`);
+            const endDateTime = new Date(`${selectedDateStr}T${endTime}:00`);
+
+            if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                alert("Horário ou data de reserva inválidos. Por favor, verifique o formato.");
+                return;
+            }
+
+            if (endDateTime <= startDateTime) {
+                alert("O horário de término deve ser posterior ao horário de início.");
+                return;
+            }
+
+            const payload = {
+            // ✅ Garanta que o payload tenha as chaves corretas
+            spot: parseInt(spotId),
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
+        };
+             console.log("Payload enviado para a API:", payload);
+
+            try {
+                const newReservation = await createReservation(payload);
+                showReservationConfirmation(newReservation);
+            } catch (error) {
+                console.error("Erro ao criar a reserva:", error);
+                alert("Não foi possível realizar a reserva: " + error.message);
+            }
+        });
+    }
+    
     const editModal = document.getElementById('edit-spot-modal');
     if (editModal) {
         // Evento para o botão de cancelar
@@ -424,6 +516,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+    
 });
 
 const confirmDeleteBtn = document.getElementById("confirm-delete");
@@ -585,6 +679,8 @@ export function openParkingDetailModal(spotDetails) {
     document.getElementById("modal-parking-title").textContent = spotDetails.title;
     document.getElementById("modal-parking-address").textContent = spotDetails.address;
     document.getElementById("modal-parking-description").textContent = spotDetails.description;
+    document.getElementById('reservation-spot-id').value = spotDetails.id;
+    document.getElementById('parking-detail-modal').classList.remove('hidden');
 
     // Atualiza a imagem da vaga
     const modalImage = document.getElementById("modal-parking-image");
@@ -1065,6 +1161,107 @@ document.addEventListener('click', (e) => {
         });
     }
 
+}
+
+// Aba de "Minhas Reservas"
+export function renderMyReservation(reservation) {
+    const container = document.getElementById("myReservationsContainer");
+    if (!container) return;
+
+    const card = document.createElement("div");
+    card.className = "bg-white p-4 rounded-lg shadow-md";
+
+    // Formata a data e hora para exibição
+    const startTime = new Date(reservation.start_time).toLocaleString();
+    const endTime = new Date(reservation.end_time).toLocaleString();
+
+    // Cria o HTML do cartão de reserva
+    card.innerHTML = `
+        <h3 class="font-bold text-lg mb-2">${reservation.spot.title}</h3>
+        <p class="text-sm text-gray-600">${reservation.spot.address}</p>
+        <div class="mt-3 text-sm">
+            <p><strong>Início:</strong> ${startTime}</p>
+            <p><strong>Fim:</strong> ${endTime}</p>
+        </div>
+        <div class="mt-4 flex justify-between items-center">
+            <span class="font-semibold text-indigo-600">R$ ${parseFloat(reservation.total_price).toFixed(2).replace('.', ',')}</span>
+            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Reserva #${reservation.id}</span>
+        </div>
+    `;
+
+    container.prepend(card);
+}
+
+export async function carregarMinhasReservas() {
+    console.log("carregarMinhasReservas: Iniciando...");
+    try {
+        const reservations = await fetchMyReservations();
+        const container = document.getElementById("myReservationsContainer");
+        if (container) {
+            container.innerHTML = ""; // Limpa o conteúdo anterior
+            if (reservations && reservations.length > 0) {
+                reservations.forEach(res => renderMyReservation(res));
+            } else {
+                container.innerHTML = `<p class="text-center text-gray-400 mt-6">Você ainda não possui reservas.</p>`;
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao carregar minhas reservas na UI:", error);
+        const container = document.getElementById("myReservationsContainer");
+        if (container) {
+            container.innerHTML = `<p class="text-center text-red-500 mt-6">Erro ao carregar suas reservas: ${error.message}.</p>`;
+        }
+    }
+}
+
+// Reservar alguma vaga  após o usuário escolher
+export function showReservationConfirmation(reservationDetails) {
+    const modal = document.getElementById('reservation-confirmation-modal');
+    if (!modal) return;
+
+    // Preenche o modal com os detalhes da reserva
+    document.getElementById('confirmation-location').textContent = reservationDetails.spot_title;
+    document.getElementById('confirmation-address').textContent = reservationDetails.spot_address;
+    document.getElementById('confirmation-date').textContent = new Date(reservationDetails.start_time).toLocaleDateString();
+    document.getElementById('confirmation-time').textContent = `${new Date(reservationDetails.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(reservationDetails.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    document.getElementById('confirmation-spot').textContent = "Vaga --"; // Ajuste conforme a sua API
+    document.getElementById('confirmation-total').textContent = `R$ ${parseFloat(reservationDetails.total_price).toFixed(2).replace('.', ',')}`;
+
+    // Exibe o modal
+    modal.classList.remove('hidden');
+
+    // Lógica para fechar o modal
+    const closeBtn = document.getElementById('close-confirmation-btn');
+    closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+}
+
+const reservationForm = document.getElementById('reservation-form');
+if (reservationForm) {
+    reservationForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        
+        const spotId = document.getElementById('reservation-spot-id').value;
+        const startTime = document.getElementById('reservation-start-time').value;
+        const endTime = document.getElementById('reservation-end-time').value;
+
+        const payload = {
+            spot: spotId,
+            start_time: startTime,
+            end_time: endTime,
+            // Adicione outros dados necessários, como preço total, etc.
+        };
+
+        try {
+            const newReservation = await createReservation(payload);
+            showReservationConfirmation(newReservation);
+            // Opcional: Atualizar a UI para refletir a reserva (ex: desativar o botão de reserva)
+        } catch (error) {
+            console.error(error.message);
+            alert("Não foi possível realizar a reserva: " + error.message);
+        }
+    });
 }
 
 // Nova função para coletar dados de múltiplas reservas e enviar

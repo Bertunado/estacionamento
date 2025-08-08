@@ -199,3 +199,77 @@ export async function fetchMySpots() {
         throw error;
     }
 }
+
+export async function fetchSpotReservations(spotId, date) {
+    const url = `http://127.0.0.1:8000/parking/api/parking-spots/${spotId}/reservations/?date=${date}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Erro ao buscar as reservas da vaga.');
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Erro na API fetchSpotReservations:", error);
+        throw error;
+    }
+}
+
+
+export async function createReservation(payload) {
+    const token = getAuthToken();
+    const csrfToken = getCsrfToken();
+    
+    if (!token || !csrfToken) {
+        throw new Error("Token de autenticação ou CSRF token ausente. Por favor, faça login e recarregue a página.");
+    }
+
+    try {
+        const response = await fetch('/parking/api/reservations/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${token}`,
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        });
+
+       if (!response.ok) {
+    const errorData = await response.json();
+    console.error("Erro detalhado da API:", errorData);
+    
+    // Se errorData tiver um campo detail, mostra ele, senão stringify tudo
+    const message = errorData.detail || JSON.stringify(errorData);
+    throw new Error(message);
+}
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro na API createReservation:", error);
+        throw error;
+    }
+}
+
+export async function fetchMyReservations() {
+    console.log("Buscando minhas reservas...");
+    const token = getCookie('csrftoken'); // Certifique-se de que a API usa CSRF ou tokens de autenticação
+    try {
+        const response = await fetch('http://127.0.0.1:8000/parking/api/my-reservations/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': token,
+            },
+        });
+        if (!response.ok) {
+            throw new Error('Erro ao buscar reservas.');
+        }
+        const data = await response.json();
+        console.log("Reservas recebidas:", data);
+        return data;
+    } catch (error) {
+        console.error("Erro na API fetchMyReservations:", error);
+        throw error;
+    }
+}

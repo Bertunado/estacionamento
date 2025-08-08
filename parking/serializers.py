@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import ParkingSpot, ParkingSpotPhoto, Availability, SpotAvailability, Reservation, Perfil
 from accounts.models import CustomUser
+from decimal import Decimal
+
 
 class PerfilSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,6 +15,20 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['perfil']
+
+class SpotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParkingSpot
+        fields = '__all__'
+
+class ReservationListSerializer(serializers.ModelSerializer):
+    # ✅ Serializer aninhado para mostrar os detalhes do spot
+    spot = SpotSerializer(read_only=True)
+
+    class Meta:
+        model = Reservation
+        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price']
+        read_only_fields = ['renter', 'total_price']
 
 class ParkingSpotPhotoSerializer(serializers.ModelSerializer):
     spot = serializers.PrimaryKeyRelatedField(queryset=ParkingSpot.objects.all()) 
@@ -34,10 +50,30 @@ class SpotAvailabilitySerializer(serializers.ModelSerializer):
         read_only_fields = ['spot']
     
 class ReservationSerializer(serializers.ModelSerializer):
+    spot = serializers.PrimaryKeyRelatedField(queryset=ParkingSpot.objects.all())
+    renter = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Reservation
-        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'status', 'created_at']
-        read_only_fields = ['id', 'renter', 'total_price', 'status', 'created_at'] # Campos que o backend irá definir ou são automáticos
+        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price']
+        read_only_fields = ['renter', 'total_price']
+    
+    def create(self, validated_data):
+        spot = validated_data['spot']
+        start_time = validated_data['start_time']
+        end_time = validated_data['end_time']
+
+        if end_time <= start_time:
+            raise serializers.ValidationError("O horário de término deve ser posterior ao horário de início.")
+
+        duration = end_time - start_time
+        hours = duration.total_seconds() / 3600
+        total_price = Decimal(str(hours)) * spot.price_hour  
+        validated_data['total_price'] = total_price
+
+        return super().create(validated_data)
+
+
 
 class ParkingSpotSerializer(serializers.ModelSerializer):
     photos = ParkingSpotPhotoSerializer(many=True, read_only=True)
@@ -53,15 +89,15 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
             'owner',
         ]
         read_only_fields = ['id', 'created_at']
-
-def create(self, validated_data):
+    
+    def create(self, validated_data):
         availabilities_data = validated_data.pop('availabilities_by_date', [])
         parking_spot = ParkingSpot.objects.create(**validated_data)
         for availability_data in availabilities_data:
             SpotAvailability.objects.create(spot=parking_spot, **availability_data)
         return parking_spot
 
-def update(self, instance, validated_data):
+    def update(self, instance, validated_data):
         availabilities_data = validated_data.pop('availabilities_by_date', None)
 
         # Atualiza os campos do ParkingSpot
@@ -81,7 +117,7 @@ def update(self, instance, validated_data):
 
         # Atualiza ou cria as disponibilidades
         if availabilities_data is not None:
-            instance.availabilities_by_date.all().delete() # Deleta as antigas
+            instance.availabilities_by_date.all().delete()
             for availability_data in availabilities_data:
                 SpotAvailability.objects.create(spot=instance, **availability_data)
 

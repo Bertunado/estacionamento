@@ -16,6 +16,7 @@
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="chat">Chat</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="profile">Perfil</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="settings">Configurações</button>    
+    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-reservations">Minhas Reservas</button>
 </div>
 
 <!-- Parkings Tab -->
@@ -398,6 +399,12 @@
         <div class="p-4">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-gray-800" id="modal-parking-title">(Titulo da Vaga)</h3>
+                <div class="bg-white rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                    <div class="p-4">
+                     <input type="hidden" id="reservation-spot-id">
+
+                 </div>
+                            </div>
                 <button id="close-modal" class="text-gray-500 hover:text-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -417,7 +424,6 @@
 <div class="flex items-center space-x-3 mb-4">
     <img 
         id="modal-seller-profile-image" 
-        src="{% static 'images/default_anon_user.png' %}" 
         alt="Foto de perfil do vendedor" 
         class="h-12 w-12 rounded-full object-cover border-2 border-gray-300 cursor-pointer">
     <div>
@@ -473,10 +479,17 @@
 
             <div id="available-slots-for-date" class="hidden mt-4">
                 <h3 class="font-semibold text-gray-800 mb-2">Vagas Disponíveis para as Datas Selecionadas:</h3>
-                <div id="dynamic-vaga-squares" class="flex flex-wrap gap-2">
-                    </div>
+                <div id="dynamic-vaga-squares" class="flex flex-wrap gap-2"></div>
                 <p id="no-slots-message" class="text-gray-500 text-sm mt-2">Selecione uma data para ver as vagas disponíveis.</p>
             </div>
+
+            <div id="reserved-slots-for-date" class="hidden mt-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Horários Reservados:</h3>
+                    <div id="reserved-slots-list" class="space-y-2 text-sm text-gray-600"></div>
+                    <p id="no-reserved-slots-message" class="text-gray-500 text-sm mt-2">Nenhum horário reservado para a data selecionada.</p>
+            </div>
+
+            
 
            <div id="selected-slot-details-section" class="hidden bg-gray-50 rounded-lg p-4 mb-4">
                 <h3 class="font-semibold text-gray-800 mb-2">Detalhes da Vaga Escolhida:</h3>

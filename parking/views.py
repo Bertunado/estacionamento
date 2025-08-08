@@ -25,8 +25,6 @@ from decimal import Decimal
 from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
 
-
-
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
@@ -61,7 +59,8 @@ class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
         return ParkingSpotPhoto.objects.all()
 
     def perform_create(self, serializer):
-        # 1. Obtenha o 'spot_id' que vem do frontend no FormData
+        print("=== Dados recebidos para criar reserva ===")
+        print(self.request.data)
         spot_id_from_request = self.request.data.get('spot')
 
         if not spot_id_from_request:
@@ -79,6 +78,22 @@ class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(
                 {"detail": "Spot inválido ou você não tem permissão para adicionar fotos a este spot."}
             )
+        
+class SpotReservationsListView(generics.ListAPIView):
+    serializer_class = ReservationSerializer
+
+    def get_queryset(self):
+        spot_id = self.kwargs['spot_id']
+        date_str = self.request.query_params.get('date', None)
+
+        queryset = Reservation.objects.filter(spot_id=spot_id)
+
+        if date_str:
+            # Filtra por data
+            queryset = queryset.filter(start_time__date=date_str)
+        
+        return queryset
+            
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
@@ -89,7 +104,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         return Reservation.objects.filter(renter=self.request.user).order_by('-created_at')
 
     def perform_create(self, serializer):
-        # 1. Pega os dados do corpo da requisição
+        print("=== Dados recebidos para criar reserva ===")
+        print(self.request.data)
         spot_id = self.request.data.get('spot')
         start_time_str = self.request.data.get('start_time')
         end_time_str = self.request.data.get('end_time')
@@ -107,8 +123,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         # 4. Converte as strings de data/hora para objetos datetime
         try:
             # Garanta que o frontend envia no formato ISO 8601 (ex: "2025-07-23T10:00:00")
-            start_time = datetime.fromisoformat(start_time_str)
-            end_time = datetime.fromisoformat(end_time_str)
+            start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
         except ValueError:
             raise serializers.ValidationError({"time": "Formato de data/hora inválido. Use YYYY-MM-DDTHH:MM:SS."})
 
@@ -143,6 +159,23 @@ class ReservationViewSet(viewsets.ModelViewSet):
             total_price=total_price,
             status='pending' # Define o status inicial
         )
+
+class MyReservationsListView(generics.ListAPIView):
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Reservation.objects.filter(renter=self.request.user)
+
+class ReservationCreateView(generics.CreateAPIView):
+    serializer_class = ReservationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        print("=== Dados recebidos para criar reserva ===")
+        print(self.request.data)
+        serializer.save(renter=self.request.user)
 
 @csrf_exempt
 def salvar_disponibilidade(request):
@@ -198,6 +231,8 @@ class ParkingSpotListCreateAPIView(generics.ListCreateAPIView):
         return ParkingSpot.objects.filter(status="Ativa")
     
     def perform_create(self, serializer):
+        print("=== Dados recebidos para criar reserva ===")
+        print(self.request.data)
         serializer.save(owner=self.request.user)
     
 class MinhasVagasView(APIView):
@@ -219,7 +254,15 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
         return ParkingSpot.objects.all()
 
     def perform_create(self, serializer):
+        print("=== Dados recebidos para criar reserva ===")
+        print(self.request.data)
         serializer.save(owner=self.request.user)
+    
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        print("Serialização do spot:", response.data)  # aqui está o JSON serializado que vai pro frontend
+        return response
+
 
 class SpotAvailabilityViewSet(viewsets.ModelViewSet):
     queryset = SpotAvailability.objects.all().order_by('available_date', 'start_time') 

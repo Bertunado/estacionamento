@@ -6,7 +6,8 @@ from django.contrib.auth import views as auth_views
 from .forms import EmailAuthenticationForm
 from rest_framework.routers import DefaultRouter 
 from rest_framework.authtoken.views import obtain_auth_token
-from .views import get_spot_availability_by_spot_id
+from .views import get_spot_availability_by_spot_id, MyReservationsListView, SpotReservationsListView
+
 
 router = DefaultRouter()
 router.register(r'spots', views.ParkingSpotViewSet, basename='parking_spot') 
@@ -27,6 +28,10 @@ urlpatterns = [
     path('perfil/buscar-veiculos/', views.buscar_veiculos, name='buscar_veiculos'),
     path('salvar-disponibilidade/', views.salvar_disponibilidade, name='salvar_disponibilidade'),
     path('api/token/login/', obtain_auth_token, name='api_token_auth'), # Endpoint para obter o token
+    path('api/my-reservations/', MyReservationsListView.as_view(), name='my-reservations-list'),
+    path('api/parking-spots/<int:spot_id>/reservations/', SpotReservationsListView.as_view(), name='spot-reservations-list'),
+
+
     
     # URL de logout correta.
     # Note que a URL é a primeira a ser processada e aponta para a página de login correta.
