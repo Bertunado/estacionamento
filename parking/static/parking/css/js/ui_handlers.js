@@ -35,6 +35,47 @@ let currentSelectedSlot = {
     slotNumber: null
 };
 
+function initializeReservationCalendar(availableDates) {
+  const availabilityCalendar = document.getElementById('reservation-calendar');
+
+    if (availabilityCalendar) {
+        // Verifica se já existe uma instância e a destrói para evitar duplicação
+        if (availabilityCalendar._flatpickr) {
+            availabilityCalendar._flatpickr.destroy();
+        }
+
+        flatpickr(availabilityCalendar, {
+            inline: true,
+            enable: availableDates,
+            enableTime: true,
+            noCalendar: false,
+            mode: "multiple",
+            dateFormat: "Y-m-d",
+            locale: flatpickr.l10ns.pt,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            minDate: "today",
+            enable: availableDates,
+            onChange: function(selectedDates, dateStr, instance) {
+                console.log("Datas selecionadas para reserva:", selectedDates);
+            
+                if (dateStr) {
+                    // ✅ CORREÇÃO: Use o ID correto do input da vaga
+                    const spotId = document.getElementById('reservation-spot-id').value;
+                    if (spotId) {
+                        handleDateSelection(spotId, dateStr); 
+                    } else {
+                        console.warn("Nenhum spotId encontrado para carregar as reservas.");
+                    }
+                } else {
+                    document.getElementById('reserved-slots-list').innerHTML = '';
+                    document.getElementById('reserved-slots-for-date').classList.add('hidden');
+                }
+            }
+        });
+    }
+}
+
 export async function activateTab(tabName) {
     console.log(`activateTab: Ativando aba '${tabName}'`);
 
@@ -367,40 +408,44 @@ function renderReservedSlots(reservations) {
         reservations.forEach(res => {
             const startTime = new Date(res.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const endTime = new Date(res.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const slot = document.createElement('p');
-            slot.textContent = `Horário: ${startTime} - ${endTime}`;
+            
+            // ✅ Modificação para exibir o nome do locatário
+            const renterName = res.renter ? res.renter.nome_completo : 'Locatário não disponível';
+
+            const slot = document.createElement('div');
+            slot.className = 'border-l-4 border-gray-400 pl-2';
+            slot.innerHTML = `
+                <p class="font-semibold">${renterName}</p>
+                <p class="text-sm">Horário: ${startTime} - ${endTime}</p>
+            `;
             reservedSlotsContainer.appendChild(slot);
         });
+        document.getElementById('reserved-slots-for-date').classList.remove('hidden');
     } else {
         noReservedSlotsMessage.classList.remove('hidden');
+        document.getElementById('reserved-slots-for-date').classList.add('hidden');
     }
-    
-    document.getElementById('reserved-slots-for-date').classList.remove('hidden');
 }
+
 
 // Carregar as reservas quando a data for selecionada
 export async function handleDateSelection(spotId, date) {
-    // Esconda a mensagem de slots não disponíveis
+    // Esconde a mensagem de slots não disponíveis
     document.getElementById('no-slots-message').classList.add('hidden');
     
     // Limpa os quadrados de vagas disponíveis
     document.getElementById('dynamic-vaga-squares').innerHTML = '';
-
+    
+    document.getElementById('reserved-slots-list').innerHTML = '';
+    document.getElementById('reserved-slots-for-date').classList.add('hidden');
+    
     try {
-        // Carrega as vagas disponíveis (sua lógica atual)
-        const availableSlots = await fetchAvailableSlots(spotId, date);
-        if (availableSlots && availableSlots.length > 0) {
-            // Lógica para renderizar os slots disponíveis...
-        } else {
-            // Lógica para exibir a mensagem de que não há vagas...
-        }
-        
         const reservations = await fetchSpotReservations(spotId, date);
         renderReservedSlots(reservations);
 
     } catch (error) {
-        console.error("Erro ao carregar os slots:", error);
-        alert("Ocorreu um erro ao carregar os horários disponíveis.");
+        console.error("Erro ao carregar os horários:", error);
+        alert("Ocorreu um erro ao carregar os horários.");
     }
 }
 
@@ -451,10 +496,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const newReservation = await createReservation(payload);
-                showReservationConfirmation(newReservation);
+                alert('Reserva criada com sucesso!');
+                // ... lógica para atualizar a UI ...
             } catch (error) {
-                console.error("Erro ao criar a reserva:", error);
-                alert("Não foi possível realizar a reserva: " + error.message);
+                // ✅ CORREÇÃO: Captura o erro e exibe a mensagem para o usuário
+                alert(`Erro ao criar a reserva: ${error.message}`);
             }
         });
     }
@@ -679,7 +725,14 @@ export function openParkingDetailModal(spotDetails) {
     document.getElementById("modal-parking-title").textContent = spotDetails.title;
     document.getElementById("modal-parking-address").textContent = spotDetails.address;
     document.getElementById("modal-parking-description").textContent = spotDetails.description;
-    document.getElementById('reservation-spot-id').value = spotDetails.id;
+
+    const reservationSpotIdInput = document.getElementById('reservation-spot-id');
+    if (reservationSpotIdInput) {
+        reservationSpotIdInput.value = spotDetails.id;
+    } else {
+        console.error("Erro: Elemento reservation-spot-id não encontrado.");
+    }
+    
     document.getElementById('parking-detail-modal').classList.remove('hidden');
 
     // Atualiza a imagem da vaga
@@ -780,6 +833,7 @@ export function openParkingDetailModal(spotDetails) {
 
     modal.classList.remove('hidden');
 
+
     const closeModalBtn = document.getElementById("close-modal");
     if (closeModalBtn) {
         closeModalBtn.onclick = () => {
@@ -792,8 +846,6 @@ export function openParkingDetailModal(spotDetails) {
     currentSpotDetails = spotDetails;
     currentSpotId = spotDetails.id;
     
-    const availabilityCalendar = modal.querySelector('#reservation-calendar'); 
-
     const selectedDatesDisplay = modal.querySelector('#selected-reservation-dates-display');
     const availableSlotsForDateContainer = modal.querySelector('#available-slots-for-date');
     const dynamicVagaSquares = modal.querySelector('#dynamic-vaga-squares');
@@ -869,6 +921,10 @@ document.addEventListener('click', (e) => {
     if (endTimeInput && endTimeInput._flatpickr) {
         endTimeInput._flatpickr.destroy();
     }
+    if (reservationCalendarInstance) {
+        reservationCalendarInstance.destroy(); // ✅ Destroi a instância anterior do calendário
+        reservationCalendarInstance = null;
+    }
 
     if (startTimeInput) {
         flatpickr(startTimeInput, {
@@ -920,6 +976,7 @@ document.addEventListener('click', (e) => {
         });
     }
 
+    const availabilityCalendar = modal.querySelector('#reservation-calendar');
     let availabilityArray = [];
 
     if (spotDetails && Array.isArray(spotDetails.dates_availability)) {
@@ -938,34 +995,34 @@ document.addEventListener('click', (e) => {
         console.warn("openParkingDetailModal: Não foi possível encontrar o array de datas de disponibilidade no formato esperado. Default para vazio.");
     }
 
-    console.log("Array de disponibilidade RAW (antes do filtro):", availabilityArray);
-
     const availableDates = availabilityArray
         .filter(av => av.available_quantity > 0)
         .map(av => av.available_date);
-        
-    console.log("Datas disponíveis para o Flatpickr (enable):", availableDates);
-
-    if (reservationCalendarInstance) {
-        reservationCalendarInstance.destroy();
-        console.log("Instância anterior do Flatpickr destruída.");
-    }
 
     if (availabilityCalendar) {
         reservationCalendarInstance = flatpickr(availabilityCalendar, {
-            mode: "multiple", // Seu código usa "multiple", mantendo
+            mode: "multiple",
             dateFormat: "Y-m-d",
             locale: flatpickr.l10ns.pt,
             minDate: "today",
-            enable: availableDates,
+            enable: availableDates, // ✅ Passa as datas disponíveis da vaga ATUAL
             onChange: function(selectedDates, dateStr, instance) {
-                console.log("Datas selecionadas para reserva:", selectedDates);
+
+                if (dateStr) {
+                    const spotId = document.getElementById('reservation-spot-id').value;
+                    if (spotId) {
+                        handleDateSelection(spotId, dateStr); 
+                    } else {
+                        console.warn("Nenhum spotId encontrado para carregar as reservas.");
+                    }
+                } else {
+                    document.getElementById('reserved-slots-list').innerHTML = '';
+                    document.getElementById('reserved-slots-for-date').classList.add('hidden');
+                }       
 
                 // Reinicia a seleção visual de slots e a seção de detalhes
                 currentSelectedSlot = { date: null, slotNumber: null };
                 if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
-
-                // Remove a seleção das caixas de opção de reserva ao mudar a data
                 document.querySelectorAll('.reservation-option').forEach(option => {
                     option.classList.remove('selected-reservation-option');
                 });
@@ -1164,34 +1221,6 @@ document.addEventListener('click', (e) => {
 }
 
 // Aba de "Minhas Reservas"
-export function renderMyReservation(reservation) {
-    const container = document.getElementById("myReservationsContainer");
-    if (!container) return;
-
-    const card = document.createElement("div");
-    card.className = "bg-white p-4 rounded-lg shadow-md";
-
-    // Formata a data e hora para exibição
-    const startTime = new Date(reservation.start_time).toLocaleString();
-    const endTime = new Date(reservation.end_time).toLocaleString();
-
-    // Cria o HTML do cartão de reserva
-    card.innerHTML = `
-        <h3 class="font-bold text-lg mb-2">${reservation.spot.title}</h3>
-        <p class="text-sm text-gray-600">${reservation.spot.address}</p>
-        <div class="mt-3 text-sm">
-            <p><strong>Início:</strong> ${startTime}</p>
-            <p><strong>Fim:</strong> ${endTime}</p>
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-            <span class="font-semibold text-indigo-600">R$ ${parseFloat(reservation.total_price).toFixed(2).replace('.', ',')}</span>
-            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Reserva #${reservation.id}</span>
-        </div>
-    `;
-
-    container.prepend(card);
-}
-
 export async function carregarMinhasReservas() {
     console.log("carregarMinhasReservas: Iniciando...");
     try {
@@ -1213,24 +1242,20 @@ export async function carregarMinhasReservas() {
         }
     }
 }
-
 // Reservar alguma vaga  após o usuário escolher
 export function showReservationConfirmation(reservationDetails) {
     const modal = document.getElementById('reservation-confirmation-modal');
     if (!modal) return;
 
-    // Preenche o modal com os detalhes da reserva
     document.getElementById('confirmation-location').textContent = reservationDetails.spot_title;
     document.getElementById('confirmation-address').textContent = reservationDetails.spot_address;
     document.getElementById('confirmation-date').textContent = new Date(reservationDetails.start_time).toLocaleDateString();
     document.getElementById('confirmation-time').textContent = `${new Date(reservationDetails.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(reservationDetails.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    document.getElementById('confirmation-spot').textContent = "Vaga --"; // Ajuste conforme a sua API
+    document.getElementById('confirmation-spot').textContent = "Vaga --";
     document.getElementById('confirmation-total').textContent = `R$ ${parseFloat(reservationDetails.total_price).toFixed(2).replace('.', ',')}`;
 
-    // Exibe o modal
     modal.classList.remove('hidden');
-
-    // Lógica para fechar o modal
+    
     const closeBtn = document.getElementById('close-confirmation-btn');
     closeBtn.addEventListener('click', () => {
         modal.classList.add('hidden');
@@ -1250,13 +1275,11 @@ if (reservationForm) {
             spot: spotId,
             start_time: startTime,
             end_time: endTime,
-            // Adicione outros dados necessários, como preço total, etc.
         };
 
         try {
             const newReservation = await createReservation(payload);
             showReservationConfirmation(newReservation);
-            // Opcional: Atualizar a UI para refletir a reserva (ex: desativar o botão de reserva)
         } catch (error) {
             console.error(error.message);
             alert("Não foi possível realizar a reserva: " + error.message);
@@ -1264,7 +1287,6 @@ if (reservationForm) {
     });
 }
 
-// Nova função para coletar dados de múltiplas reservas e enviar
 async function handleReserveButtonClick() {
     const selectedDates = reservationCalendarInstance.selectedDates;
     if (selectedDates.length === 0) {
@@ -1286,8 +1308,6 @@ async function handleReserveButtonClick() {
         return;
     }
 
-    // Adicione o código aqui:
-    // Garante que os modais de confirmação de exclusão e desativação estejam ocultos
     document.getElementById("delete-confirm-modal")?.classList.add("hidden");
     document.getElementById("deactivate-confirm-modal")?.classList.add("hidden");
 
@@ -1335,7 +1355,7 @@ async function handleReserveButtonClick() {
 
 async function renderVagaSquares(selectedDates) {
     dynamicVagaSquaresDiv.innerHTML = ''; // Limpa o conteúdo anterior
-    noSlotsMessageP.classList.add('hidden'); // Oculta a mensagem "Selecione uma data..."
+    noSlotsMessageP.classList.add('hidden'); 
 
     if (selectedDates.length === 0) {
         noSlotsMessageP.classList.remove('hidden'); // Mostra a mensagem se nenhuma data for selecionada
@@ -1353,7 +1373,6 @@ async function renderVagaSquares(selectedDates) {
     console.log("Datas formatadas para API (para depuração):", formattedDatesForApi);
 
     try {
-        // Fetch para a API de disponibilidade
         const response = await fetch(`/parking/api/spots/${currentSpotId}/availability/?dates=${formattedDatesForApi}`);
 
         if (!response.ok) {
@@ -1367,10 +1386,9 @@ async function renderVagaSquares(selectedDates) {
         const data = await response.json();
         console.log("Dados de disponibilidade da API:", data);
 
-        let totalAvailableSlotsToDisplay = 0; // Valor para desenhar os quadrados
+        let totalAvailableSlotsToDisplay = 0; 
     
         if (data.dates_availability && data.dates_availability.length > 0) {
-            // Se você quer exibir a disponibilidade do PRIMEIRO dia selecionado
             const firstSelectedDate = selectedDates[0];
             const firstFormattedDate = new Date(firstSelectedDate).toISOString().split('T')[0];
             const availabilityForFirstDate = data.dates_availability.find(

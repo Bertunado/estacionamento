@@ -26,7 +26,7 @@ function getCsrfToken() {
 }
 
 function getAuthToken() {
-    return localStorage.getItem('authToken'); // Assumindo que o token é salvo aqui após o login
+    return localStorage.getItem('authToken'); 
 }
 
 export async function fetchSpots() {
@@ -215,39 +215,44 @@ export async function fetchSpotReservations(spotId, date) {
     }
 }
 
-
 export async function createReservation(payload) {
+    // ✅ PASSO 1: Obtenha o token de autenticação e o token CSRF
     const token = getAuthToken();
-    const csrfToken = getCsrfToken();
-    
-    if (!token || !csrfToken) {
-        throw new Error("Token de autenticação ou CSRF token ausente. Por favor, faça login e recarregue a página.");
+    const csrfToken = getCsrfToken(); 
+
+    if (!token) {
+        console.error("Token de autenticação não encontrado.");
+        throw new Error("Usuário não autenticado. Faça login.");
+    }
+    if (!csrfToken) {
+        console.error("CSRF token não encontrado.");
+        throw new Error("CSRF token ausente. Não foi possível criar a reserva.");
     }
 
     try {
-        const response = await fetch('/parking/api/reservations/', {
+        const response = await fetch('http://127.0.0.1:8000/parking/api/reservations/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Token ${token}`,
+                // ✅ PASSO 2: Inclua o cabeçalho do token CSRF
                 'X-CSRFToken': csrfToken,
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
         });
 
-       if (!response.ok) {
-    const errorData = await response.json();
-    console.error("Erro detalhado da API:", errorData);
-    
-    // Se errorData tiver um campo detail, mostra ele, senão stringify tudo
-    const message = errorData.detail || JSON.stringify(errorData);
-    throw new Error(message);
-}
+        // Tenta ler o corpo da resposta como JSON, mesmo que seja um erro
+        const data = await response.json();
 
-        return await response.json();
+        if (!response.ok) {
+            const errorMessage = data.detail || data.non_field_errors || 'Erro desconhecido ao criar a reserva.';
+            throw new Error(errorMessage);
+        }
+
+        return data; // Retorna os dados da reserva se a resposta for bem-sucedida
     } catch (error) {
         console.error("Erro na API createReservation:", error);
-        throw error;
+        throw error; // Repropaga o erro para ser capturado no ui_handlers.js
     }
 }
 
