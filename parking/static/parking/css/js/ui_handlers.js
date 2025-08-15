@@ -3,37 +3,25 @@
 
 import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus, createReservation, fetchMyReservations, fetchSpotReservations } from './api_services.js';
 import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregarSpots as carregarSpotsDoMapa } from './map_utilities.js';
-import { setupEditSpotForm } from './form_handlers.js';
 import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
 import { setupAvailabilityFields } from './availability_manager.js';
 
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
-let currentSpotPriceHour = 0;
-let currentSpotAvailabilities = [];
-let availableSlotsForDateDiv;
 let dynamicVagaSquaresDiv;
 let noSlotsMessageP;
-let reserveButton;
-let reservationModal; 
 let reservationCalendarInstance = null;
 let currentSpotDetails = null;
 let currentSelectedReservationOption = null;
-let modalParkingTitle;
-let modalParkingAddress;
-let modalSellerProfileImage;
-let modalSellerName;
-let modalParkingDescription;
-let modalParkingType;
-let modalParkingQuantity;
-let modalSpotPriceHourElement; // Renomeado para evitar conflito de nome com a variável global `currentSpotPriceHour`
-let modalSpotLocationElement; // Esta é a que estava faltando!
-let modalParkingImage;
+let selectedSlot = null;
+let isProcessingDate = false;
 let currentSelectedSlot = {
     date: null,
     slotNumber: null
 };
+window.currentSpotData = null; 
+
 
 function initializeReservationCalendar(availableDates) {
   const availabilityCalendar = document.getElementById('reservation-calendar');
@@ -60,7 +48,6 @@ function initializeReservationCalendar(availableDates) {
                 console.log("Datas selecionadas para reserva:", selectedDates);
             
                 if (dateStr) {
-                    // ✅ CORREÇÃO: Use o ID correto do input da vaga
                     const spotId = document.getElementById('reservation-spot-id').value;
                     if (spotId) {
                         handleDateSelection(spotId, dateStr); 
@@ -107,7 +94,7 @@ export async function activateTab(tabName) {
         }
     });
 
-    // Lógica para inicializar/interagir com o mapa APENAS quando a aba 'parkings' estiver ativa
+    // Lógica para interagir com o mapa APENAS quando a aba 'parkings' estiver ativa
     if (tabName === 'parkings') {
         console.log("activateTab: Aba 'parkings' ativada.");
 
@@ -126,7 +113,7 @@ export async function activateTab(tabName) {
         }, 100);
     } else if (tabName === 'my-parkings') {
         carregarMinhasVagas();
-    } else if (tabName === 'my-reservations') { // Adicione esta condição
+    } else if (tabName === 'my-reservations') {
         carregarMinhasReservas(); 
     } else if (tabName === "add-parking") {
         console.log("activateTab: Aba 'add-parking' ativada.");
@@ -165,7 +152,7 @@ export async function carregarSpotsDaListaEdoMapa() {
         const spots = await fetchSpots(); // Pega os spots da API
         console.log("carregarSpotsDaListaEdoMapa: Spots recebidos:", spots);
 
-        window.allSpots = spots; // Importante para que a busca por ID funcione em main.js
+        window.allSpots = spots; 
 
         const list = document.querySelector("#parkings .overflow-y-auto");
         if (list) {
@@ -269,12 +256,11 @@ export function renderSpot(spot) {
     const editBtn = card.querySelector('[data-action="editar"]');
     if (editBtn) {
         editBtn.addEventListener('click', (event) => {
-            event.stopPropagation(); // Impede o clique de abrir o modal de detalhes
+            event.stopPropagation(); 
             console.log(`Botão de editar para a vaga ${spot.id} clicado.`);
-            openEditSpotModal(spot); // Chama a função para abrir o modal de edição
+            openEditSpotModal(spot); 
         });
     }
-    // --- FIM DO NOVO CÓDIGO ---
 
     card.addEventListener("click", () => {
         openParkingDetailModal(spot);
@@ -349,7 +335,6 @@ export function renderMySpot(spot) {
 
             if (modalConfirm && confirmBtn && modalMessage) {
                 modalMessage.textContent = `Tem certeza que deseja ${currentAction} esta vaga?`;
-                // Apenas define o ID da vaga no botão de confirmação
                 confirmBtn.dataset.spotId = spot.id;
                 confirmBtn.dataset.newStatus = newStatus;
                 modalConfirm.classList.remove("hidden");
@@ -367,7 +352,6 @@ export function renderMySpot(spot) {
 
             if (modalConfirm && confirmBtn && modalMessage) {
                 modalMessage.textContent = "Tem certeza que deseja excluir esta vaga? Esta ação não pode ser desfeita.";
-                // Apenas define o ID da vaga no botão de confirmação
                 confirmBtn.dataset.spotId = spot.id;
                 modalConfirm.classList.remove("hidden");
             }
@@ -382,7 +366,7 @@ function openEditSpotModal(spotDetails) {
         return;
     }
     
-    // Preencha o formulário com os dados da vaga
+    // Preenche o formulário com os dados da vaga
     document.getElementById('edit-spot-id').value = spotDetails.id;
     document.getElementById('edit-title').value = spotDetails.title;
     document.getElementById('edit-address').value = spotDetails.address;
@@ -397,62 +381,80 @@ function openEditSpotModal(spotDetails) {
 }
 
 // Renderizar os horários já reservados
-function renderReservedSlots(reservations) {
-    const reservedSlotsContainer = document.getElementById('reserved-slots-list');
-    const noReservedSlotsMessage = document.getElementById('no-reserved-slots-message');
+function renderReservedSlots(occupiedTimes, selectedDateStr) {
+    const reservedSlotsList = document.getElementById('reserved-slots-list');
+    const reservedSlotsSection = document.getElementById('reserved-slots-for-date');
+    const noReservedSlotsMessage = document.getElementById('no-reserved-slots-message');
 
-    reservedSlotsContainer.innerHTML = '';
-    
-    if (reservations && reservations.length > 0) {
-        noReservedSlotsMessage.classList.add('hidden');
-        reservations.forEach(res => {
-            const startTime = new Date(res.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const endTime = new Date(res.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    reservedSlotsList.innerHTML = '';
+    
+    if (occupiedTimes && occupiedTimes.length > 0) {
+        reservedSlotsSection.classList.remove('hidden');
+        noReservedSlotsMessage.classList.add('hidden');
+        
+        occupiedTimes.forEach(time => {
+            const timeItem = document.createElement('p');
+            timeItem.className = 'text-sm text-gray-600';
+
+            // ✅ CORREÇÃO: Adicione o 'Z' para indicar que o horário da API é UTC
+            const startDateTimeUTC = new Date(`${selectedDateStr}T${time.start}:00Z`);
+            const endDateTimeUTC = new Date(`${selectedDateStr}T${time.end}:00Z`);
             
-            // ✅ Modificação para exibir o nome do locatário
-            const renterName = res.renter ? res.renter.nome_completo : 'Locatário não disponível';
+            // Verifica se a conversão foi bem-sucedida
+            if (isNaN(startDateTimeUTC) || isNaN(endDateTimeUTC)) {
+                timeItem.textContent = `Horário inválido: Das ${time.start} às ${time.end}`;
+            } else {
+                // toLocaleTimeString agora converterá o horário UTC para o fuso local
+                const formattedStart = startDateTimeUTC.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const formattedEnd = endDateTimeUTC.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                timeItem.textContent = `Das ${formattedStart} às ${formattedEnd}`;
+            }
 
-            const slot = document.createElement('div');
-            slot.className = 'border-l-4 border-gray-400 pl-2';
-            slot.innerHTML = `
-                <p class="font-semibold">${renterName}</p>
-                <p class="text-sm">Horário: ${startTime} - ${endTime}</p>
-            `;
-            reservedSlotsContainer.appendChild(slot);
-        });
-        document.getElementById('reserved-slots-for-date').classList.remove('hidden');
-    } else {
-        noReservedSlotsMessage.classList.remove('hidden');
-        document.getElementById('reserved-slots-for-date').classList.add('hidden');
-    }
+            reservedSlotsList.appendChild(timeItem);
+        });
+    } else {
+        reservedSlotsSection.classList.remove('hidden');
+        noReservedSlotsMessage.classList.remove('hidden');
+    }
 }
 
 
+
 // Carregar as reservas quando a data for selecionada
-export async function handleDateSelection(spotId, date) {
-    // Esconde a mensagem de slots não disponíveis
+export async function handleDateSelection(spotId, selectedDates) {
+    currentSpotId = spotId;
+    currentSelectedSlot = { date: null, slotNumber: null };
+    selectedSlot = null;
+
     document.getElementById('no-slots-message').classList.add('hidden');
-    
-    // Limpa os quadrados de vagas disponíveis
     document.getElementById('dynamic-vaga-squares').innerHTML = '';
     
     document.getElementById('reserved-slots-list').innerHTML = '';
     document.getElementById('reserved-slots-for-date').classList.add('hidden');
-    
-    try {
-        const reservations = await fetchSpotReservations(spotId, date);
-        renderReservedSlots(reservations);
 
-    } catch (error) {
-        console.error("Erro ao carregar os horários:", error);
-        alert("Ocorreu um erro ao carregar os horários.");
-    }
+    // ✅ Passa a lista completa de datas selecionadas para renderVagaSquares
+    await renderVagaSquares(selectedDates);
 }
 
-// --- NOVO CÓDIGO AQUI: OUVINTE DE EVENTO GLOBAL PARA O BOTÃO "CANCELAR" E "SALVAR" ---
+function isTimeOverlap(userStart, userEnd, occupiedTimes, slotDate) {
+    for (const time of occupiedTimes) {
+        // ✅ CORREÇÃO: Adicione o 'Z' para tratar o horário da API como UTC
+        const occupiedStartUTC = new Date(`${slotDate}T${time.start}:00Z`);
+        const occupiedEndUTC = new Date(`${slotDate}T${time.end}:00Z`);
+        
+        // A comparação agora é feita em UTC para garantir a precisão
+        if (
+            (userStart.getTime() < occupiedEndUTC.getTime() && userEnd.getTime() > occupiedStartUTC.getTime())
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const confirmReservationBtn = document.getElementById('confirm-reservation-btn');
-     if (confirmReservationBtn) {
+    if (confirmReservationBtn) {
         confirmReservationBtn.addEventListener('click', async () => {
             console.log('Botão de confirmar reserva clicado!');
 
@@ -460,19 +462,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTime = document.getElementById('start-time-input').value;
             const endTime = document.getElementById('end-time-input').value;
             const selectedDateStr = currentSelectedSlot.date; 
+            
+            const timeOverlapErrorP = document.getElementById('time-overlap-error');
+            timeOverlapErrorP.classList.add('hidden');
 
-            // Adicione estas linhas para ver o que está sendo capturado
-            console.log("Valores para a reserva:");
-            console.log("spotId:", spotId);
-            console.log("selectedDateStr:", selectedDateStr);
-            console.log("startTime:", startTime);
-            console.log("endTime:", endTime);
-            console.log("-------------------");
+            if (currentSelectedSlot.slotNumber === null) {
+                alert("Por favor, selecione a vaga física.");
+                return;
+            }
+            const slotNumber = currentSelectedSlot.slotNumber;
 
             if (!spotId || !startTime || !endTime || !selectedDateStr) {
                 alert("Por favor, preencha todos os campos da reserva.");
                 return;
             }
+            
             const startDateTime = new Date(`${selectedDateStr}T${startTime}:00`);
             const endDateTime = new Date(`${selectedDateStr}T${endTime}:00`);
 
@@ -486,20 +490,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // ✅ CORREÇÃO: Remova a navegação segura e adicione um 'return' no caso de dados ausentes
+            const selectedAvailability = window.currentSpotData.dates_availability.find(av => av.date === selectedDateStr);
+            if (!selectedAvailability) {
+                console.error("Dados de disponibilidade para a data selecionada não encontrados.");
+                alert("Ocorreu um erro ao verificar a disponibilidade. Tente novamente.");
+                return;
+            }
+            
+            const selectedSlotData = selectedAvailability.slots.find(s => s.slot_number === slotNumber);
+            if (!selectedSlotData) {
+                console.error("Dados de disponibilidade para o slot selecionado não encontrados.");
+                alert("Ocorreu um erro ao verificar a disponibilidade. Tente novamente.");
+                return;
+            }
+            
+            const occupiedTimes = selectedSlotData.occupied_times;
+
+            // ✅ Este bloco agora será alcançado
+            if (isTimeOverlap(startDateTime, endDateTime, occupiedTimes, selectedDateStr)) {
+                timeOverlapErrorP.textContent = "O horário selecionado já está parcial ou totalmente ocupado. Por favor, escolha outro horário.";
+                timeOverlapErrorP.classList.remove('hidden');
+                return;
+            }
+
             const payload = {
-            // ✅ Garanta que o payload tenha as chaves corretas
-            spot: parseInt(spotId),
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-        };
-             console.log("Payload enviado para a API:", payload);
+                spot: parseInt(spotId),
+                slot_number: slotNumber,
+                start_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
+            };
+            console.log("Payload enviado para a API:", payload);
 
             try {
                 const newReservation = await createReservation(payload);
                 alert('Reserva criada com sucesso!');
-                // ... lógica para atualizar a UI ...
+                renderVagaSquares([selectedDateStr]); 
             } catch (error) {
-                // ✅ CORREÇÃO: Captura o erro e exibe a mensagem para o usuário
                 alert(`Erro ao criar a reserva: ${error.message}`);
             }
         });
@@ -535,7 +562,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const spotId = editForm.querySelector('#edit-spot-id').value;
                 
                 try {
-                    // Faça a requisição PATCH para a API
                     const response = await fetch(`/api/my-parking-spots/${spotId}/`, {
     method: 'PATCH',
     headers: {
@@ -580,7 +606,6 @@ if (confirmDeleteBtn) {
     });
 }
 
-// Adiciona listener para o botão de confirmação de desativação
 const confirmDeactivateBtn = document.getElementById("confirm-deactivate");
 if (confirmDeactivateBtn) {
     confirmDeactivateBtn.addEventListener("click", async (event) => {
@@ -647,9 +672,8 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
         const startDateTime = new Date(`${selectedSlotDate}T${startTime}`);
         let endDateTime = new Date(`${selectedSlotDate}T${endTime}`);
 
-        // Adição para tratar virada de dia (ex: 22:00 até 02:00)
         if (endDateTime <= startDateTime) {
-            endDateTime.setDate(endDateTime.getDate() + 1); // Adiciona um dia
+            endDateTime.setDate(endDateTime.getDate() + 1);
         }
 
         const durationMs = endDateTime - startDateTime;
@@ -664,7 +688,7 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
         if (hours > 0) {
             totalDurationText += `${hours}h`;
         }
-        if (minutes > 0 || (hours === 0 && minutes === 0 && durationMinutes === 0)) { // Garante que 0m seja exibido se for o caso
+        if (minutes > 0 || (hours === 0 && minutes === 0 && durationMinutes === 0)) { 
             if (totalDurationText !== '') totalDurationText += ' ';
             totalDurationText += `${minutes}m`;
         }
@@ -709,8 +733,7 @@ function formatarHorarioDisponivelModal(spot) {
         const endTime = firstAvailability.end_time ? firstAvailability.end_time.substring(0, 5) : 'N/A';
         return `${startTime} - ${endTime}`;
     }
-    // Fallback se não houver disponibilidade específica para exibir
-    return '24h/dia (aprox.)'; // Ou 'Horário a combinar', etc.
+    return '24h/dia (aprox.)'; 
 }
 
 // Atualiza os cards de vagas no mapa e na lista
@@ -830,9 +853,7 @@ export function openParkingDetailModal(spotDetails) {
         }
     });
 
-
     modal.classList.remove('hidden');
-
 
     const closeModalBtn = document.getElementById("close-modal");
     if (closeModalBtn) {
@@ -850,7 +871,6 @@ export function openParkingDetailModal(spotDetails) {
     const availableSlotsForDateContainer = modal.querySelector('#available-slots-for-date');
     const dynamicVagaSquares = modal.querySelector('#dynamic-vaga-squares');
     const noSlotsMessage = modal.querySelector('#no-slots-message');
-
     const selectedSlotDetailsSection = modal.querySelector('#selected-slot-details-section');
     const selectedSlotNumberDisplay = modal.querySelector('#selected-slot-number');
     const selectedSlotDateDisplay = modal.querySelector('#selected-slot-date-display');
@@ -871,13 +891,12 @@ export function openParkingDetailModal(spotDetails) {
     }
 
     if (modalSellerProfileImage && modalSellerName) {
-    // Verifique se os dados do proprietário existem
+    // Verifica se os dados do proprietário existem
     if (spotDetails.owner && spotDetails.owner.perfil) {
         // Acessa o nome completo do perfil
         modalSellerName.textContent = spotDetails.owner.perfil.nome_completo || 'Vendedor não disponível';
 
         // Acessa a URL da foto do perfil e a atribui ao src da imagem.
-        // Se a URL não existir (for null, undefined, etc.), ela irá manter o src do HTML.
         const sellerPhotoUrl = spotDetails.owner.perfil.foto;
         if (sellerPhotoUrl) {
             modalSellerProfileImage.src = sellerPhotoUrl;
@@ -886,11 +905,10 @@ export function openParkingDetailModal(spotDetails) {
     } else {
         // Caso os dados não estejam disponíveis
         modalSellerName.textContent = 'Vendedor não disponível';
-        // A imagem já está configurada como a padrão no HTML, não precisa ser alterada aqui.
     }
 }
 profileImage.addEventListener('click', (e) => {
-    e.stopPropagation(); // Evita conflito com clique fora
+    e.stopPropagation(); 
     popover.classList.toggle('hidden');
 
     // Atualizar o nome no popover dinamicamente
@@ -900,21 +918,17 @@ profileImage.addEventListener('click', (e) => {
         popoverName.textContent = sellerName.textContent;
     }
 
-    // Posicionamento relativo à imagem
     const rect = profileImage.getBoundingClientRect();
     popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
     popover.style.left = `${rect.left + window.scrollX}px`;
 });
 
-// Fecha o popover ao clicar fora dele
 document.addEventListener('click', (e) => {
     if (!popover.contains(e.target) && !profileImage.contains(e.target)) {
         popover.classList.add('hidden');
     }
 });
 
-
-    // Destrua instâncias anteriores para evitar duplicação (se o modal for reaberto)
     if (startTimeInput && startTimeInput._flatpickr) {
         startTimeInput._flatpickr.destroy();
     }
@@ -922,7 +936,7 @@ document.addEventListener('click', (e) => {
         endTimeInput._flatpickr.destroy();
     }
     if (reservationCalendarInstance) {
-        reservationCalendarInstance.destroy(); // ✅ Destroi a instância anterior do calendário
+        reservationCalendarInstance.destroy(); 
         reservationCalendarInstance = null;
     }
 
@@ -936,10 +950,9 @@ document.addEventListener('click', (e) => {
             onReady: function(selectedDates, dateStr, instance) {
                 // Define um valor padrão ao carregar, se o campo estiver vazio
                 if (!instance.input.value) {
-                    instance.setDate("08:00", false); // Default 08:00 se vazio
+                    instance.setDate("08:00", false); 
                 }
             },
-            // Chama updateReservationSummary ao mudar o horário de entrada ---
             onChange: function() {
                 updateReservationSummary(
                     currentSpotDetails,
@@ -964,11 +977,10 @@ document.addEventListener('click', (e) => {
                     instance.setDate("18:00", false); // Default 18:00 se vazio
                 }
             },
-            // Chamar updateReservationSummary ao mudar o horário de saída 
             onChange: function() {
                 updateReservationSummary(
                     currentSpotDetails,
-                    currentSelectedSlot.date, // Passa a data atualmente selecionada do calendário
+                    currentSelectedSlot.date, 
                     startTimeInput ? startTimeInput.value : null,
                     endTimeInput.value
                 );
@@ -1000,183 +1012,66 @@ document.addEventListener('click', (e) => {
         .map(av => av.available_date);
 
     if (availabilityCalendar) {
-        reservationCalendarInstance = flatpickr(availabilityCalendar, {
-            mode: "multiple",
-            dateFormat: "Y-m-d",
-            locale: flatpickr.l10ns.pt,
-            minDate: "today",
-            enable: availableDates, // ✅ Passa as datas disponíveis da vaga ATUAL
-            onChange: function(selectedDates, dateStr, instance) {
+    reservationCalendarInstance = flatpickr(availabilityCalendar, {
+        mode: "multiple",
+        dateFormat: "Y-m-d",
+        locale: flatpickr.l10ns.pt,
+        minDate: "today",
+        enable: availableDates,
+        onChange: function(selectedDates, dateStr, instance) {
 
-                if (dateStr) {
-                    const spotId = document.getElementById('reservation-spot-id').value;
-                    if (spotId) {
-                        handleDateSelection(spotId, dateStr); 
-                    } else {
-                        console.warn("Nenhum spotId encontrado para carregar as reservas.");
-                    }
+            if (isProcessingDate) {
+                console.log("Processamento de data em andamento. Ignorando evento duplicado.");
+                return;
+            }
+
+            // Lógica para quando uma ou mais datas são selecionadas
+            if (selectedDates && selectedDates.length > 0) {
+                isProcessingDate = true;
+                const spotId = document.getElementById('reservation-spot-id').value;
+                
+                if (spotId) {
+                    // ✅ Chama a função com a lista completa de datas selecionadas.
+                    handleDateSelection(spotId, selectedDates)
+                        .finally(() => {
+                            isProcessingDate = false;
+                        });
                 } else {
-                    document.getElementById('reserved-slots-list').innerHTML = '';
-                    document.getElementById('reserved-slots-for-date').classList.add('hidden');
-                }       
-
-                // Reinicia a seleção visual de slots e a seção de detalhes
-                currentSelectedSlot = { date: null, slotNumber: null };
-                if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
-                document.querySelectorAll('.reservation-option').forEach(option => {
-                    option.classList.remove('selected-reservation-option');
-                });
-                currentSelectedReservationOption = null; // Garante que nenhuma opção está logicamente selecionada
-
-                // Limpa a seleção visual dos quadradinhos de vaga
-                if (dynamicVagaSquares) {
-                    dynamicVagaSquares.querySelectorAll('.bg-purple-600, .hover\\:scale-110').forEach(el => {
-                        el.classList.remove('bg-purple-600');
-                        el.classList.add('bg-green-500');
-                        el.classList.remove('scale-110');
-                    });
+                    console.warn("Nenhum spotId encontrado para carregar as reservas.");
+                    isProcessingDate = false;
                 }
-
-                if (selectedDates.length > 0) {
-                    // Atualiza currentSelectedSlot.date com a primeira data selecionada (para single mode)
-                    currentSelectedSlot.date = flatpickr.formatDate(selectedDates[0], "Y-m-d");
-
-                    if (selectedDatesDisplay) {
-                        selectedDatesDisplay.textContent = "Datas selecionadas: " + selectedDates.map(d => flatpickr.formatDate(d, "d/m/Y")).join(', ');
-                    }
-                    
-                    if (availableSlotsForDateContainer) {
-                        availableSlotsForDateContainer.classList.remove('hidden');
-                    }
-
-                    if (dynamicVagaSquares) {
-                        dynamicVagaSquares.innerHTML = '';
-                    }
-
-                    let hasSlotsToShow = false;
-
-                    // Itera sobre todas as datas selecionadas para exibir vagas
-                    selectedDates.forEach(selectedDate => {
-                        const formattedSelectedDate = flatpickr.formatDate(selectedDate, "Y-m-d");
-                        const slotInfo = availabilityArray.find(av => av.available_date === formattedSelectedDate);
-
-                        if (slotInfo && slotInfo.available_quantity > 0) {
-                            hasSlotsToShow = true;
-                            const dateHeader = document.createElement('h4');
-                            dateHeader.className = 'text-md font-semibold text-gray-700 w-full mt-2 mb-1';
-                            dateHeader.textContent = `Vagas para ${flatpickr.formatDate(selectedDate, "d/m/Y")}:`;
-                            if (dynamicVagaSquares) dynamicVagaSquares.appendChild(dateHeader);
-
-                            for (let i = 0; i < slotInfo.available_quantity; i++) {
-                                const vagaSquare = document.createElement('div');
-                                vagaSquare.className = 'vaga-square w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white font-bold text-sm m-1 transition-transform duration-200 ease-in-out cursor-pointer';
-                                vagaSquare.textContent = `${i + 1}`;
-                                vagaSquare.dataset.slotNumber = i + 1;
-                                vagaSquare.dataset.slotDate = formattedSelectedDate;
-
-                                vagaSquare.addEventListener('mouseenter', () => {
-                                    vagaSquare.classList.add('scale-110');
-                                });
-                                vagaSquare.addEventListener('mouseleave', () => {
-                                    if (!vagaSquare.classList.contains('bg-purple-600')) {
-                                        vagaSquare.classList.remove('scale-110');
-                                    }
-                                });
-
-                                vagaSquare.addEventListener('click', () => {
-                                    dynamicVagaSquares.querySelectorAll('.vaga-square').forEach(sq => {
-                                        sq.classList.remove('bg-purple-600', 'scale-110');
-                                        sq.classList.add('bg-green-500');
-                                    });
-
-                                    vagaSquare.classList.remove('bg-green-500');
-                                    vagaSquare.classList.add('bg-purple-600', 'scale-110');
-
-                                    currentSelectedSlot.date = formattedSelectedDate; // Atualiza a data do slot selecionado
-                                    currentSelectedSlot.slotNumber = parseInt(vagaSquare.dataset.slotNumber);
-                                    console.log("Vaga selecionada:", currentSelectedSlot);
-
-                                    if (selectedSlotDetailsSection) {
-                                        selectedSlotDetailsSection.classList.remove('hidden');
-                                    }
-                                    if (selectedSlotNumberDisplay) {
-                                        selectedSlotNumberDisplay.textContent = currentSelectedSlot.slotNumber;
-                                    }
-                                    if (selectedSlotDateDisplay) {
-                                        const displayDate = flatpickr.formatDate(selectedDate, "d/m/Y");
-                                        selectedSlotDateDisplay.textContent = displayDate;
-                                    }
-                                    
-                                    // Atualiza a calculadora quando a vaga é selecionada
-                                    updateReservationSummary(
-                                        currentSpotDetails,
-                                        currentSelectedSlot.date,
-                                        startTimeInput ? startTimeInput.value : null,
-                                        endTimeInput ? endTimeInput.value : null
-                                    );
-                                });
-
-                                if (dynamicVagaSquares) dynamicVagaSquares.appendChild(vagaSquare);
-                            }
-                        }
-                    });
-
-                    if (noSlotsMessage) {
-                        if (hasSlotsToShow) {
-                            noSlotsMessage.classList.add('hidden');
-                        } else {
-                            noSlotsMessage.classList.remove('hidden');
-                            noSlotsMessage.textContent = 'Não há vagas disponíveis para as datas selecionadas.';
-                        }
-                    }
-                    
-                    // Chama updateReservationSummary após atualizar currentSelectedSlot.date 
-                    updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
-
-
-                } else { // Nenhuma data selecionada no calendário
-                    if (selectedDatesDisplay) {
-                        selectedDatesDisplay.textContent = "Nenhuma data selecionada ainda.";
-                    }
-                    if (availableSlotsForDateContainer) {
-                        availableSlotsForDateContainer.classList.add('hidden');
-                    }
-                    if (dynamicVagaSquares) {
-                        dynamicVagaSquares.innerHTML = '';
-                    }
-                    if (noSlotsMessage) {
-                        noSlotsMessage.classList.remove('hidden');
-                        noSlotsMessage.textContent = 'Selecione uma data para ver as vagas disponíveis.';
-                    }
-                    if (selectedSlotDetailsSection) {
-                        selectedSlotDetailsSection.classList.add('hidden');
-                    }
-                    currentSelectedSlot = { date: null, slotNumber: null };
-                    // Zera a calculadora se não houver data selecionada
-                    updateReservationSummary(currentSpotDetails, null, null, null); 
-                    document.querySelectorAll('.reservation-option').forEach(option => {
-                        option.classList.remove('selected-reservation-option');
-                    });
-                    currentSelectedReservationOption = null;
+                
+                if (selectedDatesDisplay) {
+                    selectedDatesDisplay.textContent = "Datas selecionadas: " + selectedDates.map(d => flatpickr.formatDate(d, "d/m/Y")).join(', ');
                 }
+                if (availableSlotsForDateContainer) {
+                    availableSlotsForDateContainer.classList.remove('hidden');
+                }
+                
+            } else { // Lógica para quando nenhuma data está selecionada
+                document.getElementById('dynamic-vaga-squares').innerHTML = '';
+                document.getElementById('reserved-slots-list').innerHTML = '';
+                document.getElementById('reserved-slots-for-date').classList.add('hidden');
+                
+                document.getElementById('no-slots-message').textContent = 'Selecione uma data para ver as vagas disponíveis.';
+                document.getElementById('no-slots-message').classList.remove('hidden');
+
+                updateReservationSummary(currentSpotDetails, null, null, null); 
             }
-        });
+        }
+    });
     
-        // Inicializar o calendário e a calculadora na abertura ---
-        let initialSelectedDateStr = null;
-        if (availableDates.length > 0) {
-                // Apenas limpa seleção visual, sem setar nenhuma data
-            reservationCalendarInstance.clear();
-            // Zera a calculadora
-            updateReservationSummary(currentSpotDetails, null, null, null);
-            }
-
-        if (startTimeInput) startTimeInput.value = "";
-        if (endTimeInput) endTimeInput.value = "";
-
-    } else {
-        console.error("Erro: Elemento do calendário de disponibilidade (reservation-calendar) não encontrado.");
+    // Inicializar o calendário e a calculadora na abertura
+    if (availableDates.length > 0) {
+        reservationCalendarInstance.clear();
+        updateReservationSummary(currentSpotDetails, null, null, null);
     }
+    if (startTimeInput) startTimeInput.value = "";
+    if (endTimeInput) endTimeInput.value = "";
+
+} else {
+    console.error("Erro: Elemento do calendário de disponibilidade (reservation-calendar) não encontrado.");
+}
 
     const hourlyOptionBox = document.getElementById('reservation-option-hourly');
     const dailyOptionBox = document.getElementById('reservation-option-daily');
@@ -1186,7 +1081,6 @@ document.addEventListener('click', (e) => {
             if (currentSelectedReservationOption === 'hourly') {
                 hourlyOptionBox.classList.remove('selected-reservation-option');
                 currentSelectedReservationOption = null;
-                // Ao desmarcar a opção "por hora", passa null para os horários
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, null, null);
             } else {
                 document.querySelectorAll('.reservation-option').forEach(option => {
@@ -1194,7 +1088,6 @@ document.addEventListener('click', (e) => {
                 });
                 hourlyOptionBox.classList.add('selected-reservation-option');
                 currentSelectedReservationOption = 'hourly';
-                // Chame a calculadora para exibir o cálculo por hora com os valores dos inputs
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
             }
         });
@@ -1205,7 +1098,6 @@ document.addEventListener('click', (e) => {
             if (currentSelectedReservationOption === 'daily') {
                 dailyOptionBox.classList.remove('selected-reservation-option');
                 currentSelectedReservationOption = null;
-                // usando os valores atuais dos inputs de tempo.
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
             } else {
                 document.querySelectorAll('.reservation-option').forEach(option => {
@@ -1270,6 +1162,7 @@ if (reservationForm) {
         const spotId = document.getElementById('reservation-spot-id').value;
         const startTime = document.getElementById('reservation-start-time').value;
         const endTime = document.getElementById('reservation-end-time').value;
+        
 
         const payload = {
             spot: spotId,
@@ -1354,11 +1247,20 @@ async function handleReserveButtonClick() {
 }
 
 async function renderVagaSquares(selectedDates) {
-    dynamicVagaSquaresDiv.innerHTML = ''; // Limpa o conteúdo anterior
-    noSlotsMessageP.classList.add('hidden'); 
+    const dynamicVagaSquaresDiv = document.getElementById('dynamic-vaga-squares');
+    const noSlotsMessageP = document.getElementById('no-slots-message');
+
+    if (!dynamicVagaSquaresDiv || !noSlotsMessageP) {
+        console.error("Elementos do DOM não encontrados!");
+        return;
+    }
+
+    dynamicVagaSquaresDiv.innerHTML = '';
+    noSlotsMessageP.classList.add('hidden');
 
     if (selectedDates.length === 0) {
-        noSlotsMessageP.classList.remove('hidden'); // Mostra a mensagem se nenhuma data for selecionada
+        noSlotsMessageP.textContent = 'Por favor, selecione uma data no calendário.';
+        noSlotsMessageP.classList.remove('hidden');
         return;
     }
 
@@ -1370,86 +1272,110 @@ async function renderVagaSquares(selectedDates) {
     }
 
     const formattedDatesForApi = selectedDates.map(date => new Date(date).toISOString().split('T')[0]).join(',');
-    console.log("Datas formatadas para API (para depuração):", formattedDatesForApi);
 
-    try {
+     try {
         const response = await fetch(`/parking/api/spots/${currentSpotId}/availability/?dates=${formattedDatesForApi}`);
+        const data = await response.json();
+        
+        console.log("Dados de disponibilidade da API:", data);
+        
+        // ✅ CORREÇÃO: Salve os dados da API em uma variável global
+        window.currentSpotData = data; 
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Erro ao buscar disponibilidade:", errorData);
-            noSlotsMessageP.textContent = `Erro ao buscar vagas: ${errorData.detail || response.statusText}`;
+            console.error("Erro ao buscar disponibilidade:", data);
+            noSlotsMessageP.textContent = `Erro ao buscar vagas: ${data.detail || response.statusText}`;
             noSlotsMessageP.classList.remove('hidden');
             return;
         }
 
-        const data = await response.json();
-        console.log("Dados de disponibilidade da API:", data);
+        let hasSlotsToShow = false;
+        
+        if (data.dates_availability && Array.isArray(data.dates_availability) && data.dates_availability.length > 0) {
+            data.dates_availability.forEach(availability => {
+                if (availability.slots && Array.isArray(availability.slots) && availability.slots.length > 0) {
+                    hasSlotsToShow = true;
+                    
+                    const dateHeader = document.createElement('h4');
+                    dateHeader.className = 'text-md font-semibold text-gray-700 w-full mt-4 mb-2';
+                    dateHeader.textContent = `Vagas para ${new Date(availability.date).toLocaleDateString('pt-BR')}:`;
+                    dynamicVagaSquaresDiv.appendChild(dateHeader);
 
-        let totalAvailableSlotsToDisplay = 0; 
-    
-        if (data.dates_availability && data.dates_availability.length > 0) {
-            const firstSelectedDate = selectedDates[0];
-            const firstFormattedDate = new Date(firstSelectedDate).toISOString().split('T')[0];
-            const availabilityForFirstDate = data.dates_availability.find(
-                item => item.date === firstFormattedDate
-            );
-            totalAvailableSlotsToDisplay = availabilityForFirstDate ? availabilityForFirstDate.available_slots : 0;
-
-            if (totalAvailableSlotsToDisplay > 0) {
-            noSlotsMessageP.textContent = `Vagas disponíveis para ${new Date(firstSelectedDate).toLocaleDateString('pt-BR')}:`;
-            } else {
-            noSlotsMessageP.textContent = `Nenhuma vaga disponível para ${new Date(firstSelectedDate).toLocaleDateString('pt-BR')}.`;
-            }
-            noSlotsMessageP.classList.remove('hidden');
-            
-         } else if (data.capacity !== undefined) {
-        totalAvailableSlotsToDisplay = data.capacity; 
-        noSlotsMessageP.textContent = `Capacidade total da vaga (sem disponibilidade por data específica):`;
-        noSlotsMessageP.classList.remove('hidden');
-    } else {
-        noSlotsMessageP.textContent = 'Nenhuma informação de disponibilidade encontrada para as datas selecionadas.';
-        noSlotsMessageP.classList.remove('hidden');
-        return;
-    }
-
-        // Se a quantidade disponível é maior que zero, desenha os quadrados
-        if (totalAvailableSlotsToDisplay > 0) {
-            dynamicVagaSquaresDiv.innerHTML = ''; // Limpa o contêiner
-
-            for (let i = 1; i <= totalAvailableSlotsToDisplay; i++) {
-                const square = document.createElement('div');
-                square.classList.add(
-                    'w-10', 'h-10', 'rounded-md', 'flex', 'items-center', 'justify-center',
-                    'font-bold', 'text-white', 'text-lg', 'cursor-pointer', 'select-none',
-                    'border-2', 'transition-colors'
-                );
-                square.textContent = i; // Número da vaga
-
-                square.classList.add('border-green-500', 'bg-green-500', 'hover:bg-green-600', 'hover:border-green-600');
-                square.dataset.vagaNumber = i;
-                square.dataset.selected = 'false'; // Estado de seleção inicial
-
-                square.addEventListener('click', () => {
-                    if (square.dataset.selected === 'true') {
-                        square.classList.remove('bg-indigo-600', 'border-indigo-600');
-                        square.classList.add('bg-green-500', 'border-green-500');
+                    const slotsContainer = document.createElement('div');
+                    slotsContainer.className = 'flex flex-wrap';
+                    
+                    availability.slots.forEach(slot => {
+                        const square = document.createElement('div');
+                        
+                        const isFullyOccupied = slot.occupied_times.length > 0;
+                        
+                        square.classList.add(
+                            'vaga-square', 'w-10', 'h-10', 'rounded-md', 'flex', 
+                            'items-center', 'justify-center', 'font-bold', 'text-white', 
+                            'text-lg', 'select-none', 'border-2', 'transition-colors', 'm-1', 'cursor-pointer'
+                        );
+                        square.textContent = slot.slot_number;
+                        square.dataset.vagaNumber = slot.slot_number;
+                        square.dataset.slotDate = availability.date; 
                         square.dataset.selected = 'false';
-                    } else {
-                        square.classList.remove('bg-green-500', 'border-green-500');
-                        square.classList.add('bg-indigo-600', 'border-indigo-600');
-                        square.dataset.selected = 'true';
-                    }
-                });
-                dynamicVagaSquaresDiv.appendChild(square);
-            }
-        } else {
-            noSlotsMessageP.textContent = 'Nenhuma vaga disponível para reserva nas datas selecionadas.';
+
+                        if (isFullyOccupied) {
+                            square.classList.add('border-yellow-500', 'bg-yellow-500', 'hover:bg-yellow-600');
+                        } else {
+                            square.classList.add('border-green-500', 'bg-green-500', 'hover:bg-green-600');
+                        }
+                        
+                        square.addEventListener('click', async () => {
+                            document.querySelectorAll('.vaga-square').forEach(otherSquare => {
+                                if (otherSquare.dataset.selected === 'true') {
+                                    // Remove o estilo de seleção
+                                    otherSquare.classList.remove('bg-indigo-600', 'border-indigo-600');
+                                    
+                                    // Restaura a cor original baseada na ocupação
+                                    const otherSlotDate = otherSquare.dataset.slotDate;
+                                    const otherSlotNumber = otherSquare.dataset.vagaNumber;
+                                    const otherAvailability = data.dates_availability.find(av => av.date === otherSlotDate);
+                                    const otherSlot = otherAvailability.slots.find(s => s.slot_number.toString() === otherSlotNumber);
+                                    if (otherSlot.occupied_times.length > 0) {
+                                         otherSquare.classList.add('bg-yellow-500', 'border-yellow-500');
+                                    } else {
+                                         otherSquare.classList.add('bg-green-500', 'border-green-500');
+                                    }
+                                    otherSquare.dataset.selected = 'false';
+                                }
+                            });
+                            
+                            square.classList.remove('bg-green-500', 'border-green-500', 'bg-yellow-500', 'border-yellow-500');
+                            square.classList.add('bg-indigo-600', 'border-indigo-600');
+                            square.dataset.selected = 'true';
+                            
+                            currentSelectedSlot.date = square.dataset.slotDate;
+                            currentSelectedSlot.slotNumber = parseInt(square.dataset.vagaNumber);
+                            
+                            document.getElementById('selected-slot-details-section').classList.remove('hidden');
+                            document.getElementById('selected-slot-number').textContent = currentSelectedSlot.slotNumber;
+                            document.getElementById('selected-slot-date-display').textContent = new Date(currentSelectedSlot.date).toLocaleDateString('pt-BR');
+                            
+                            // ✅ Renderiza os horários reservados
+                            const selectedAvailability = data.dates_availability.find(av => av.date === currentSelectedSlot.date);
+                            const selectedSlotData = selectedAvailability.slots.find(s => s.slot_number === currentSelectedSlot.slotNumber);
+                            renderReservedSlots(selectedSlotData.occupied_times, currentSelectedSlot.date);
+                        });
+                        slotsContainer.appendChild(square);
+                    });
+                    dynamicVagaSquaresDiv.appendChild(slotsContainer);
+                }
+            });
+        }
+        
+         if (!hasSlotsToShow) {
+            noSlotsMessageP.textContent = 'Não há vagas disponíveis para a data selecionada.';
             noSlotsMessageP.classList.remove('hidden');
         }
 
     } catch (error) {
         console.error("Erro na requisição da API de disponibilidade:", error);
+        window.currentSpotData = null; // ✅ Garante que a variável seja limpa em caso de erro
         noSlotsMessageP.textContent = "Erro ao carregar disponibilidade das vagas. Verifique sua conexão ou tente novamente.";
         noSlotsMessageP.classList.remove('hidden');
     }

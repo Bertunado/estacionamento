@@ -48,7 +48,7 @@ async function initializeApplication() {
 
         // Event listener para marcadores do mapa (recebe do map_utilities)
         document.addEventListener("spotMarkerClicked", (event) => {
-            openParkingDetailModal(event.detail); // Usa a função importada
+            openParkingDetailModal(event.detail); 
         });
 
         // Event listener para abrir modal de reserva (clique no card da lista)
@@ -57,8 +57,7 @@ async function initializeApplication() {
             if (!btn) return;
 
             const spotId = btn.dataset.spotId;
-            // É crucial que window.allSpots seja atualizado por carregarSpotsDaListaEdoMapa
-            const spot = window.allSpots?.find((s) => s.id == spotId); // Assume que allSpots é global
+            const spot = window.allSpots?.find((s) => s.id == spotId);
             if (spot) {
                 openParkingDetailModal(spot);
             } else {

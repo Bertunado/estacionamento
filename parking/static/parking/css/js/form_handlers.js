@@ -10,8 +10,6 @@ import { carregarMinhasVagas, activateTab, carregarSpotsDaListaEdoMapa } from '.
 import { uploadedFiles } from './globals.js';
 import { coletarDisponibilidades } from './availability_manager.js';
 import { clearPhotoPreviews } from './photo_upload.js';
-import { setupAvailabilityFields } from './availability_manager.js';
-
 
 const successModal = document.getElementById('success-modal');
 const successMessage = document.getElementById('success-message');
@@ -25,22 +23,19 @@ if (successOkButton) {
         }
         
         // Ativa a aba "Adicionar Vaga"
-        // 'add-parking' é o ID da div principal da aba no seu HTML
         activateTab('add-parking'); 
-        
         // Recarregar as listas para exibir a nova vaga/atualização.
         carregarMinhasVagas(); 
         carregarSpotsDaListaEdoMapa();
     });
 }
 
-// ** FUNÇÃO CONSOLIDADA PARA SUBMISSÃO DE VAGA **
 export async function handleSubmitSpot(e) {
   e.preventDefault();
   const form = e.target;
   const formData = new FormData(form);
 
-  // Coleta de dados usando os atributos 'name' do seu HTML
+  // Coleta de dados usando os atributos 'name'
   const title = formData.get("title")?.trim();
   const address = formData.get("address")?.trim();
   const price_hour = formData.get("price_hour") || "0";
@@ -48,12 +43,8 @@ export async function handleSubmitSpot(e) {
   const size = formData.get("size") || "Indefinido";
   const tipo_vaga = formData.get("tipo_vaga");
   const description = formData.get("description")?.trim();
-  
-  // O seu HTML não mostra um campo 'quantity', então mantenha o padrão 1
   const quantity = formData.get("quantity") || "1"; 
-
   const disponibilidadesParaSalvar = coletarDisponibilidades(); 
-
 
   if (!title || !address || !description) {
     alert("Preencha título, endereço e descrição.");
@@ -79,7 +70,7 @@ export async function handleSubmitSpot(e) {
     size,
     tipo_vaga,
     description,
-    quantity: parseInt(quantity), // Converte para inteiro
+    quantity: parseInt(quantity),
   };
 
   try {
@@ -99,8 +90,6 @@ export async function handleSubmitSpot(e) {
         } else {
             console.log("Nenhuma foto para subir.");
         }
-
-        // Limpeza do formulário e previews AQUI, ANTES de exibir o modal
         form.reset(); 
         clearPhotoPreviews(); 
         uploadedFiles.length = 0;
@@ -118,14 +107,14 @@ export async function handleSubmitSpot(e) {
     }
 }
 
-// ** NOVA FUNÇÃO setupNewSpotForm SIMPLIFICADA E CORRIGIDA PARA O ID DO HTML **
 export function setupNewSpotForm() {
-  const addParkingForm = document.getElementById("addParkingForm"); // <-- CORREÇÃO: Usando 'addParkingForm'
+  const addParkingForm = document.getElementById("addParkingForm"); 
   if (addParkingForm) {
     addParkingForm.addEventListener("submit", handleSubmitSpot);
   }
 }
 
+// Tela de edição
 export function setupEditSpotForm(spotToEdit) {
     const editModal = document.getElementById("edit-spot-modal"); 
     const editForm = document.getElementById("editParkingForm");
@@ -144,12 +133,9 @@ export function setupEditSpotForm(spotToEdit) {
         document.getElementById("edit-size").value = spotToEdit.size;
         document.getElementById("edit-tipo_vaga").value = spotToEdit.tipo_vaga;
         document.getElementById("edit-description").value = spotToEdit.description;
-        // Se houver campos de quantidade na edição, carregue aqui também
-        // document.getElementById("edit-quantity").value = spotToEdit.quantity;
     }
 
     editModal.classList.remove("hidden");
-
     editForm.removeEventListener('submit', handleEditSpotSubmit);
     editForm.addEventListener('submit', handleEditSpotSubmit);
 
@@ -157,7 +143,6 @@ export function setupEditSpotForm(spotToEdit) {
         e.preventDefault();
         const form = e.target;
         const formData = new FormData(form);
-
         const spotId = formData.get("edit-spot-id");
         const title = formData.get("edit-title")?.trim();
         const address = formData.get("edit-address")?.trim();
@@ -192,7 +177,7 @@ export function setupEditSpotForm(spotToEdit) {
             size,
             tipo_vaga,
             description,
-            availabilities: [], // As disponibilidades de edição seriam tratadas separadamente
+            availabilities: [],
             quantity: parseInt(quantity),
         };
 

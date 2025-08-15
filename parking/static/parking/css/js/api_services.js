@@ -1,5 +1,5 @@
 // Contém as funções para fazer requisições a API.
-import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
+import { getCookie } from './utils.js'; 
 
 function getCsrfToken() {
     // Busca o token CSRF do cookie, que é o método padrão do Django
@@ -9,7 +9,7 @@ function getCsrfToken() {
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i].trim();
             if (cookie.startsWith('csrftoken=')) {
-                cookieValue = decodeURIComponent(cookie.substring(10)); // 'csrftoken='.length é 10
+                cookieValue = decodeURIComponent(cookie.substring(10));
                 break;
             }
         }
@@ -34,7 +34,7 @@ export async function fetchSpots() {
     const response = await fetch("/parking/api/spots/");
     if (!response.ok) throw new Error("Falha ao buscar vagas");
     const data = await response.json();
-     return data.results || data; // Assumindo que a API pode retornar 'results' ou os dados diretos
+     return data.results || data; 
   } catch (error) {
     console.error("Erro ao buscar vagas:", error);
     throw error;
@@ -154,11 +154,11 @@ export async function saveAvailabilities(spotId, availabilities) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'), // Certifique-se de ter essa função
+                'X-CSRFToken': getCookie('csrftoken'),
             },
             body: JSON.stringify({
                 spot_id: spotId,
-                availabilities: availabilities // O array de objetos de disponibilidade
+                availabilities: availabilities
             })
         });
 
@@ -216,7 +216,6 @@ export async function fetchSpotReservations(spotId, date) {
 }
 
 export async function createReservation(payload) {
-    // ✅ PASSO 1: Obtenha o token de autenticação e o token CSRF
     const token = getAuthToken();
     const csrfToken = getCsrfToken(); 
 
@@ -228,37 +227,50 @@ export async function createReservation(payload) {
         console.error("CSRF token não encontrado.");
         throw new Error("CSRF token ausente. Não foi possível criar a reserva.");
     }
+    
+    const url = 'http://127.0.0.1:8000/parking/api/reservations/';
 
     try {
-        const response = await fetch('http://127.0.0.1:8000/parking/api/reservations/', {
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Token ${token}`,
-                // ✅ PASSO 2: Inclua o cabeçalho do token CSRF
                 'X-CSRFToken': csrfToken,
             },
             body: JSON.stringify(payload),
         });
-
-        // Tenta ler o corpo da resposta como JSON, mesmo que seja um erro
-        const data = await response.json();
-
-        if (!response.ok) {
-            const errorMessage = data.detail || data.non_field_errors || 'Erro desconhecido ao criar a reserva.';
-            throw new Error(errorMessage);
+        
+        // Se a resposta for OK (status 2xx), retorna os dados
+        if (response.ok) {
+            return await response.json();
         }
 
-        return data; // Retorna os dados da reserva se a resposta for bem-sucedida
+        // Se a resposta não for OK, tenta ler o corpo da resposta
+        let errorData;
+        try {
+            // ✅ CORREÇÃO: Tenta ler o corpo da resposta como JSON
+            errorData = await response.json();
+        } catch (jsonError) {
+            // Se falhar, a resposta não era JSON. Tenta ler como texto.
+            const errorText = await response.text();
+            console.error("Erro no corpo da resposta da API (não-JSON):", errorText);
+            throw new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
+        }
+        
+        // Usa as mensagens de erro do corpo JSON
+        const errorMessage = errorData.detail || errorData.non_field_errors || `Erro ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+
     } catch (error) {
         console.error("Erro na API createReservation:", error);
-        throw error; // Repropaga o erro para ser capturado no ui_handlers.js
+        throw error;
     }
 }
 
 export async function fetchMyReservations() {
     console.log("Buscando minhas reservas...");
-    const token = getCookie('csrftoken'); // Certifique-se de que a API usa CSRF ou tokens de autenticação
+    const token = getCookie('csrftoken'); 
     try {
         const response = await fetch('http://127.0.0.1:8000/parking/api/my-reservations/', {
             method: 'GET',

@@ -34,6 +34,7 @@ class ParkingSpot(models.Model):
 
 class SpotAvailability(models.Model):
     spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name='availabilities_by_date')
+    slot_number = models.IntegerField(default=1, help_text="Número específico da vaga.")
     available_date = models.DateField() 
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -41,7 +42,7 @@ class SpotAvailability(models.Model):
 
     class Meta:
         # Garante que não haja slots de disponibilidade duplicados para o mesmo spot na mesma data/período
-        unique_together = ('spot', 'available_date', 'start_time', 'end_time')
+        unique_together = ('spot', 'slot_number', 'available_date', 'start_time', 'end_time')
         ordering = ['available_date', 'start_time']
 
     def __str__(self):
@@ -91,6 +92,7 @@ class Reservation(models.Model):
     total_price = models.DecimalField(max_digits=8, decimal_places=2, default=0.00) 
     status      = models.CharField(max_length=20, default='pending')
     created_at  = models.DateTimeField(auto_now_add=True)
+    slot_number = models.PositiveIntegerField()
 
     # cria automaticamente uma conversa assim que a reserva é inserida
     def save(self, *args, **kwargs):

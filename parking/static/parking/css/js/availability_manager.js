@@ -1,7 +1,7 @@
 // Controle da interface e coleta de dados para a disponibilidade das vagas.
 let flatpickrInstance = null; // Para a instância do Flatpickr
 let selectedDatesConfigDiv; 
-let selectedAvailabilities = {}; // Armazena as disponibilidades configuradas pelo publicador
+let selectedAvailabilities = {};
 let noDatesMessage;
 
 // Gerenciar a seleção de datas e disponibilidades para a publicação de vagas
@@ -142,51 +142,46 @@ function capitalizeFirstLetter(string) {
 export function setupAvailabilityFields() {
     console.log("availability_manager.js: Iniciando setup de campos de disponibilidade...");
 
-    setTimeout(() => {
+    const checkElements = setInterval(() => {
         selectedDatesConfigDiv = document.getElementById('selected-dates-config');
         noDatesMessage = document.getElementById('no-dates-message');
         const availabilityCalendar = document.getElementById('availability-calendar');
 
-        if (!selectedDatesConfigDiv || !noDatesMessage || !availabilityCalendar) {
-            console.warn("availability_manager.js: Um ou mais elementos do calendário/configuração não foram encontrados. A aba pode não estar visível ainda. Abortando setup.");
-            return;
-        }
+        if (selectedDatesConfigDiv && noDatesMessage && availabilityCalendar) {
+            clearInterval(checkElements);
+            console.log("availability_manager.js: Elementos encontrados. Configurando Flatpickr e listeners.");
 
-        console.log("availability_manager.js: Elementos de disponibilidade encontrados. Configurando Flatpickr e listeners.");
-
-        if (availabilityCalendar._flatpickr) {
-            availabilityCalendar._flatpickr.destroy();
-        }
-
-        flatpickrInstance = flatpickr(availabilityCalendar, {
-            mode: "multiple",
-            dateFormat: "d/m/Y",
-            locale: flatpickr.l10ns.pt,
-            minDate: "today",
-            onClose: function(selectedDates, dateStr, instance) {
-                updateSelectedDatesConfig(selectedDates);
-            },
-            onChange: function(selectedDates, dateStr, instance) {
-                updateSelectedDatesConfig(selectedDates);
+            if (availabilityCalendar._flatpickr) {
+                availabilityCalendar._flatpickr.destroy();
             }
-        });
 
-        selectedDatesConfigDiv.addEventListener('change', (e) => {
-            if (e.target.classList.contains('quantity-select')) {
-                const dateRowContainer = e.target.closest('.availability-date-row');
-                if (dateRowContainer) {
-                    const dateKey = dateRowContainer.dataset.date;
-                    if (selectedAvailabilities[dateKey]) {
-                        selectedAvailabilities[dateKey].available_quantity = parseInt(e.target.value);
-                        console.log(`Disponibilidade atualizada para ${dateKey}:`, selectedAvailabilities[dateKey]);
+            flatpickrInstance = flatpickr(availabilityCalendar, {
+                mode: "multiple",
+                dateFormat: "d/m/Y",
+                locale: flatpickr.l10ns.pt,
+                minDate: "today",
+                onClose: updateSelectedDatesConfig,
+                onChange: updateSelectedDatesConfig
+            });
+
+            selectedDatesConfigDiv.addEventListener('change', (e) => {
+                if (e.target.classList.contains('quantity-select')) {
+                    const dateRowContainer = e.target.closest('.availability-date-row');
+                    if (dateRowContainer) {
+                        const dateKey = dateRowContainer.dataset.date;
+                        if (selectedAvailabilities[dateKey]) {
+                            selectedAvailabilities[dateKey].available_quantity = parseInt(e.target.value);
+                            console.log(`Disponibilidade atualizada para ${dateKey}:`, selectedAvailabilities[dateKey]);
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        console.log("availability_manager.js: Setup de campos de disponibilidade concluído.");
-    }, 100); // tempo suficiente para garantir que a aba carregou
+            console.log("availability_manager.js: Setup concluído.");
+        }
+    }, 100); // tenta a cada 100ms até encontrar
 }
+
 
 export function loadAvailabilitiesForEdit(spot) {
     if (spot && spot.availabilities_by_date) {

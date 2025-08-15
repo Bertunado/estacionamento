@@ -55,7 +55,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Reservation
-        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price']
+        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'slot_number',]
         read_only_fields = ['renter', 'total_price']
     
     def create(self, validated_data):
@@ -94,12 +94,18 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
         availabilities_data = validated_data.pop('availabilities_by_date', [])
         parking_spot = ParkingSpot.objects.create(**validated_data)
         for availability_data in availabilities_data:
-            SpotAvailability.objects.create(spot=parking_spot, **availability_data)
+            quantity = availability_data.pop('available_quantity', 1)
+            for slot_num in range(1, quantity + 1):
+                SpotAvailability.objects.create(
+                    spot=parking_spot,
+                    slot_number=slot_num,
+                    available_quantity=1,
+                    **availability_data
+                )
         return parking_spot
 
     def update(self, instance, validated_data):
         availabilities_data = validated_data.pop('availabilities_by_date', None)
-
         # Atualiza os campos do ParkingSpot
         instance.title = validated_data.get('title', instance.title)
         instance.address = validated_data.get('address', instance.address)
@@ -119,6 +125,12 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
         if availabilities_data is not None:
             instance.availabilities_by_date.all().delete()
             for availability_data in availabilities_data:
-                SpotAvailability.objects.create(spot=instance, **availability_data)
-
+                quantity = availability_data.pop('available_quantity', 1)
+                for slot_num in range(1, quantity + 1):
+                    SpotAvailability.objects.create(
+                    spot=instance,
+                    slot_number=slot_num,
+                    available_quantity=1,
+                    **availability_data
+                )
         return instance

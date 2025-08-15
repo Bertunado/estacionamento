@@ -116,7 +116,6 @@ export function configurarBuscaEndereco() {
         return;
     }
 
-    // Inicialize o SearchBox apenas uma vez
     if (!window.searchBoxInstance) {
         window.searchBoxInstance = new SearchBoxClass(input);
 
@@ -136,7 +135,6 @@ export function configurarBuscaEndereco() {
             map.fitBounds(bounds); // Usando 'map' exportado
 
             if (places[0] && places[0].geometry && places[0].geometry.location) {
-                // Opcional: Adiciona um marcador para o local buscado
                 if (window.searchLocationMarker) {
                     window.searchLocationMarker.map = null;
                 }

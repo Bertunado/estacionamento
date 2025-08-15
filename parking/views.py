@@ -24,6 +24,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from decimal import Decimal
 from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
+from django.utils.dateparse import parse_date
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -85,14 +86,18 @@ class SpotReservationsListView(generics.ListAPIView):
     def get_queryset(self):
         spot_id = self.kwargs['spot_id']
         date_str = self.request.query_params.get('date', None)
+        slot_number = self.request.query_params.get('slot_number', None) # ✅ Adicione o slot_number
 
         queryset = Reservation.objects.filter(spot_id=spot_id)
 
         if date_str:
-            # Filtra por data
             queryset = queryset.filter(start_time__date=date_str)
         
-        return queryset
+        # ✅ Filtra por slot_number se ele for fornecido
+        if slot_number:
+            queryset = queryset.filter(slot_number=slot_number)
+        
+        return queryset.order_by('start_time')
             
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
@@ -167,15 +172,54 @@ class MyReservationsListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Reservation.objects.filter(renter=self.request.user)
+    
+class SpotAvailabilityViewSet(viewsets.ModelViewSet):
+    queryset = SpotAvailability.objects.all()
+    serializer_class = SpotAvailabilitySerializer
 
 class ReservationCreateView(generics.CreateAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        print("=== Dados recebidos para criar reserva ===")
-        print(self.request.data)
-        serializer.save(renter=self.request.user)
+        spot_id = self.request.data.get('spot')
+        slot_number = self.request.data.get('slot_number')
+        start_time = self.request.data.get('start_time')
+        end_time = self.request.data.get('end_time')
+
+        if not all([spot_id, slot_number, start_time, end_time]):
+            raise serializers.ValidationError({"detail": "Spot, slot_number, start_time e end_time são obrigatórios."})
+
+        spot = get_object_or_404(ParkingSpot, pk=spot_id)
+        start_time = timezone.make_aware(datetime.fromisoformat(start_time))
+        end_time = timezone.make_aware(datetime.fromisoformat(end_time))
+
+        # Verifica sobreposição para a vaga física
+        overlapping = Reservation.objects.filter(
+            spot=spot,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
+            status__in=['pending', 'confirmed']
+        ).exists()
+
+        if overlapping:
+            raise serializers.ValidationError(
+                {"detail": f"Já existe uma reserva para este estacionamento entre {start_time.isoformat()} e {end_time.isoformat()}."}
+        )
+
+        duration_hours = (end_time - start_time).total_seconds() / 3600
+        total_price = round(duration_hours * spot.hourly_price, 2)
+
+        serializer.save(
+            renter=self.request.user,
+            spot=spot,
+            slot_number=slot_number,
+            start_time=start_time,
+            end_time=end_time,
+            total_price=total_price,
+            status='pending'
+        )
+
 
 @csrf_exempt
 def salvar_disponibilidade(request):
@@ -254,8 +298,8 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
         return ParkingSpot.objects.all()
 
     def perform_create(self, serializer):
-        print("=== Dados recebidos para criar reserva ===")
-        print(self.request.data)
+        print("=== Dados recebidos para criar vaga ===")
+        print(self.request.data)  # Adicione esta linha
         serializer.save(owner=self.request.user)
     
     def retrieve(self, request, *args, **kwargs):
@@ -264,74 +308,87 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
         return response
 
 
-class SpotAvailabilityViewSet(viewsets.ModelViewSet):
-    queryset = SpotAvailability.objects.all().order_by('available_date', 'start_time') 
+class SpotAvailabilityView(generics.ListAPIView):
     serializer_class = SpotAvailabilitySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    # Você pode querer filtrar por spot aqui
     def get_queryset(self):
-        queryset = super().get_queryset()
-        spot_id = self.request.query_params.get('spot_id', None)
-        if spot_id is not None:
-            queryset = queryset.filter(spot__id=spot_id)
-        return queryset
+        spot_id = self.kwargs["spot_id"]
+        date_str = self.request.query_params.get("date")
+        if not date_str:
+            return Reservation.objects.none()
+
+        date_obj = parse_date(date_str)
+        if not date_obj:
+            return Reservation.objects.none()
+
+        # Apenas reservas da vaga informada e dessa data
+        return Reservation.objects.filter(
+            spot_id=spot_id,
+            start_time__date=date_obj
+        )
     
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny]) 
+@permission_classes([permissions.AllowAny])
 def get_spot_availability_by_spot_id(request, spot_id):
-    """
-    Retorna a capacidade total de vagas para um ParkingSpot específico e a disponibilidade
-    para as datas solicitadas (ou uma simulação se não houver dados específicos).
-    """
     try:
-        spot = ParkingSpot.objects.get(pk=spot_id) 
+        spot = ParkingSpot.objects.get(pk=spot_id)
     except ParkingSpot.DoesNotExist:
         return Response({'detail': 'Vaga de estacionamento (Spot) não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-    data = {
+    dates_param = request.query_params.get('dates', None)
+    if not dates_param:
+        return Response({'detail': 'Parâmetro "dates" é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    date_strings = dates_param.split(',')
+    response_data = {
         'spot_id': spot.id,
-        'capacity': spot.quantity, # Mantém a capacidade total da vaga
+        'capacity': spot.quantity,
         'dates_availability': []
     }
 
-    dates_param = request.query_params.get('dates', None)
-    if dates_param:
-        date_strings = dates_param.split(',')
-        for date_str in date_strings:
-            try:
-                # Converte a string da data para um objeto date
-                query_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                
-                availability_for_date = SpotAvailability.objects.filter(
-                    spot=spot, 
-                    available_date=query_date
-                ).first() # Pega a primeira entrada para essa data
+    for date_str in date_strings:
+        try:
+            query_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            availability = SpotAvailability.objects.filter(spot=spot, available_date=query_date).first()
 
-                if availability_for_date:
-                    available_q = availability_for_date.available_quantity
-                else:
-                    # Se não houver uma entrada de SpotAvailability para esta data,
-                    # consideramos que não há vagas disponíveis para aluguel naquele dia específico.
-                    available_q = 0 
+            slots_info = []
 
-                data['dates_availability'].append({
-                    'date': date_str,
-                    'available_slots': available_q 
-                })
-            except ValueError:
-                data['dates_availability'].append({
-                    'date': date_str,
-                    'available_slots': 0, 
-                    'error': 'Formato de data inválido'
-                })
-    else:
-        data['dates_availability'].append({
-            'date': 'N/A', 
-            'available_slots': spot.quantity # Mantém o fallback para a capacidade total se não houver datas solicitadas
-        })
+            if availability:
+                num_slots = availability.available_quantity
+                for i in range(1, num_slots + 1):
+                    # ✅ CORREÇÃO: Busque todas as reservas para o slot e a data
+                    reservations = Reservation.objects.filter(
+                        spot=spot,
+                        slot_number=i,
+                        start_time__date=query_date,
+                        status__in=['pending', 'confirmed']
+                    ).order_by('start_time')
 
-    return Response(data, status=status.HTTP_200_OK)
+                    occupied_times = []
+                    for res in reservations:
+                        occupied_times.append({
+                            'start': res.start_time.strftime('%H:%M'),
+                            'end': res.end_time.strftime('%H:%M')
+                        })
+                    
+                    slots_info.append({
+                        "slot_number": i,
+                        "occupied_times": occupied_times
+                    })
+            
+            response_data['dates_availability'].append({
+                'date': date_str,
+                'slots': slots_info,
+            })
+
+        except ValueError:
+            response_data['dates_availability'].append({
+                'date': date_str,
+                'slots': [],
+                'error': 'Formato de data inválido'
+            })
+
+    return Response(response_data, status=status.HTTP_200_OK)
 
 class ParkingSpotDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = ParkingSpot.objects.all()
