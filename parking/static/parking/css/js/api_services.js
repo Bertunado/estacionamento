@@ -241,24 +241,19 @@ export async function createReservation(payload) {
             body: JSON.stringify(payload),
         });
         
-        // Se a resposta for OK (status 2xx), retorna os dados
         if (response.ok) {
             return await response.json();
         }
 
-        // Se a resposta não for OK, tenta ler o corpo da resposta
         let errorData;
         try {
-            // ✅ CORREÇÃO: Tenta ler o corpo da resposta como JSON
             errorData = await response.json();
         } catch (jsonError) {
-            // Se falhar, a resposta não era JSON. Tenta ler como texto.
             const errorText = await response.text();
             console.error("Erro no corpo da resposta da API (não-JSON):", errorText);
             throw new Error(`Erro ${response.status}: ${errorText || response.statusText}`);
         }
         
-        // Usa as mensagens de erro do corpo JSON
         const errorMessage = errorData.detail || errorData.non_field_errors || `Erro ${response.status}: ${response.statusText}`;
         throw new Error(errorMessage);
 

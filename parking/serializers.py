@@ -52,11 +52,13 @@ class SpotAvailabilitySerializer(serializers.ModelSerializer):
 class ReservationSerializer(serializers.ModelSerializer):
     spot = serializers.PrimaryKeyRelatedField(queryset=ParkingSpot.objects.all())
     renter = serializers.PrimaryKeyRelatedField(read_only=True)
+    tipo_vaga = serializers.CharField(source='spot.tipo_vaga', read_only=True)
+    address = serializers.CharField(source='spot.address', read_only=True)
 
     class Meta:
         model = Reservation
-        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'slot_number',]
-        read_only_fields = ['renter', 'total_price']
+        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'slot_number', 'tipo_vaga', 'address']
+        read_only_fields = ['renter', 'total_price', 'tipo_vaga', 'address']
     
     def create(self, validated_data):
         spot = validated_data['spot']

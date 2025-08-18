@@ -114,6 +114,12 @@ class ReservationViewSet(viewsets.ModelViewSet):
         spot_id = self.request.data.get('spot')
         start_time_str = self.request.data.get('start_time')
         end_time_str = self.request.data.get('end_time')
+        slot_number = self.request.data.get('slot_number')
+        if slot_number is not None:
+            try:
+                slot_number = int(slot_number)
+            except ValueError:
+                raise serializers.ValidationError({"slot_number": "O número do slot deve ser um inteiro válido."})
 
         # 2. Valida se os dados essenciais estão presentes
         if not all([spot_id, start_time_str, end_time_str]):
@@ -138,11 +144,14 @@ class ReservationViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError({"time": "A hora de saída deve ser após a hora de entrada."})
         if start_time < timezone.now(): # Import timezone do django.utils
             raise serializers.ValidationError({"time": "Não é possível reservar uma vaga no passado."})
+        if slot_number is None:
+            raise serializers.ValidationError({"slot_number": "O número do slot é obrigatório."})
 
         # Exemplo BÁSICO de verificação de sobreposição (para uma vaga única):
         overlapping_reservations = Reservation.objects.filter(
             spot=spot,
             # Uma reserva existente começa antes do fim da nova E termina depois do início da nova
+            slot_number=slot_number,
             start_time__lt=end_time,
             end_time__gt=start_time,
             status__in=['pending', 'confirmed'] # Considere status que bloqueiam a vaga
@@ -181,41 +190,46 @@ class ReservationCreateView(generics.CreateAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        spot_id = self.request.data.get('spot')
-        slot_number = self.request.data.get('slot_number')
-        start_time = self.request.data.get('start_time')
-        end_time = self.request.data.get('end_time')
+    # Sobrescreva o método `create` para incluir a validação
+    def create(self, request, *args, **kwargs):
+        # 1. Validação de dados de entrada
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if not all([spot_id, slot_number, start_time, end_time]):
-            raise serializers.ValidationError({"detail": "Spot, slot_number, start_time e end_time são obrigatórios."})
+        spot_id = serializer.validated_data.get('spot').id
+        start_time = serializer.validated_data.get('start_time')
+        end_time = serializer.validated_data.get('end_time')
 
-        spot = get_object_or_404(ParkingSpot, pk=spot_id)
-        start_time = timezone.make_aware(datetime.fromisoformat(start_time))
-        end_time = timezone.make_aware(datetime.fromisoformat(end_time))
-
-        # Verifica sobreposição para a vaga física
+        # 2. Lógica de validação personalizada (sobreposição de horário)
         overlapping = Reservation.objects.filter(
-            spot=spot,
+            spot_id=spot_id,
             start_time__lt=end_time,
             end_time__gt=start_time,
             status__in=['pending', 'confirmed']
         ).exists()
 
         if overlapping:
-            raise serializers.ValidationError(
-                {"detail": f"Já existe uma reserva para este estacionamento entre {start_time.isoformat()} e {end_time.isoformat()}."}
-        )
+            # Retorna a resposta de erro diretamente
+            return Response(
+                {"detail": "Já existe uma reserva para este estacionamento neste período."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        duration_hours = (end_time - start_time).total_seconds() / 3600
-        total_price = round(duration_hours * spot.hourly_price, 2)
+        # 3. Se a validação personalizada passar, salve o objeto
+        self.perform_create(serializer)
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    # O método `perform_create` agora pode ser simplificado
+    def perform_create(self, serializer):
+        # A lógica de validação já foi feita no método `create`
+        # Aqui, você apenas salva o objeto com os dados adicionais
+        duration_hours = (serializer.validated_data['end_time'] - serializer.validated_data['start_time']).total_seconds() / 3600
+        total_price = round(duration_hours * serializer.validated_data['spot'].hourly_price, 2)
+        
         serializer.save(
             renter=self.request.user,
-            spot=spot,
-            slot_number=slot_number,
-            start_time=start_time,
-            end_time=end_time,
             total_price=total_price,
             status='pending'
         )

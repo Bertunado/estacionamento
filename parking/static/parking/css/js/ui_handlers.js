@@ -14,7 +14,6 @@ let noSlotsMessageP;
 let reservationCalendarInstance = null;
 let currentSpotDetails = null;
 let currentSelectedReservationOption = null;
-let selectedSlot = null;
 let isProcessingDate = false;
 let currentSelectedSlot = {
     date: null,
@@ -424,7 +423,6 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
 export async function handleDateSelection(spotId, selectedDates) {
     currentSpotId = spotId;
     currentSelectedSlot = { date: null, slotNumber: null };
-    selectedSlot = null;
 
     document.getElementById('no-slots-message').classList.add('hidden');
     document.getElementById('dynamic-vaga-squares').innerHTML = '';
@@ -523,12 +521,21 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Payload enviado para a API:", payload);
 
             try {
-                const newReservation = await createReservation(payload);
-                alert('Reserva criada com sucesso!');
-                renderVagaSquares([selectedDateStr]); 
-            } catch (error) {
-                alert(`Erro ao criar a reserva: ${error.message}`);
-            }
+    const newReservation = await createReservation(payload);
+
+    // Mostra o modal de confirmação
+    showReservationConfirmation({
+    tipo_vaga: newReservation.tipo_vaga,
+    slot_number: newReservation.slot_number,
+    start_time: newReservation.start_time,
+    end_time: newReservation.end_time,
+    total_price: newReservation.total_price
+});
+
+    renderVagaSquares([selectedDateStr]); 
+}catch (error) {
+    alert(`Erro ao criar a reserva: ${error.message}`);
+}
         });
     }
     
@@ -619,6 +626,14 @@ if (confirmDeactivateBtn) {
             console.error("ID da vaga ou novo status não encontrado no botão de confirmação de desativação.");
         }
     });
+}
+
+function formatDateToISO(date) {
+    if (!(date instanceof Date)) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // Calculadora que atualiza os valores da reserva no card do modal
@@ -1112,6 +1127,49 @@ document.addEventListener('click', (e) => {
 
 }
 
+export function renderMyReservation(reservation) {
+    const container = document.getElementById("myReservationsContainer");
+    if (!container) return;
+
+    const card = document.createElement("div");
+    card.className = "bg-white rounded-lg shadow-lg overflow-hidden flex flex-col";
+
+    // Imagem (se não tiver, coloca placeholder)
+    const img = document.createElement("img");
+    img.src = reservation.image_url || '/static/parking/css/images/placeholder.png';
+    img.alt = reservation.tipo_vaga || "Vaga";
+    img.className = "w-full h-48 object-cover";
+    card.appendChild(img);
+
+    // Conteúdo do card
+    const content = document.createElement("div");
+    content.className = "p-4 flex flex-col flex-1";
+
+    const title = document.createElement("h3");
+    title.className = "text-lg font-bold text-gray-800 mb-1";
+    title.textContent = formatarTipoVaga(reservation.tipo_vaga || "Tipo de Vaga");
+    content.appendChild(title);
+
+    const slot = document.createElement("p");
+    slot.className = "text-sm text-gray-500 mb-4";
+    slot.textContent = `Vaga: V${reservation.slot_number}`;
+    content.appendChild(slot);
+
+    const button = document.createElement("button");
+    button.className = "mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-200";
+    button.textContent = "Mostrar detalhes >";
+
+    button.addEventListener("click", () => {
+        console.log("Mostrar detalhes da reserva:", reservation);
+    });
+
+    content.appendChild(button);
+    card.appendChild(content);
+
+    container.appendChild(card);
+}
+
+
 // Aba de "Minhas Reservas"
 export async function carregarMinhasReservas() {
     console.log("carregarMinhasReservas: Iniciando...");
@@ -1139,15 +1197,16 @@ export function showReservationConfirmation(reservationDetails) {
     const modal = document.getElementById('reservation-confirmation-modal');
     if (!modal) return;
 
-    document.getElementById('confirmation-location').textContent = reservationDetails.spot_title;
-    document.getElementById('confirmation-address').textContent = reservationDetails.spot_address;
-    document.getElementById('confirmation-date').textContent = new Date(reservationDetails.start_time).toLocaleDateString();
-    document.getElementById('confirmation-time').textContent = `${new Date(reservationDetails.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(reservationDetails.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    document.getElementById('confirmation-spot').textContent = "Vaga --";
+    document.getElementById('confirmation-location').textContent = reservationDetails.tipo_vaga;
+
+    document.getElementById('confirmation-date').textContent = new Date(reservationDetails.start_time).toLocaleDateString('pt-BR');
+    document.getElementById('confirmation-time').textContent = `${new Date(reservationDetails.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} - ${new Date(reservationDetails.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+    
+    document.getElementById('confirmation-spot').textContent = `V${reservationDetails.slot_number}`;
     document.getElementById('confirmation-total').textContent = `R$ ${parseFloat(reservationDetails.total_price).toFixed(2).replace('.', ',')}`;
 
     modal.classList.remove('hidden');
-    
+
     const closeBtn = document.getElementById('close-confirmation-btn');
     closeBtn.addEventListener('click', () => {
         modal.classList.add('hidden');
