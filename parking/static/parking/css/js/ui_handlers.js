@@ -1203,9 +1203,9 @@ export function renderMyReservation(reservation) {
 }
 
 export function openReservationDetailModal(reservation) {
-    
     console.log("Objeto de reserva completo recebido na modal:", reservation);
     console.log("Objeto do proprietário:", reservation.spot.owner);
+
     const modal = document.getElementById('reservation-detail-modal');
     if (!modal) {
         console.error("Erro: Modal de detalhes da reserva (reservation-detail-modal) não encontrado.");
@@ -1218,7 +1218,6 @@ export function openReservationDetailModal(reservation) {
     // Preenche os dados da vaga
     document.getElementById("modal-reservation-title").textContent = spotDetails.title;
     document.getElementById("modal-reservation-address").textContent = spotDetails.address;
-    
 
     // Atualiza a imagem da vaga
     const modalImage = document.getElementById("modal-reservation-image");
@@ -1246,34 +1245,28 @@ export function openReservationDetailModal(reservation) {
     const totalPriceFormatted = `R$ ${parseFloat(reservation.total_price).toFixed(2).replace('.', ',')}`;
     document.getElementById("reservation-total-price-display").textContent = totalPriceFormatted;
 
-    const sellerName = document.getElementById('modal-seller-name');
-    const sellerPhoto = document.getElementById('modal-seller-profile-image');
+    // Preenche os dados do vendedor com os novos IDs
+    const sellerName = document.getElementById('modal-seller-name-detail');
+    const sellerPhoto = document.getElementById('modal-seller-profile-image-detail');
 
-    if (sellerName && sellerPhoto) {
-        const ownerData = reservation.spot.owner || reservation.owner;
-        const sellerProfilePhoto = ownerData?.perfil?.foto || '/static/parking/css/images/default-profile.png';
-        const sellerProfileName = ownerData?.perfil?.nome_completo || 'Vendedor não disponível';
-
-        sellerPhoto.src = sellerProfilePhoto;
-        sellerPhoto.alt = sellerProfileName;
-        sellerName.textContent = sellerProfileName;
+    const ownerData = reservation.spot.owner || reservation.owner; // fallback caso venha separado
+    if (sellerName && sellerPhoto && ownerData) {
+        sellerPhoto.src = ownerData.perfil?.foto || '/static/parking/css/images/default-profile.png';
+        sellerPhoto.alt = ownerData.perfil?.nome_completo || 'Vendedor não disponível';
+        sellerName.textContent = ownerData.perfil?.nome_completo || 'Indisponível';
     }
 
-    modal.classList.remove('hidden'); // só mostra a modal depois de preencher os dados
     // Mostra a modal
     modal.classList.remove('hidden');
 
     // Adiciona o evento para fechar a modal
     const closeModalBtn = document.getElementById("close-reservation-modal");
     if (closeModalBtn) {
-        closeModalBtn.onclick = () => {
-            modal.classList.add("hidden");
-        };
+        closeModalBtn.onclick = () => modal.classList.add("hidden");
     }
 
     console.log("Detalhes da reserva recebidos na função:", reservation);
 }
-
 
 // Aba de "Minhas Reservas"
 export async function carregarMinhasReservas() {
