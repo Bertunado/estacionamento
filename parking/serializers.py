@@ -2,12 +2,38 @@ from rest_framework import serializers
 from .models import ParkingSpot, ParkingSpotPhoto, Availability, SpotAvailability, Reservation, Perfil
 from accounts.models import CustomUser
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class PerfilSerializer(serializers.ModelSerializer):
     class Meta:
         model = Perfil
         fields = ['nome_completo', 'foto']
+
+class OwnerSerializer(serializers.ModelSerializer):
+    perfil = PerfilSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'perfil']
+
+class ParkingSpotSerializerForReservation(serializers.ModelSerializer):
+    photos = serializers.SerializerMethodField()
+    owner = OwnerSerializer(read_only=True)
+    
+    class Meta:
+        model = ParkingSpot
+        fields = [
+            'id', 'title', 'address', 'description', 'price_hour', 
+            'tipo_vaga', 'size', 'has_camera', 'owner', 'photos',
+        ]
+        
+    def get_photos(self, obj):
+        # Retorna a URL completa da foto
+        request = self.context.get('request')
+        photos_urls = [request.build_absolute_uri(photo.image.url) for photo in obj.photos.all()]
+        return photos_urls
 
 class CustomUserSerializer(serializers.ModelSerializer):
     perfil = PerfilSerializer(read_only=True)
@@ -16,18 +42,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['perfil']
 
-class SpotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ParkingSpot
-        fields = '__all__'
-
 class ReservationListSerializer(serializers.ModelSerializer):
-    # ✅ Serializer aninhado para mostrar os detalhes do spot
-    spot = SpotSerializer(read_only=True)
+    spot = ParkingSpotSerializerForReservation(read_only=True)
 
     class Meta:
         model = Reservation
-        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price']
+        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'status', 'created_at', 'slot_number']
         read_only_fields = ['renter', 'total_price']
 
 class ParkingSpotPhotoSerializer(serializers.ModelSerializer):
@@ -78,7 +98,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 class ParkingSpotSerializer(serializers.ModelSerializer):
-    photos = ParkingSpotPhotoSerializer(many=True, read_only=True)
+    photos = serializers.SerializerMethodField()
     availabilities_by_date = SpotAvailabilitySerializer(many=True, required=False) 
     owner = CustomUserSerializer(read_only=True)
 
@@ -136,3 +156,12 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
                     **availability_data
                 )
         return instance
+    
+    def get_photos(self, obj):
+        request = self.context.get('request')
+        if request is None:
+            # Caso o serializer seja usado em um contexto sem request (pouco comum)
+            return [photo.image.url for photo in obj.photos.all()]
+
+        # ✅ Retorna um array de URLs completas
+        return [request.build_absolute_uri(photo.image.url) for photo in obj.photos.all()]

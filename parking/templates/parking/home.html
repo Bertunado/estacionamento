@@ -615,6 +615,51 @@
                     </button>
                 </div>
             </div> 
+    
+<div id="reservation-detail-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto">
+    <div class="relative top-10 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center pb-3">
+            <h3 class="text-xl font-semibold text-gray-900">Detalhes da sua Reserva</h3>
+            <button id="close-reservation-modal" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        
+        <div class="mt-2 text-gray-700">
+            <img id="modal-reservation-image" src="" alt="Foto da Vaga" class="w-full h-48 object-cover rounded mb-4">
+            
+            <h4 id="modal-reservation-title" class="text-lg font-bold mb-1"></h4>
+            <p id="modal-reservation-address" class="text-sm text-gray-500 mb-4"></p>
+            
+            <hr class="my-4">
+            
+            <div class="flex items-center text-gray-600 mb-2">
+                <i class="fa-regular fa-calendar-alt fa-fw mr-2"></i>
+                <span id="reservation-date-display" class="font-medium"></span>
+            </div>
+            
+            <div class="flex items-center text-gray-600 mb-2">
+                <i class="fa-regular fa-clock fa-fw mr-2"></i>
+                <span id="reservation-time-display" class="font-medium"></span>
+            </div>
+            
+            <div class="flex items-center text-gray-600 mb-2">
+                <i class="fa-solid fa-hashtag fa-fw mr-2"></i>
+                <span id="reservation-slot-number-display" class="font-medium"></span>
+            </div>
+            
+            <div class="flex items-center text-gray-600 mb-2">
+                <i class="fa-solid fa-brazilian-real-sign fa-fw mr-2"></i>
+                <span id="reservation-total-price-display" class="font-medium"></span>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="flex items-center space-x-2">
+    <img id="modal-seller-profile-image" alt="Foto do Vendedor" class="w-10 h-10 rounded-full object-cover">
+    <p class="text-gray-500">Vendedor: <span id="modal-seller-name" class="font-semibold text-gray-700"></span></p>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 <!-- Botoes -->

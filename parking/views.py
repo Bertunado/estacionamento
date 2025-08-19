@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.http import JsonResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from .serializers import ParkingSpotSerializer, ReservationSerializer, ParkingSpotPhotoSerializer, SpotAvailabilitySerializer
+from .serializers import ParkingSpotSerializer, ReservationSerializer, ParkingSpotPhotoSerializer, SpotAvailabilitySerializer, ReservationListSerializer
 from rest_framework import generics, permissions, serializers, viewsets, status
 from .forms import PerfilForm, RegistroUsuarioForm
 from django.contrib.auth.forms import UserCreationForm
@@ -176,11 +176,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
 class MyReservationsListView(generics.ListAPIView):
     queryset = Reservation.objects.all()
-    serializer_class = ReservationSerializer
+    serializer_class = ReservationListSerializer 
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Reservation.objects.filter(renter=self.request.user)
+        return Reservation.objects.filter(renter=self.request.user).select_related('spot', 'spot__owner', 'spot__owner__perfil').order_by('-created_at')
     
 class SpotAvailabilityViewSet(viewsets.ModelViewSet):
     queryset = SpotAvailability.objects.all()
@@ -302,7 +302,7 @@ class MinhasVagasView(APIView):
         return Response(serializer.data)
 
 class ParkingSpotViewSet(viewsets.ModelViewSet):
-    serializer_class = ParkingSpotSerializer
+    serializer_class = ParkingSpotSerializer 
     queryset = ParkingSpot.objects.all().select_related('owner', 'owner__perfil')
     permission_classes = [IsAuthenticated]
 
@@ -318,7 +318,7 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
     
     def retrieve(self, request, *args, **kwargs):
         response = super().retrieve(request, *args, **kwargs)
-        print("Serialização do spot:", response.data)  # aqui está o JSON serializado que vai pro frontend
+        print("Dados do spot enviados pela API:", response.data)
         return response
 
 
