@@ -5,7 +5,7 @@ import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus, createReservati
 import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregarSpots as carregarSpotsDoMapa } from './map_utilities.js';
 import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
 import { setupAvailabilityFields } from './availability_manager.js';
-
+import { createMiniMap } from './map_utilities.js'; 
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
@@ -1133,7 +1133,6 @@ document.addEventListener('click', (e) => {
 }
 
 export function renderMyReservation(reservation) {
-    
     const container = document.getElementById("myReservationsContainer");
     if (!container) return;
 
@@ -1143,8 +1142,8 @@ export function renderMyReservation(reservation) {
     // Imagem da vaga
     const img = document.createElement("img");
     const photoUrl = reservation.spot.photos && reservation.spot.photos.length > 0
-    ? reservation.spot.photos[0] // Acessa a primeira URL do array
-    : '/static/parking/css/images/placeholder.png'; // Usa a imagem padrão se não houver fotos
+        ? reservation.spot.photos[0]
+        : '/static/parking/css/images/placeholder.png';
     img.src = photoUrl;
     img.alt = reservation.spot.title || "Vaga";
     img.className = "w-full h-48 object-cover";
@@ -1152,7 +1151,32 @@ export function renderMyReservation(reservation) {
 
     // Conteúdo do card
     const content = document.createElement("div");
-    content.className = "p-4 flex flex-col flex-1";
+    content.className = "p-4 flex flex-col flex-1 relative";
+
+    const statusContainer = document.createElement("div");
+    statusContainer.className = "absolute top-4 right-2";
+
+    const statusSpan = document.createElement("span");
+    statusSpan.className = "text-xs px-2 py-1 rounded font-semibold";
+
+    const now = new Date();
+    const endDate = new Date(reservation.end_time);
+
+    if (now < endDate) {
+        // A reserva ainda está ativa
+        statusSpan.textContent = "Disponível";
+        statusSpan.classList.add("bg-green-100", "text-green-800");
+    } else {
+        // A reserva já terminou
+        statusSpan.textContent = "Finalizada";
+        statusSpan.classList.add("bg-gray-100", "text-gray-800");
+    }
+
+    // ✅ CORREÇÃO: Anexar o statusSpan ao statusContainer.
+    statusContainer.appendChild(statusSpan);
+
+    // ✅ CORREÇÃO: Anexar o statusContainer ao content ANTES do título e outras informações.
+    content.appendChild(statusContainer);
 
     // Título da vaga (Nome do estacionamento)
     const title = document.createElement("h3");
@@ -1165,24 +1189,21 @@ export function renderMyReservation(reservation) {
     sellerInfo.className = "flex items-center space-x-2 mb-4";
     
     const sellerPhoto = document.createElement("img");
-    // ✅ CORREÇÃO: Acessa a foto do perfil usando a estrutura correta.
     sellerPhoto.src = (reservation.spot.owner && reservation.spot.owner.perfil && reservation.spot.owner.perfil.foto) 
-                         ? reservation.spot.owner.perfil.foto 
-                         : '/static/parking/css/images/default-profile.png';
+        ? reservation.spot.owner.perfil.foto 
+        : '/static/parking/css/images/default-profile.png';
     
-    // ✅ CORREÇÃO: Acessa o nome do perfil usando a estrutura correta.
     sellerPhoto.alt = (reservation.spot.owner && reservation.spot.owner.perfil && reservation.spot.owner.perfil.nome_completo) 
-                         ? reservation.spot.owner.perfil.nome_completo 
-                         : "Vendedor";
+        ? reservation.spot.owner.perfil.nome_completo 
+        : "Vendedor";
     sellerPhoto.className = "w-8 h-8 rounded-full object-cover";
     sellerInfo.appendChild(sellerPhoto);
 
     const sellerName = document.createElement("p");
     sellerName.className = "text-sm text-gray-500";
-    // ✅ CORREÇÃO: Acessa o nome completo do perfil.
     sellerName.textContent = (reservation.spot.owner && reservation.spot.owner.perfil && reservation.spot.owner.perfil.nome_completo) 
-                              ? `Vendedor: ${reservation.spot.owner.perfil.nome_completo}` 
-                              : 'Vendedor: Indisponível';
+        ? `Vendedor: ${reservation.spot.owner.perfil.nome_completo}` 
+        : 'Vendedor: Indisponível';
     sellerInfo.appendChild(sellerName);
 
     content.appendChild(sellerInfo);
@@ -1202,71 +1223,86 @@ export function renderMyReservation(reservation) {
     container.appendChild(card);
 }
 
-export function openReservationDetailModal(reservation) {
-    console.log("Objeto de reserva completo recebido na modal:", reservation);
-    console.log("Objeto do proprietário:", reservation.spot.owner);
+export async function openReservationDetailModal(reservation) {
+    console.log("Objeto de reserva recebido:", reservation);
 
     const modal = document.getElementById('reservation-detail-modal');
-    if (!modal) {
-        console.error("Erro: Modal de detalhes da reserva (reservation-detail-modal) não encontrado.");
-        return;
-    }
+    if (!modal) return console.error("Modal de detalhes da reserva não encontrado.");
 
-    // Acessa o objeto da vaga aninhado
-    const spotDetails = reservation.spot;
+    const spot = reservation.spot;
 
-    // Preenche os dados da vaga
-    document.getElementById("modal-reservation-title").textContent = spotDetails.title;
-    document.getElementById("modal-reservation-address").textContent = spotDetails.address;
+    // Preenche informações da vaga
+    document.getElementById("modal-reservation-title").textContent = spot.title;
+    document.getElementById("modal-reservation-address").textContent = spot.address;
 
-    // Atualiza a imagem da vaga
     const modalImage = document.getElementById("modal-reservation-image");
     if (modalImage) {
-        const photoUrl = spotDetails.photos && spotDetails.photos.length > 0 ? spotDetails.photos[0] : '';
-        modalImage.src = photoUrl;
-        modalImage.alt = spotDetails.description || spotDetails.title;
+        modalImage.src = spot.photos?.[0] || '';
+        modalImage.alt = spot.description || spot.title;
     }
 
-    // Preenche os detalhes da reserva
+    // Datas e horários
     const startDate = new Date(reservation.start_time);
     const endDate = new Date(reservation.end_time);
-
-    const formattedDate = startDate.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-    const formattedTime = `${startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} até ${endDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-
-    document.getElementById("reservation-date-display").textContent = formattedDate;
-    document.getElementById("reservation-time-display").textContent = formattedTime;
+    document.getElementById("reservation-date-display").textContent = startDate.toLocaleDateString('pt-BR');
+    document.getElementById("reservation-time-display").textContent =
+        `${startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} até ${endDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     document.getElementById("reservation-slot-number-display").textContent = reservation.slot_number;
+    document.getElementById("reservation-total-price-display").textContent =
+        `R$ ${parseFloat(reservation.total_price).toFixed(2).replace('.', ',')}`;
 
-    const totalPriceFormatted = `R$ ${parseFloat(reservation.total_price).toFixed(2).replace('.', ',')}`;
-    document.getElementById("reservation-total-price-display").textContent = totalPriceFormatted;
-
-    // Preenche os dados do vendedor com os novos IDs
-    const sellerName = document.getElementById('modal-seller-name-detail');
-    const sellerPhoto = document.getElementById('modal-seller-profile-image-detail');
-
-    const ownerData = reservation.spot.owner || reservation.owner; // fallback caso venha separado
-    if (sellerName && sellerPhoto && ownerData) {
-        sellerPhoto.src = ownerData.perfil?.foto || '/static/parking/css/images/default-profile.png';
-        sellerPhoto.alt = ownerData.perfil?.nome_completo || 'Vendedor não disponível';
-        sellerName.textContent = ownerData.perfil?.nome_completo || 'Indisponível';
+    // Dados do vendedor
+    const owner = spot.owner || reservation.owner;
+    if (owner) {
+        const sellerName = document.getElementById('modal-seller-name-detail');
+        const sellerPhoto = document.getElementById('modal-seller-profile-image-detail');
+        if (sellerName) sellerName.textContent = owner.perfil?.nome_completo || 'Indisponível';
+        if (sellerPhoto) {
+            sellerPhoto.src = owner.perfil?.foto || '/static/parking/css/images/default-profile.png';
+            sellerPhoto.alt = owner.perfil?.nome_completo || 'Vendedor não disponível';
+        }
     }
 
-    // Mostra a modal
+    // Mostra a modal antes de criar o mapa
     modal.classList.remove('hidden');
 
-    // Adiciona o evento para fechar a modal
-    const closeModalBtn = document.getElementById("close-reservation-modal");
-    if (closeModalBtn) {
-        closeModalBtn.onclick = () => modal.classList.add("hidden");
+        const lat = spot.latitude;
+        const lng = spot.longitude;
+        console.log(`Coordenadas da vaga: lat=${lat}, lng=${lng}`);
+
+
+    // Espera a API do Google Maps estar carregada
+    if (spot.latitude && spot.longitude) {
+        await new Promise(resolve => {
+            const waitForMaps = () => {
+                if (window.google && google.maps && google.maps.importLibrary) resolve();
+                else setTimeout(waitForMaps, 50);
+            };
+            waitForMaps();
+        });
+
+        // Espera o próximo frame para garantir que o div do mapa já tem tamanho
+        requestAnimationFrame(() => {
+            console.log("Abrindo modal");
+
+            createMiniMap("reservation-map", spot.latitude, spot.longitude, spot.title);
+        });
     }
 
-    console.log("Detalhes da reserva recebidos na função:", reservation);
+    // Botão iniciar rota
+    const startRouteBtn = document.getElementById('start-route-button');
+    if (startRouteBtn) startRouteBtn.onclick = () => {
+        const destination = encodeURIComponent(spot.address);
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, '_blank');
+    };
+
+    // Fechar modal
+    const closeBtn = document.getElementById("close-reservation-modal");
+    if (closeBtn) closeBtn.onclick = () => modal.classList.add("hidden");
+
+    console.log("Modal aberta com detalhes da reserva.");
 }
+
 
 // Aba de "Minhas Reservas"
 export async function carregarMinhasReservas() {

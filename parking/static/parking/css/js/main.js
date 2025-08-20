@@ -3,7 +3,7 @@
 // Importando diretamente o que é necessário de cada arquivo
 import { initMap, localizarUsuario, configurarBuscaEndereco, initializeAutocomplete, limparMarkers, adicionarMarkerSpot, map } from './map_utilities.js';
 import { handleSubmitSpot, setupEditSpotForm } from './form_handlers.js';
-import { openParkingDetailModal, renderMySpot, renderSpot, setupModalClosers, activateTab, carregarSpotsDaListaEdoMapa } from './ui_handlers.js';
+import { openParkingDetailModal, renderMySpot, renderSpot, setupModalClosers, activateTab, openReservationDetailModal, carregarSpotsDaListaEdoMapa } from './ui_handlers.js';
 import { setupAvailabilityFields } from './availability_manager.js';
 import { setupPhotoUpload } from './photo_upload.js';
 import { fetchSpotDetails, deleteSpot, updateSpotStatus, fetchSpots, fetchMySpots } from './api_services.js';

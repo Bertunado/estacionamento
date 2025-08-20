@@ -328,3 +328,43 @@ export async function initMap() {
         }
     }
 }
+
+export async function createMiniMap(mapElementId, lat, lng, title) {
+    console.log("createMiniMap: Função iniciada.");
+        console.log(`createMiniMap: ID do elemento: #${mapElementId}, Coordenadas: (${lat}, ${lng})`);
+
+    try {
+        const mapsLib = await google.maps.importLibrary("maps");
+        const MapClass = mapsLib.Map;
+        const MarkerClass = (await google.maps.importLibrary("marker")).AdvancedMarkerElement || mapsLib.Marker;
+
+        const mapElement = document.getElementById(mapElementId);
+        if (!mapElement) {
+            console.error(`createMiniMap: Elemento #${mapElementId} não encontrado no DOM.`);
+            return;
+        }
+
+        const spotLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        const mapOptions = {
+            center: spotLocation,
+            zoom: 16,
+            disableDefaultUI: true,
+            mapId: "78fe22b3d0432217499196a4"
+        };
+
+        const map = new MapClass(mapElement, mapOptions);
+
+        new MarkerClass({
+            position: spotLocation,
+            map: map,
+            title: title || 'Local da Vaga'
+        });
+
+        console.log(`createMiniMap: Mapa para ${mapElementId} inicializado com sucesso.`);
+    } catch (error) {
+        console.error("createMiniMap: Erro fatal ao inicializar o mapa:", error);
+    }
+}
+
+// Expor globalmente
+window.createMiniMap = createMiniMap;

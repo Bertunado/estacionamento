@@ -27,6 +27,7 @@ class ParkingSpotSerializerForReservation(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'address', 'description', 'price_hour', 
             'tipo_vaga', 'size', 'has_camera', 'owner', 'photos',
+            'latitude', 'longitude',
         ]
         
     def get_photos(self, obj):

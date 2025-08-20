@@ -280,52 +280,6 @@
                     Salvar Alterações
                 </button>
             </div>
-            
-            <div>
-                <h3 class="font-medium text-lg mb-4">Suas Vagas</h3>
-                <div class="space-y-3">
-                    <div class="border border-gray-200 rounded p-3">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Vaga em casa - Moema</h4>
-                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Disponível</span>
-                        </div>
-                        <div class="mt-2 text-sm text-gray-600">
-                            <p>Coberta, R$ 15/h ou R$ 50/dia</p>
-                            <p class="mt-1">Próxima disponibilidade: Hoje às 18h</p>
-                        </div>
-                        <div class="flex space-x-2 mt-3">
-                            <button class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">
-                                Editar
-                            </button>
-                            <button class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">
-                                Estatísticas
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <h3 class="font-medium text-lg mt-6 mb-4">Histórico de Reservas</h3>
-                <div class="space-y-3">
-                    <div class="border border-gray-200 rounded p-3">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Vaga coberta - Centro</h4>
-                            <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">Finalizada</span>
-                        </div>
-                        <div class="mt-2 text-sm text-gray-600">
-                            <p>15/06/2023 - 16h às 18h</p>
-                            <p class="mt-1">Total: R$ 30,00</p>
-                        </div>
-                        <div class="flex space-x-2 mt-3">
-                            <button class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">
-                                Avaliar
-                            </button>
-                            <button class="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200">
-                                Reclamar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -649,6 +603,15 @@
             <div class="flex items-center text-gray-600 mb-2">
                 <i class="fa-solid fa-brazilian-real-sign fa-fw mr-2"></i>
                 <span id="reservation-total-price-display" class="font-medium"></span>
+            </div>
+
+            <hr class="my-4">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <div id="reservation-map" class="w-full h-48 rounded-md bg-gray-200">
+            </div>
+                <button id="start-route-button" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-200 w-full text-center font-semibold">
+                    Iniciar Rota
+                </button>
             </div>
 
             <hr class="my-4">
