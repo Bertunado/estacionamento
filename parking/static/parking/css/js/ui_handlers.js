@@ -1331,7 +1331,8 @@ export function showReservationConfirmation(reservationDetails) {
     const modal = document.getElementById('reservation-confirmation-modal');
     if (!modal) return;
 
-    document.getElementById('confirmation-location').textContent = reservationDetails.tipo_vaga;
+    const tipoVagaFormatado = formatarTipoVaga(reservationDetails.tipo_vaga);
+    document.getElementById('confirmation-location').textContent = tipoVagaFormatado;
 
     document.getElementById('confirmation-date').textContent = new Date(reservationDetails.start_time).toLocaleDateString('pt-BR');
     document.getElementById('confirmation-time').textContent = `${new Date(reservationDetails.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} - ${new Date(reservationDetails.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
