@@ -6,6 +6,10 @@ import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregar
 import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
 import { setupAvailabilityFields } from './availability_manager.js';
 import { createMiniMap } from './map_utilities.js'; 
+import { loadMessages } from './chat_loader.js'; // Importe a função que criamos antes
+import { loadConversations } from './chat_loader.js';
+
+
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
@@ -531,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     end_time: newReservation.end_time,
     total_price: newReservation.total_price
 });
+    loadConversations();
 
     renderVagaSquares([selectedDateStr]); 
 }catch (error) {
@@ -1223,6 +1228,24 @@ export function renderMyReservation(reservation) {
     container.appendChild(card);
 }
 
+export function activateChatTab(convId) {
+    // 1. Simular o clique na aba de chat
+    const chatTabBtn = document.querySelector('[data-tab="chat"]');
+    if (chatTabBtn) {
+        chatTabBtn.click();
+    }
+
+    // 2. Carregar a conversa correta
+    // Precisamos de um pequeno atraso para garantir que o DOM já está visível
+    setTimeout(() => {
+        // Encontra o item da lista de conversas correspondente e clica nele
+        const conversationItem = document.querySelector(`li[data-conversation-id="${convId}"]`);
+        if (conversationItem) {
+            conversationItem.click();
+        }
+    }, 200); // 200ms de atraso é geralmente suficiente
+}
+
 export async function openReservationDetailModal(reservation) {
     console.log("Objeto de reserva recebido:", reservation);
 
@@ -1262,6 +1285,24 @@ export async function openReservationDetailModal(reservation) {
             sellerPhoto.alt = owner.perfil?.nome_completo || 'Vendedor não disponível';
         }
     }
+
+    const chatButtonContainer = document.getElementById('chat-button-container'); // Supondo que você tenha este div no HTML da modal
+    if (chatButtonContainer) {
+        chatButtonContainer.innerHTML = ''; 
+
+        if (reservation.conversation_id) {
+        // ✅ CORREÇÃO: Cria um botão em vez de um link <a>
+        const chatBtn = document.createElement("button");
+        chatBtn.textContent = "Iniciar Chat";
+        chatBtn.className = "mt-4 w-full bg-indigo-600 text-white py-2 rounded font-bold hover:bg-indigo-700 transition duration-200";
+        chatButtonContainer.appendChild(chatBtn);
+
+        chatBtn.addEventListener('click', () => {
+            // ✅ NOVO: Lógica para ativar a aba de chat
+            activateChatTab(reservation.conversation_id);
+        });
+    }
+}
 
     // Mostra a modal antes de criar o mapa
     modal.classList.remove('hidden');

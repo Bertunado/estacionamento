@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ParkingSpot, ParkingSpotPhoto, Availability, SpotAvailability, Reservation, Perfil
+from .models import ParkingSpot, ParkingSpotPhoto, Availability, SpotAvailability, Reservation, Perfil, Conversation
 from accounts.models import CustomUser
 from decimal import Decimal
 from django.contrib.auth import get_user_model
@@ -45,11 +45,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 class ReservationListSerializer(serializers.ModelSerializer):
     spot = ParkingSpotSerializerForReservation(read_only=True)
+    conversation_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Reservation
-        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'status', 'created_at', 'slot_number']
+        fields = ['id', 'spot', 'renter', 'start_time', 'end_time', 'total_price', 'status', 'created_at', 'slot_number', 'conversation_id']
         read_only_fields = ['renter', 'total_price']
+    
+    def get_conversation_id(self, obj):
+        try:
+            return obj.conversation.id
+        except Conversation.DoesNotExist:
+            return None
 
 class ParkingSpotPhotoSerializer(serializers.ModelSerializer):
     spot = serializers.PrimaryKeyRelatedField(queryset=ParkingSpot.objects.all()) 

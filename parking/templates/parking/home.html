@@ -5,6 +5,8 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
+<script src="{% static 'parking/css/js/chat_loader.js' %}" type="module"></script>
+
 {% endblock %}
 
 {% block content %}
@@ -198,31 +200,42 @@
 </div>
 
 <!-- Chat Tab -->
-<div id="chat" class="tab-content mt-4">
-    <div class="bg-white rounded-lg shadow-md p-6 flex flex-col h-[500px]">
-        <h2 class="text-xl font-bold mb-4">Chat</h2>
-        
-        <div id="msg-box" class="flex-grow overflow-y-auto border rounded p-4 bg-gray-50 mb-4">
-            {% for m in conversation.messages.all %}
-                <p>
-                    <strong>{{ m.sender.username }}:</strong> {{ m.text }}
-                    <small class="text-gray-500 text-xs">({{ m.created_at|time:"H:i" }})</small>
-                </p>
-            {% empty %}
-                <p class="text-gray-400 text-center mt-12">Nenhuma mensagem ainda. Comece a conversar!</p>
-            {% endfor %}
+<div id="chat" class="tab-content mt-4 hidden">
+    <div class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-1/3 bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 border-b">
+                <h2 class="text-xl font-semibold">Conversas Ativas</h2>
+            </div>
+            <ul id="conversation-list" class="divide-y divide-gray-200 overflow-y-auto h-[450px]">
+                </ul>
         </div>
-        
-        <form id="msg-form" class="flex space-x-2">
-            {% csrf_token %}
-            <input name="text" type="text" placeholder="Digite sua mensagem" class="flex-grow border rounded p-2" autocomplete="off" />
-            <button type="submit" class="bg-indigo-600 text-white px-4 rounded hover:bg-indigo-700">Enviar</button>
-        </form>
-    </div>
 
-    <!-- JSON seguro do convId -->
-    {{ conversation.id|json_script:"convIdData" }}
-    
+        <div id="chat-container" class="w-full md:w-2/3 bg-white rounded-lg shadow-md p-6 flex flex-col h-[500px]">
+            <div id="initial-message" class="flex-grow flex items-center justify-center">
+                <p class="text-gray-400 text-lg">Selecione uma conversa para começar a conversar.</p>
+            </div>
+            
+            <div id="chat-content" class="hidden flex-grow flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="chat-title" class="text-xl font-bold"></h2>
+                    <button id="delete-chat-btn" class="text-red-500 hover:text-red-700 font-bold px-3 py-1 rounded-lg transition duration-200">
+                        Excluir Conversa
+                    </button>
+                </div>
+                
+                <div id="msg-box" class="flex-grow overflow-y-auto border rounded p-4 bg-gray-50 mb-4">
+                </div>
+                
+                <form id="msg-form" class="flex space-x-2">
+                    {% csrf_token %}
+                    <input name="text" type="text" placeholder="Digite sua mensagem" class="flex-grow border rounded p-2" autocomplete="off" />
+                    <button type="submit" class="bg-indigo-600 text-white px-4 rounded hover:bg-indigo-700">Enviar</button>
+                </form>
+            </div>
+            
+            {{ user.id|json_script:"userIdData" }}
+        </div>
+    </div>
 </div>
 
 <!-- Profile Tab -->
@@ -617,10 +630,12 @@
             <hr class="my-4">
 
             <div class="flex items-center space-x-2">
-                <!-- IDs únicos para a modal -->
                 <img id="modal-seller-profile-image-detail" alt="Foto do Vendedor" class="w-10 h-10 rounded-full object-cover">
                 <p class="text-gray-500">Vendedor: <span id="modal-seller-name-detail" class="font-semibold text-gray-700"></span></p>
             </div>
+            <div id="chat-button-container"></div>
+
+            <button id="start-route-button"></button>
         </div>
     </div>
 </div>
@@ -684,6 +699,33 @@
       <button id="cancel-deactivate" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
     </div>
   </div>
+</div>
+
+<div id="delete-chat-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Confirmar Exclusão</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Você tem certeza que deseja excluir esta conversa? Esta ação não pode ser desfeita.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="confirm-delete-btn"
+                        class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    Excluir
+                </button>
+                <button id="cancel-delete-btn"
+                        class="mt-3 px-4 py-2 bg-gray-200 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast-notification" class="fixed bottom-6 right-6 p-4 rounded-md text-white shadow-lg transition-all duration-300 transform translate-y-full opacity-0 z-50">
+    <div id="toast-message"></div>
 </div>
 
 <div id="edit-spot-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">

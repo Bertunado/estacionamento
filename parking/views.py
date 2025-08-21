@@ -25,6 +25,8 @@ from decimal import Decimal
 from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
 from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_http_methods
+
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -44,8 +46,16 @@ def diasSemanaParaInt(dia_nome):
 
 @login_required
 def home(request):
+    conversations = (
+        Conversation.objects
+        .filter(Q(seller=request.user) | Q(buyer=request.user))
+        .select_related('reservation__spot', 'seller__perfil', 'buyer__perfil')
+        .order_by('-last_message_at')
+    )
+     
     perfil = Perfil.objects.filter(usuario=request.user).first()
     return render(request, 'parking/home.html', {
+        'conversations': conversations,
         'perfil': perfil
     })
 
@@ -428,21 +438,17 @@ def chat_dashboard(request):
     conversations = (
         Conversation.objects
         .filter(Q(seller=request.user) | Q(buyer=request.user))
-        .select_related('reservation__spot')
+        .select_related('reservation__spot', 'seller__perfil', 'buyer__perfil')
         .order_by('-last_message_at')
     )
-    return render(request, 'parking/chat_dashboard.html', {
+    return render(request, 'parking/chat_unified.html', {
         'conversations': conversations
     })
 
+
 @login_required
 def chat_room(request, pk):
-    conv = get_object_or_404(Conversation, pk=pk)
-    if request.user not in (conv.seller, conv.buyer):
-        raise Http404
-    return render(request, 'parking/chat_room.html', {
-        'conversation': conv
-    })
+    return redirect('parking:chat_dashboard') 
 
 @login_required
 def send_message(request, pk):
@@ -470,11 +476,73 @@ def send_message(request, pk):
 
     return JsonResponse({
         'id': msg.id,
-        'sender': msg.sender.username,
+        'sender_id': msg.sender.id,
+        'sender_username': msg.sender.perfil.nome_completo or msg.sender.email,
         'text': msg.text,
         'created_at': msg.created_at.strftime('%H:%M')
     }, status=201)
 
+@login_required
+def get_messages(request, pk):
+    conv = get_object_or_404(Conversation, pk=pk)
+    if request.user not in (conv.seller, conv.buyer):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    
+    messages = conv.messages.all().order_by('created_at').select_related('sender')
+    
+    messages_list = [{
+        'sender_id': m.sender.id,
+        'sender_username': m.sender.perfil.nome_completo or m.sender.email,
+        'text': m.text,
+        'created_at': m.created_at.strftime('%H:%M')
+    } for m in messages]
+    
+    return JsonResponse(messages_list, safe=False)
+
+@require_http_methods(["DELETE"])
+def delete_conversation(request, pk):
+    """
+    Exclui uma conversa de chat.
+    """
+    try:
+        conv = get_object_or_404(Conversation, pk=pk)
+        
+        # Apenas o comprador ou o vendedor podem excluir a conversa
+        if request.user not in (conv.seller, conv.buyer):
+            return JsonResponse({'error': 'unauthorized'}, status=403)
+        
+        conv.delete()
+        return JsonResponse({'success': 'Conversation deleted'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@login_required
+def get_conversations_api(request):
+    """
+    Retorna a lista de conversas do usuário logado em formato JSON.
+    """
+    conversations = (
+        Conversation.objects
+        .filter(Q(seller=request.user) | Q(buyer=request.user))
+        .select_related('reservation__spot', 'seller__perfil', 'buyer__perfil')
+        .order_by('-last_message_at')
+    )
+    
+    conversation_list = []
+    for conv in conversations:
+        # Pega a outra parte da conversa (o outro usuário)
+        other_user = conv.buyer if request.user == conv.seller else conv.seller
+        
+        # Cria a entrada na lista com as informações necessárias
+        conversation_list.append({
+            'id': conv.id,
+            'title': conv.reservation.spot.title,
+            'other_user_name': other_user.perfil.nome_completo or other_user.email,
+            'other_user_photo_url': other_user.perfil.foto.url,
+        })
+        
+    return JsonResponse(conversation_list, safe=False)
 
 # --------------  API REST (opcional)  -----------------
 class ParkingSpotListAPI(generics.ListAPIView):

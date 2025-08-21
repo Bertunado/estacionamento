@@ -17,6 +17,7 @@ urlpatterns = [
     path("registrar/", views.registrar_usuario, name="registrar"),
     path('perfil/buscar-veiculos/', views.buscar_veiculos, name='buscar_veiculos'),
     path('salvar-disponibilidade/', views.salvar_disponibilidade, name='salvar_disponibilidade'),
+    path('api/', include('parking.api_urls')),
     
     # URL de logout correta
     path('logout/', auth_views.LogoutView.as_view(next_page='parking:login'), name='logout'),
@@ -27,6 +28,4 @@ urlpatterns = [
         authentication_form=EmailAuthenticationForm
     ), name='login'),
     
-    # ✅ ÚNICA LINHA PARA INCLUIR TODAS AS ROTAS DE API
-    path('api/', include('parking.api_urls')), 
 ]

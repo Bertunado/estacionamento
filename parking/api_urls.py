@@ -8,6 +8,9 @@ from .views import (
     MyReservationsListView, 
     SpotReservationsListView,
     get_spot_availability_by_spot_id,
+    get_messages,
+    send_message,
+    delete_conversation,
 )
 
 router = DefaultRouter()
@@ -26,4 +29,8 @@ urlpatterns = [
     path('parking-spots/<int:spot_id>/reservations/', SpotReservationsListView.as_view(), name='spot-reservations-list'),
     path('spots/<int:spot_id>/availability/', get_spot_availability_by_spot_id, name='spot-availability-by-spot-id'),
     path('minhas-vagas/', views.MinhasVagasView.as_view(), name='minhas_vagas_api'),
+    path('conversations/', views.get_conversations_api, name='api_get_conversations'),
+    path('chat/<int:pk>/messages/', views.get_messages, name='api_get_messages'),
+    path('chat/<int:pk>/send/', views.send_message, name='api_send_message'),
+    path('chat/<int:pk>/delete/', views.delete_conversation, name='api_delete_conversation'),
 ]

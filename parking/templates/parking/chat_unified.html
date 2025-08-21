@@ -1,0 +1,68 @@
+{% extends "parking/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">Suas Mensagens</h1>
+
+    <div class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-1/3 bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 border-b">
+                <h2 class="text-xl font-semibold">Conversas Ativas</h2>
+            </div>
+            <ul id="conversation-list" class="divide-y divide-gray-200 overflow-y-auto h-[450px]">
+                {% for c in conversations %}
+                <li class="p-4 cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                    data-conversation-id="{{ c.id }}">
+                    <a href="{% url 'parking:chat_room' c.id %}" class="flex items-center space-x-4">
+                        <img src="
+                            {% if user == c.seller %}
+                                {{ c.buyer.perfil.foto.url }}
+                            {% else %}
+                                {{ c.seller.perfil.foto.url }}
+                            {% endif %}" 
+                            class="w-12 h-12 rounded-full object-cover" 
+                            alt="Foto de perfil">
+                        <div>
+                            <p class="font-bold">
+                                {% if user == c.seller %}
+                                    {{ c.buyer.perfil.nome_completo|default:c.buyer.email }}
+                                {% else %}
+                                    {{ c.seller.perfil.nome_completo|default:c.seller.email }}
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-gray-500">Vaga: {{ c.reservation.spot.title }}</p>
+                        </div>
+                    </a>
+                </li>
+                {% empty %}
+                <li class="p-4 text-gray-500 text-center">Nenhuma conversa encontrada.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div id="chat-container" class="w-full md:w-2/3 bg-white rounded-lg shadow-md p-6 flex flex-col h-[500px]">
+            <div id="initial-message" class="flex-grow flex items-center justify-center">
+                <p class="text-gray-400 text-lg">Selecione uma conversa para começar a conversar.</p>
+            </div>
+            
+            <div id="chat-content" class="hidden flex-grow flex flex-col">
+                <h2 id="chat-title" class="text-xl font-bold mb-4"></h2>
+                
+                <div id="msg-box" class="flex-grow overflow-y-auto border rounded p-4 bg-gray-50 mb-4">
+                    </div>
+                
+                <form id="msg-form" class="flex space-x-2">
+                    {% csrf_token %}
+                    <input name="text" type="text" placeholder="Digite sua mensagem" class="flex-grow border rounded p-2" autocomplete="off" />
+                    <button type="submit" class="bg-indigo-600 text-white px-4 rounded hover:bg-indigo-700">Enviar</button>
+                </form>
+            </div>
+            
+            {{ user.id|json_script:"userIdData" }}
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'parking/js/chat_loader.js' %}"></script>
+{% endblock %}
