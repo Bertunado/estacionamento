@@ -6,10 +6,10 @@ import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregar
 import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
 import { setupAvailabilityFields } from './availability_manager.js';
 import { createMiniMap } from './map_utilities.js'; 
-import { loadMessages } from './chat_loader.js'; // Importe a função que criamos antes
 import { loadConversations } from './chat_loader.js';
-
-
+import { getAuthToken, getCsrfToken, loadAndRenderMyReservations } from './api_services.js';
+import { showToast } from './chat_loader.js'; // ou o mesmo arquivo de utilidades
+import { showConfirmModal } from './confirmations.js';
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
@@ -535,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     end_time: newReservation.end_time,
     total_price: newReservation.total_price
 });
+
     loadConversations();
 
     renderVagaSquares([selectedDateStr]); 
@@ -1167,20 +1168,17 @@ export function renderMyReservation(reservation) {
     const now = new Date();
     const endDate = new Date(reservation.end_time);
 
-    if (now < endDate) {
-        // A reserva ainda está ativa
+    let isReservationActive = now < endDate;
+
+    if (isReservationActive) {
         statusSpan.textContent = "Disponível";
         statusSpan.classList.add("bg-green-100", "text-green-800");
     } else {
-        // A reserva já terminou
         statusSpan.textContent = "Finalizada";
         statusSpan.classList.add("bg-gray-100", "text-gray-800");
     }
 
-    // ✅ CORREÇÃO: Anexar o statusSpan ao statusContainer.
     statusContainer.appendChild(statusSpan);
-
-    // ✅ CORREÇÃO: Anexar o statusContainer ao content ANTES do título e outras informações.
     content.appendChild(statusContainer);
 
     // Título da vaga (Nome do estacionamento)
@@ -1214,17 +1212,58 @@ export function renderMyReservation(reservation) {
     content.appendChild(sellerInfo);
 
     // Botão de detalhes
-    const button = document.createElement("button");
-    button.className = "mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-200";
-    button.textContent = "Mostrar detalhes >";
+    const detailsButton = document.createElement("button");
+    detailsButton.className = "mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-200";
+    detailsButton.textContent = "Mostrar detalhes >";
 
-    button.addEventListener("click", () => {
+    detailsButton.addEventListener("click", () => {
         openReservationDetailModal(reservation);
     });
 
-    content.appendChild(button);
-    card.appendChild(content);
+    content.appendChild(detailsButton);
 
+    // ✅ NOVO CÓDIGO: Botão de cancelar, visível apenas para reservas ativas
+    if (isReservationActive) {
+        const cancelButton = document.createElement("button");
+        cancelButton.className = "mt-2 bg-red-600 text-white py-2 rounded hover:bg-red-700 transition duration-200";
+        cancelButton.textContent = "Cancelar Reserva";
+
+        cancelButton.addEventListener("click", () => {
+    // ✅ NOVO CÓDIGO: Chamada da função do modal
+    showConfirmModal("Tem certeza que deseja cancelar esta reserva?", async () => {
+        // Esta callback só será executada se o usuário clicar em "Sim, cancelar"
+        try {
+            const token = getAuthToken();
+            const csrfToken = getCsrfToken();
+            const url = `http://127.0.0.1:8000/parking/api/reservations/${reservation.id}/`;
+
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'X-CSRFToken': csrfToken,
+                },
+            });
+
+            if (response.ok) {
+                showToast('Reserva cancelada com sucesso.', true);
+                loadAndRenderMyReservations();
+            } else {
+                const errorData = await response.json();
+                const errorMessage = errorData.detail || 'Erro ao cancelar a reserva.';
+                showToast(errorMessage, false);
+            }
+        } catch (error) {
+            console.error('Falha ao cancelar reserva:', error);
+            showToast('Não foi possível cancelar a reserva. Tente novamente.', false);
+        }
+    });
+});
+
+        content.appendChild(cancelButton);
+    }
+    
+    card.appendChild(content);
     container.appendChild(card);
 }
 

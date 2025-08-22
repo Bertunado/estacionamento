@@ -184,6 +184,21 @@ class ReservationViewSet(viewsets.ModelViewSet):
             status='pending' # Define o status inicial
         )
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+    # ✅ CORREÇÃO: Altere 'instance.buyer' para 'instance.renter'
+        if instance.renter != request.user:
+            return Response(
+            {   'detail': 'Você não tem permissão para cancelar esta reserva.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+    # O cancelamento é feito simplesmente deletando o objeto
+        instance.delete()
+    
+    # O retorno HTTP 204 indica sucesso, mas sem conteúdo de resposta
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 class MyReservationsListView(generics.ListAPIView):
     queryset = Reservation.objects.all()
     serializer_class = ReservationListSerializer 

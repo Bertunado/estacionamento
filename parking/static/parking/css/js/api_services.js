@@ -1,7 +1,7 @@
 // Contém as funções para fazer requisições a API.
 import { getCookie } from './utils.js'; 
 
-function getCsrfToken() {
+export function getCsrfToken() {
     // Busca o token CSRF do cookie, que é o método padrão do Django
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -25,7 +25,7 @@ function getCsrfToken() {
     return cookieValue;
 }
 
-function getAuthToken() {
+export function getAuthToken() {
     return localStorage.getItem('authToken'); 
 }
 
@@ -285,3 +285,28 @@ export async function fetchMyReservations() {
         throw error;
     }
 }
+
+export async function loadAndRenderMyReservations() {
+    const container = document.getElementById("myReservationsContainer");
+    if (!container) return;
+
+    // Limpa os cards existentes para evitar duplicatas
+    container.innerHTML = ''; 
+
+    try {
+        const reservations = await fetchMyReservations();
+        
+        if (reservations.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500">Nenhuma reserva encontrada.</p>';
+        } else {
+            reservations.forEach(reservation => {
+                // A sua função que cria o card HTML
+                renderMyReservation(reservation); 
+            });
+        }
+    } catch (error) {
+        console.error("Falha ao carregar e renderizar reservas:", error);
+        container.innerHTML = '<p class="text-center text-red-500">Erro ao carregar suas reservas.</p>';
+    }
+}
+

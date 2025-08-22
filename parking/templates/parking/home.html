@@ -1,7 +1,7 @@
 {% extends "parking/base.html" %}
 {% load static %}
 
-{% block title %}Vagas Disponíveis{% endblock %}
+{% block title %}Smart Park{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
@@ -625,7 +625,13 @@
                 <button id="start-route-button" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-200 w-full text-center font-semibold">
                     Iniciar Rota
                 </button>
+                <button id="cancel-reservation-btn" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition duration-200 w-full text-center font-semibold">
+        Cancelar Reserva
+    </button>
+</div>
             </div>
+
+            
 
             <hr class="my-4">
 
@@ -720,6 +726,21 @@
                     Cancelar
                 </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="custom-confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-80">
+        <h3 class="text-xl font-bold mb-4 text-gray-800">Confirmação</h3>
+        <p id="confirm-message" class="text-gray-600 mb-6">Tem certeza que deseja continuar com esta ação?</p>
+        <div class="flex justify-end space-x-4">
+            <button id="cancel-confirm-btn" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition duration-200">
+                Não, voltar
+            </button>
+            <button id="proceed-confirm-btn" class="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition duration-200">
+                Sim, cancelar
+            </button>
         </div>
     </div>
 </div>

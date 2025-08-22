@@ -39,7 +39,7 @@ export async function loadMessages(convId) {
     }
 }
 
-function showToast(message, isSuccess) {
+export function showToast(message, isSuccess) {
     const toast = document.getElementById('toast-notification');
     const toastMessage = document.getElementById('toast-message');
 
