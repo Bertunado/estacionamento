@@ -10,6 +10,9 @@ import { loadConversations } from './chat_loader.js';
 import { getAuthToken, getCsrfToken, loadAndRenderMyReservations } from './api_services.js';
 import { showToast } from './chat_loader.js'; // ou o mesmo arquivo de utilidades
 import { showConfirmModal } from './confirmations.js';
+import { initializeReservationComponents } from './calendar.js';
+import { formatarTamanhoVaga, formatarTipoVaga, formatarHorarioDisponivelModal, formatDateToISO  } from './format.js';
+
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
@@ -25,46 +28,6 @@ let currentSelectedSlot = {
 };
 window.currentSpotData = null; 
 
-
-function initializeReservationCalendar(availableDates) {
-  const availabilityCalendar = document.getElementById('reservation-calendar');
-
-    if (availabilityCalendar) {
-        // Verifica se já existe uma instância e a destrói para evitar duplicação
-        if (availabilityCalendar._flatpickr) {
-            availabilityCalendar._flatpickr.destroy();
-        }
-
-        flatpickr(availabilityCalendar, {
-            inline: true,
-            enable: availableDates,
-            enableTime: true,
-            noCalendar: false,
-            mode: "multiple",
-            dateFormat: "Y-m-d",
-            locale: flatpickr.l10ns.pt,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true,
-            minDate: "today",
-            enable: availableDates,
-            onChange: function(selectedDates, dateStr, instance) {
-                console.log("Datas selecionadas para reserva:", selectedDates);
-            
-                if (dateStr) {
-                    const spotId = document.getElementById('reservation-spot-id').value;
-                    if (spotId) {
-                        handleDateSelection(spotId, dateStr); 
-                    } else {
-                        console.warn("Nenhum spotId encontrado para carregar as reservas.");
-                    }
-                } else {
-                    document.getElementById('reserved-slots-list').innerHTML = '';
-                    document.getElementById('reserved-slots-for-date').classList.add('hidden');
-                }
-            }
-        });
-    }
-}
 
 export async function activateTab(tabName) {
     console.log(`activateTab: Ativando aba '${tabName}'`);
@@ -171,24 +134,6 @@ export async function carregarSpotsDaListaEdoMapa() {
     } catch (error) {
         console.error("Erro ao carregar spots na UI:", error);
     }
-}
-
-function formatarTipoVaga(tipo) {
-    switch (tipo) {
-        case 'rua_coberta': return 'Rua (Coberta)';
-        case 'rua_descoberta': return 'Rua (Descoberta)';
-        case 'garagem': return 'Garagem';
-        case 'predio_coberta': return 'Prédio (Coberta)';
-        case 'predio_descoberta': return 'Prédio (Descoberta)';
-        default: return tipo; // Retorna o valor original se não for reconhecido
-    }
-}
-
-function formatarTamanhoVaga(tamanho) {
-    if (typeof tamanho === 'string') {
-        return tamanho.replace(/\s*\(.*\)/, '').trim();
-    }
-    return tamanho; 
 }
 
 export function renderSpot(spot) {
@@ -394,12 +339,11 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
     if (occupiedTimes && occupiedTimes.length > 0) {
         reservedSlotsSection.classList.remove('hidden');
         noReservedSlotsMessage.classList.add('hidden');
-        
+         
         occupiedTimes.forEach(time => {
             const timeItem = document.createElement('p');
             timeItem.className = 'text-sm text-gray-600';
 
-            // ✅ CORREÇÃO: Adicione o 'Z' para indicar que o horário da API é UTC
             const startDateTimeUTC = new Date(`${selectedDateStr}T${time.start}:00Z`);
             const endDateTimeUTC = new Date(`${selectedDateStr}T${time.end}:00Z`);
             
@@ -407,18 +351,17 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
             if (isNaN(startDateTimeUTC) || isNaN(endDateTimeUTC)) {
                 timeItem.textContent = `Horário inválido: Das ${time.start} às ${time.end}`;
             } else {
-                // toLocaleTimeString agora converterá o horário UTC para o fuso local
                 const formattedStart = startDateTimeUTC.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 const formattedEnd = endDateTimeUTC.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 timeItem.textContent = `Das ${formattedStart} às ${formattedEnd}`;
             }
 
-            reservedSlotsList.appendChild(timeItem);
-        });
-    } else {
-        reservedSlotsSection.classList.remove('hidden');
-        noReservedSlotsMessage.classList.remove('hidden');
-    }
+         reservedSlotsList.appendChild(timeItem);
+        });
+        } else {
+        reservedSlotsSection.classList.remove('hidden');
+        noReservedSlotsMessage.classList.remove('hidden');
+        }
 }
 
 
@@ -434,17 +377,14 @@ export async function handleDateSelection(spotId, selectedDates) {
     document.getElementById('reserved-slots-list').innerHTML = '';
     document.getElementById('reserved-slots-for-date').classList.add('hidden');
 
-    // ✅ Passa a lista completa de datas selecionadas para renderVagaSquares
     await renderVagaSquares(selectedDates);
 }
 
 function isTimeOverlap(userStart, userEnd, occupiedTimes, slotDate) {
     for (const time of occupiedTimes) {
-        // ✅ CORREÇÃO: Adicione o 'Z' para tratar o horário da API como UTC
         const occupiedStartUTC = new Date(`${slotDate}T${time.start}:00Z`);
         const occupiedEndUTC = new Date(`${slotDate}T${time.end}:00Z`);
         
-        // A comparação agora é feita em UTC para garantir a precisão
         if (
             (userStart.getTime() < occupiedEndUTC.getTime() && userEnd.getTime() > occupiedStartUTC.getTime())
         ) {
@@ -492,7 +432,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ✅ CORREÇÃO: Remova a navegação segura e adicione um 'return' no caso de dados ausentes
             const selectedAvailability = window.currentSpotData.dates_availability.find(av => av.date === selectedDateStr);
             if (!selectedAvailability) {
                 console.error("Dados de disponibilidade para a data selecionada não encontrados.");
@@ -509,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const occupiedTimes = selectedSlotData.occupied_times;
 
-            // ✅ Este bloco agora será alcançado
             if (isTimeOverlap(startDateTime, endDateTime, occupiedTimes, selectedDateStr)) {
                 timeOverlapErrorP.textContent = "O horário selecionado já está parcial ou totalmente ocupado. Por favor, escolha outro horário.";
                 timeOverlapErrorP.classList.remove('hidden');
@@ -634,16 +572,8 @@ if (confirmDeactivateBtn) {
     });
 }
 
-function formatDateToISO(date) {
-    if (!(date instanceof Date)) return null;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
 // Calculadora que atualiza os valores da reserva no card do modal
-function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endTime) {
+export function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endTime) {
     // Referências para a calculadora "Por Hora"
     const hourlyPriceElement = document.getElementById('hourly-price');
     const totalHoursElement = document.getElementById('total-hours');
@@ -747,16 +677,6 @@ function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endT
     }
 }
 
-function formatarHorarioDisponivelModal(spot) {
-    if (spot.availabilities_by_date && spot.availabilities_by_date.length > 0) {
-        const firstAvailability = spot.availabilities_by_date[0];
-        const startTime = firstAvailability.start_time ? firstAvailability.start_time.substring(0, 5) : 'N/A';
-        const endTime = firstAvailability.end_time ? firstAvailability.end_time.substring(0, 5) : 'N/A';
-        return `${startTime} - ${endTime}`;
-    }
-    return '24h/dia (aprox.)'; 
-}
-
 // Atualiza os cards de vagas no mapa e na lista
 export function openParkingDetailModal(spotDetails) {
     const modal = document.getElementById('parking-detail-modal');
@@ -781,15 +701,14 @@ export function openParkingDetailModal(spotDetails) {
 
     // Atualiza a imagem da vaga
     const modalImage = document.getElementById("modal-parking-image");
-if (modalImage) {
-    // Verifica se existem fotos e se o primeiro item do array é uma string válida
-    if (spotDetails.photos && spotDetails.photos.length > 0 && typeof spotDetails.photos[0] === 'string') {
-        modalImage.src = spotDetails.photos[0];
-    } else {
-        modalImage.src = '/static/parking/css/images/placeholder.png';
+    if (modalImage) {
+        if (spotDetails.photos && spotDetails.photos.length > 0 && typeof spotDetails.photos[0] === 'string') {
+            modalImage.src = spotDetails.photos[0];
+        } else {
+            modalImage.src = '/static/parking/css/images/placeholder.png';
+        }
+        modalImage.alt = spotDetails.description || spotDetails.title;
     }
-    modalImage.alt = spotDetails.description || spotDetails.title;
-}
 
     // Formata o preço por hora
     const priceHour = parseFloat(spotDetails.price_hour);
@@ -800,72 +719,6 @@ if (modalImage) {
     document.getElementById("modal-parking-size-display").textContent = `Tamanho: ${formatarTamanhoVaga(spotDetails.size)}`;
     document.getElementById("modal-parking-hours-display").textContent = `Disponível: ${formatarHorarioDisponivelModal(spotDetails)}`;
     document.getElementById("modal-parking-price-display").textContent = `Preço por hora: ${priceHourFormatted}`;
-
-    const characteristicsContainer = document.getElementById('modal-characteristics-container');
-    if (characteristicsContainer) {
-        characteristicsContainer.innerHTML = ''; // Limpa o conteúdo anterior
-
-        if (spotDetails.has_camera) {
-            characteristicsContainer.innerHTML += `
-                <div class="flex items-center mb-1">
-                    <i class="fa-solid fa-camera fa-fw text-gray-600 mr-2"></i>
-                    <span>Vaga com câmera</span>
-                </div>
-            `;
-        }
-        if (spotDetails.has_supervision) {
-            characteristicsContainer.innerHTML += `
-                <div class="flex items-center mb-1">
-                    <i class="fa-solid fa-user-shield fa-fw text-gray-600 mr-2"></i>
-                    <span>Supervisão (vigilante)</span>
-                </div>
-            `;
-        }
-        if (spotDetails.has_alarm) {
-            characteristicsContainer.innerHTML += `
-                <div class="flex items-center mb-1">
-                    <i class="fa-solid fa-bell fa-fw text-gray-600 mr-2"></i>
-                    <span>Alarme no local</span>
-                </div>
-            `;
-        }
-        if (spotDetails.has_ev_charger) {
-            characteristicsContainer.innerHTML += `
-                <div class="flex items-center mb-1">
-                    <i class="fa-solid fa-charging-station fa-fw text-gray-600 mr-2"></i>
-                    <span>Tomada para carro elétrico</span>
-                </div>
-            `;
-        }
-        if (spotDetails.has_remote_monitoring) {
-            characteristicsContainer.innerHTML += `
-                <div class="flex items-center mb-1">
-                    <i class="fa-solid fa-desktop fa-fw text-gray-600 mr-2"></i>
-                    <span>Monitoramento remoto</span>
-                </div>
-            `;
-        }
-        if (spotDetails.has_car_wash) {
-        characteristicsContainer.innerHTML += `
-            <div class="flex items-center mb-1">
-                <i class="fa-solid fa-car-wash fa-fw text-gray-600 mr-2"></i>
-                <span>Lavagem de carro no local</span>
-            </div>
-        `;
-    }
-    if (spotDetails.has_valet) {
-        characteristicsContainer.innerHTML += `
-            <div class="flex items-center mb-1">
-                <i class="fa-solid fa-user-tie fa-fw text-gray-600 mr-2"></i>
-                <span>Serviço de manobrista</span>
-            </div>
-        `;
-    }
-    }
-         // Esconde a seção de detalhes da vaga escolhida e reinicia as opções de reserva
-        document.getElementById("selected-slot-details-section").classList.add("hidden");
-
-
 
     // Esconde a seção de detalhes da vaga escolhida e reinicia as opções de reserva
     document.getElementById("selected-slot-details-section").classList.add("hidden");
@@ -893,211 +746,48 @@ if (modalImage) {
     currentSpotDetails = spotDetails;
     currentSpotId = spotDetails.id;
     
-    const selectedDatesDisplay = modal.querySelector('#selected-reservation-dates-display');
-    const availableSlotsForDateContainer = modal.querySelector('#available-slots-for-date');
-    const dynamicVagaSquares = modal.querySelector('#dynamic-vaga-squares');
-    const noSlotsMessage = modal.querySelector('#no-slots-message');
-    const selectedSlotDetailsSection = modal.querySelector('#selected-slot-details-section');
-    const selectedSlotNumberDisplay = modal.querySelector('#selected-slot-number');
-    const selectedSlotDateDisplay = modal.querySelector('#selected-slot-date-display');
-    const startTimeInput = modal.querySelector('#start-time-input');
-    const endTimeInput = modal.querySelector('#end-time-input');
     const modalSellerProfileImage = document.getElementById('modal-seller-profile-image');
     const modalSellerName = document.getElementById('modal-seller-name');
     const profileImage = document.getElementById('modal-seller-profile-image');
     const popover = document.getElementById('seller-info-popover');
 
-
-    if (availableSlotsForDateContainer) availableSlotsForDateContainer.classList.add('hidden');
-    if (selectedSlotDetailsSection) selectedSlotDetailsSection.classList.add('hidden');
-    if (selectedDatesDisplay) selectedDatesDisplay.textContent = "Selecione uma data para ver as vagas disponíveis.";
-    if (noSlotsMessage) {
-        noSlotsMessage.classList.remove('hidden');
-        noSlotsMessage.textContent = "Selecione uma data para ver as vagas disponíveis.";
-    }
+    // Inicializa o calendário e os seletores de hora
+    initializeReservationComponents(modal, spotDetails);
 
     if (modalSellerProfileImage && modalSellerName) {
-    // Verifica se os dados do proprietário existem
-    if (spotDetails.owner && spotDetails.owner.perfil) {
-        // Acessa o nome completo do perfil
-        modalSellerName.textContent = spotDetails.owner.perfil.nome_completo || 'Vendedor não disponível';
-
-        // Acessa a URL da foto do perfil e a atribui ao src da imagem.
-        const sellerPhotoUrl = spotDetails.owner.perfil.foto;
-        if (sellerPhotoUrl) {
-            modalSellerProfileImage.src = sellerPhotoUrl;
+        if (spotDetails.owner && spotDetails.owner.perfil) {
+            modalSellerName.textContent = spotDetails.owner.perfil.nome_completo || 'Vendedor não disponível';
+            const sellerPhotoUrl = spotDetails.owner.perfil.foto;
+            if (sellerPhotoUrl) {
+                modalSellerProfileImage.src = sellerPhotoUrl;
+            }
+        } else {
+            modalSellerName.textContent = 'Vendedor não disponível';
         }
-
-    } else {
-        // Caso os dados não estejam disponíveis
-        modalSellerName.textContent = 'Vendedor não disponível';
-    }
-}
-profileImage.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    popover.classList.toggle('hidden');
-
-    // Atualizar o nome no popover dinamicamente
-    const sellerName = document.getElementById('modal-seller-name');
-    const popoverName = document.getElementById('popover-seller-name');
-    if (sellerName && popoverName) {
-        popoverName.textContent = sellerName.textContent;
     }
 
-    const rect = profileImage.getBoundingClientRect();
-    popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
-    popover.style.left = `${rect.left + window.scrollX}px`;
-});
+    if (profileImage) {
+        profileImage.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            popover.classList.toggle('hidden');
 
-document.addEventListener('click', (e) => {
-    if (!popover.contains(e.target) && !profileImage.contains(e.target)) {
-        popover.classList.add('hidden');
-    }
-});
-
-    if (startTimeInput && startTimeInput._flatpickr) {
-        startTimeInput._flatpickr.destroy();
-    }
-    if (endTimeInput && endTimeInput._flatpickr) {
-        endTimeInput._flatpickr.destroy();
-    }
-    if (reservationCalendarInstance) {
-        reservationCalendarInstance.destroy(); 
-        reservationCalendarInstance = null;
-    }
-
-    if (startTimeInput) {
-        flatpickr(startTimeInput, {
-            enableTime: true,
-            noCalendar: true,
-            dateFormat: "H:i", // Formato 24 horas (HH:MM)
-            time_24hr: true,    // Força o formato 24 horas
-            minuteIncrement: 15, // Incrementos de 15 minutos (opcional)
-            onReady: function(selectedDates, dateStr, instance) {
-                // Define um valor padrão ao carregar, se o campo estiver vazio
-                if (!instance.input.value) {
-                    instance.setDate("08:00", false); 
-                }
-            },
-            onChange: function() {
-                updateReservationSummary(
-                    currentSpotDetails,
-                    currentSelectedSlot.date, // Passa a data atualmente selecionada do calendário
-                    startTimeInput.value,
-                    endTimeInput ? endTimeInput.value : null
-                );
+            const sellerName = document.getElementById('modal-seller-name');
+            const popoverName = document.getElementById('popover-seller-name');
+            if (sellerName && popoverName) {
+                popoverName.textContent = sellerName.textContent;
             }
+
+            const rect = profileImage.getBoundingClientRect();
+            popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            popover.style.left = `${rect.left + window.scrollX}px`;
         });
     }
 
-    if (endTimeInput) {
-        flatpickr(endTimeInput, {
-            enableTime: true,
-            noCalendar: true,
-            dateFormat: "H:i",
-            time_24hr: true,
-            minuteIncrement: 15,
-            onReady: function(selectedDates, dateStr, instance) {
-                // Define um valor padrão ao carregar, se o campo estiver vazio
-                if (!instance.input.value) {
-                    instance.setDate("18:00", false); // Default 18:00 se vazio
-                }
-            },
-            onChange: function() {
-                updateReservationSummary(
-                    currentSpotDetails,
-                    currentSelectedSlot.date, 
-                    startTimeInput ? startTimeInput.value : null,
-                    endTimeInput.value
-                );
-            }
-        });
-    }
-
-    const availabilityCalendar = modal.querySelector('#reservation-calendar');
-    let availabilityArray = [];
-
-    if (spotDetails && Array.isArray(spotDetails.dates_availability)) {
-        availabilityArray = spotDetails.dates_availability;
-        console.log("openParkingDetailModal: Usando spotDetails.dates_availability diretamente como array.");
-    } 
-    else if (spotDetails && spotDetails.dates_availability && Array.isArray(spotDetails.dates_availability.dates_availability)) {
-        availabilityArray = spotDetails.dates_availability.dates_availability;
-        console.log("openParkingDetailModal: Array de disponibilidade encontrado aninhado em spotDetails.dates_availability.dates_availability.");
-    }
-    else if (spotDetails && Array.isArray(spotDetails.availabilities_by_date)) {
-        availabilityArray = spotDetails.availabilities_by_date;
-        console.log("openParkingDetailModal: Array de disponibilidade encontrado em 'availabilities_by_date'.");
-    }
-    else {
-        console.warn("openParkingDetailModal: Não foi possível encontrar o array de datas de disponibilidade no formato esperado. Default para vazio.");
-    }
-
-    const availableDates = availabilityArray
-        .filter(av => av.available_quantity > 0)
-        .map(av => av.available_date);
-
-    if (availabilityCalendar) {
-    reservationCalendarInstance = flatpickr(availabilityCalendar, {
-        mode: "multiple",
-        dateFormat: "Y-m-d",
-        locale: flatpickr.l10ns.pt,
-        minDate: "today",
-        enable: availableDates,
-        onChange: function(selectedDates, dateStr, instance) {
-
-            if (isProcessingDate) {
-                console.log("Processamento de data em andamento. Ignorando evento duplicado.");
-                return;
-            }
-
-            // Lógica para quando uma ou mais datas são selecionadas
-            if (selectedDates && selectedDates.length > 0) {
-                isProcessingDate = true;
-                const spotId = document.getElementById('reservation-spot-id').value;
-                
-                if (spotId) {
-                    // ✅ Chama a função com a lista completa de datas selecionadas.
-                    handleDateSelection(spotId, selectedDates)
-                        .finally(() => {
-                            isProcessingDate = false;
-                        });
-                } else {
-                    console.warn("Nenhum spotId encontrado para carregar as reservas.");
-                    isProcessingDate = false;
-                }
-                
-                if (selectedDatesDisplay) {
-                    selectedDatesDisplay.textContent = "Datas selecionadas: " + selectedDates.map(d => flatpickr.formatDate(d, "d/m/Y")).join(', ');
-                }
-                if (availableSlotsForDateContainer) {
-                    availableSlotsForDateContainer.classList.remove('hidden');
-                }
-                
-            } else { // Lógica para quando nenhuma data está selecionada
-                document.getElementById('dynamic-vaga-squares').innerHTML = '';
-                document.getElementById('reserved-slots-list').innerHTML = '';
-                document.getElementById('reserved-slots-for-date').classList.add('hidden');
-                
-                document.getElementById('no-slots-message').textContent = 'Selecione uma data para ver as vagas disponíveis.';
-                document.getElementById('no-slots-message').classList.remove('hidden');
-
-                updateReservationSummary(currentSpotDetails, null, null, null); 
-            }
+    document.addEventListener('click', (e) => {
+        if (popover && !popover.contains(e.target) && !profileImage.contains(e.target)) {
+            popover.classList.add('hidden');
         }
     });
-    
-    // Inicializar o calendário e a calculadora na abertura
-    if (availableDates.length > 0) {
-        reservationCalendarInstance.clear();
-        updateReservationSummary(currentSpotDetails, null, null, null);
-    }
-    if (startTimeInput) startTimeInput.value = "";
-    if (endTimeInput) endTimeInput.value = "";
-
-} else {
-    console.error("Erro: Elemento do calendário de disponibilidade (reservation-calendar) não encontrado.");
-}
 
     const hourlyOptionBox = document.getElementById('reservation-option-hourly');
     const dailyOptionBox = document.getElementById('reservation-option-daily');
@@ -1114,6 +804,8 @@ document.addEventListener('click', (e) => {
                 });
                 hourlyOptionBox.classList.add('selected-reservation-option');
                 currentSelectedReservationOption = 'hourly';
+                const startTimeInput = document.getElementById('start-time-input');
+                const endTimeInput = document.getElementById('end-time-input');
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
             }
         });
@@ -1124,6 +816,8 @@ document.addEventListener('click', (e) => {
             if (currentSelectedReservationOption === 'daily') {
                 dailyOptionBox.classList.remove('selected-reservation-option');
                 currentSelectedReservationOption = null;
+                const startTimeInput = document.getElementById('start-time-input');
+                const endTimeInput = document.getElementById('end-time-input');
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, startTimeInput.value, endTimeInput.value);
             } else {
                 document.querySelectorAll('.reservation-option').forEach(option => {
@@ -1229,7 +923,6 @@ export function renderMyReservation(reservation) {
         cancelButton.textContent = "Cancelar Reserva";
 
         cancelButton.addEventListener("click", () => {
-    // ✅ NOVO CÓDIGO: Chamada da função do modal
     showConfirmModal("Tem certeza que deseja cancelar esta reserva?", async () => {
         // Esta callback só será executada se o usuário clicar em "Sim, cancelar"
         try {
@@ -1275,14 +968,13 @@ export function activateChatTab(convId) {
     }
 
     // 2. Carregar a conversa correta
-    // Precisamos de um pequeno atraso para garantir que o DOM já está visível
     setTimeout(() => {
         // Encontra o item da lista de conversas correspondente e clica nele
         const conversationItem = document.querySelector(`li[data-conversation-id="${convId}"]`);
         if (conversationItem) {
             conversationItem.click();
         }
-    }, 200); // 200ms de atraso é geralmente suficiente
+    }, 200); // 200ms de atraso 
 }
 
 export async function openReservationDetailModal(reservation) {
@@ -1330,14 +1022,12 @@ export async function openReservationDetailModal(reservation) {
         chatButtonContainer.innerHTML = ''; 
 
         if (reservation.conversation_id) {
-        // ✅ CORREÇÃO: Cria um botão em vez de um link <a>
         const chatBtn = document.createElement("button");
         chatBtn.textContent = "Iniciar Chat";
         chatBtn.className = "mt-4 w-full bg-indigo-600 text-white py-2 rounded font-bold hover:bg-indigo-700 transition duration-200";
         chatButtonContainer.appendChild(chatBtn);
 
         chatBtn.addEventListener('click', () => {
-            // ✅ NOVO: Lógica para ativar a aba de chat
             activateChatTab(reservation.conversation_id);
         });
     }

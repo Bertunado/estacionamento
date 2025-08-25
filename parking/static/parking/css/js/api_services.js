@@ -26,7 +26,7 @@ export function getCsrfToken() {
 }
 
 export function getAuthToken() {
-    return localStorage.getItem('authToken'); 
+    return getCookie('csrftoken');
 }
 
 export async function fetchSpots() {
@@ -174,31 +174,46 @@ export async function saveAvailabilities(spotId, availabilities) {
 }
 
 export async function fetchMySpots() {
-    const token = getAuthToken(); // Pega o token aqui
-    if (!token) {
-        console.error("Token de autenticação não encontrado.");
-        throw new Error("Usuário não autenticado. Faça login.");
-    }
-
     try {
+        const token = getAuthToken(); // Pega o token de autenticação
+        if (!token) {
+            console.error("Token de autenticação não encontrado.");
+            // Lança um erro para que a função chamadora possa tratar a falta de login
+            throw new Error("Usuário não autenticado. Faça login.");
+        }
+
         const response = await fetch('/parking/api/minhas-vagas/', {
             headers: {
-                'Authorization': `Token ${token}`,
+                // Usa 'Bearer' ou 'Token' dependendo da sua configuração do Django
+                'Authorization': `Token ${token}`, 
                 'Content-Type': 'application/json'
             }
         });
+
+        // 🚨 NOVO: Lida com respostas que não são 200 OK
+        if (response.status === 401 || response.status === 403) {
+            // Se o token for inválido, o backend retornará 401 ou 403
+            throw new Error("Sessão expirada ou inválida. Por favor, faça login novamente.");
+        }
+
         if (!response.ok) {
+            // Lida com outros erros, como 500 (Erro no Servidor)
             const errorText = await response.text();
             throw new Error(`Falha ao buscar minhas vagas: ${response.status} - ${errorText}`);
         }
+
         const data = await response.json();
         return data;
+
     } catch (error) {
+        // Loga o erro completo para depuração
         console.error('Erro ao buscar vagas:', error);
         
+        // Relança o erro para que a função que chamou 'fetchMySpots' possa tratá-lo
         throw error;
     }
 }
+
 
 export async function fetchSpotReservations(spotId, date) {
     const url = `http://127.0.0.1:8000/parking/api/parking-spots/${spotId}/reservations/?date=${date}`;
