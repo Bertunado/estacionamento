@@ -9,7 +9,7 @@ from rest_framework import generics, permissions, serializers, viewsets, status
 from .forms import PerfilForm, RegistroUsuarioForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model, login
-from .models import Perfil, ParkingSpot, ParkingSpotPhoto, SpotAvailability, Availability, Reservation, Conversation,  Message
+from .models import Perfil, ParkingSpot, ParkingSpotPhoto, SpotAvailability, Reservation, Conversation,  Message
 from django.views.decorators.csrf import csrf_exempt
 from django import forms
 import os
@@ -26,7 +26,10 @@ from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_http_methods
-
+from django.core.mail import send_mail
+import random
+from django.contrib import messages
+import threading
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -78,10 +81,10 @@ class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError({"spot": "O ID do spot é obrigatório para o upload da foto."})
 
         try:
-            # 2. Encontre a instância do ParkingSpot e verifique se pertence ao usuário logado
+            # 2. Encontra a instância do ParkingSpot e verifique se pertence ao usuário logado
             spot_instance = ParkingSpot.objects.get(id=spot_id_from_request, owner=self.request.user)
             
-            # 3. Salve a foto associando-a à instância do spot
+            # 3. Salva a foto associando-a à instância do spot
             serializer.save(spot=spot_instance) # Passa a instância do Spot validada para o serializer
 
         except ParkingSpot.DoesNotExist:
@@ -96,14 +99,13 @@ class SpotReservationsListView(generics.ListAPIView):
     def get_queryset(self):
         spot_id = self.kwargs['spot_id']
         date_str = self.request.query_params.get('date', None)
-        slot_number = self.request.query_params.get('slot_number', None) # ✅ Adicione o slot_number
+        slot_number = self.request.query_params.get('slot_number', None) 
 
         queryset = Reservation.objects.filter(spot_id=spot_id)
 
         if date_str:
             queryset = queryset.filter(start_time__date=date_str)
         
-        # ✅ Filtra por slot_number se ele for fornecido
         if slot_number:
             queryset = queryset.filter(slot_number=slot_number)
         
@@ -143,7 +145,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         # 4. Converte as strings de data/hora para objetos datetime
         try:
-            # Garanta que o frontend envia no formato ISO 8601 (ex: "2025-07-23T10:00:00")
             start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
             end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
         except ValueError:
@@ -157,14 +158,14 @@ class ReservationViewSet(viewsets.ModelViewSet):
         if slot_number is None:
             raise serializers.ValidationError({"slot_number": "O número do slot é obrigatório."})
 
-        # Exemplo BÁSICO de verificação de sobreposição (para uma vaga única):
+        # Verificação de sobreposição (para uma vaga única):
         overlapping_reservations = Reservation.objects.filter(
             spot=spot,
             # Uma reserva existente começa antes do fim da nova E termina depois do início da nova
             slot_number=slot_number,
             start_time__lt=end_time,
             end_time__gt=start_time,
-            status__in=['pending', 'confirmed'] # Considere status que bloqueiam a vaga
+            status__in=['pending', 'confirmed']
         ).exists()
 
         if overlapping_reservations:
@@ -186,7 +187,6 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-    # ✅ CORREÇÃO: Altere 'instance.buyer' para 'instance.renter'
         if instance.renter != request.user:
             return Response(
             {   'detail': 'Você não tem permissão para cancelar esta reserva.'},
@@ -240,16 +240,15 @@ class ReservationCreateView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 3. Se a validação personalizada passar, salve o objeto
+        # 3. Se a validação personalizada passar, salva o objeto
         self.perform_create(serializer)
         
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-    # O método `perform_create` agora pode ser simplificado
     def perform_create(self, serializer):
         # A lógica de validação já foi feita no método `create`
-        # Aqui, você apenas salva o objeto com os dados adicionais
+        # Aqui apenas salvo o objeto com os dados adicionais
         duration_hours = (serializer.validated_data['end_time'] - serializer.validated_data['start_time']).total_seconds() / 3600
         total_price = round(duration_hours * serializer.validated_data['spot'].hourly_price, 2)
         
@@ -332,13 +331,13 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if self.action == 'list':  # apenas no GET /spots/
+        if self.action == 'list': 
             return ParkingSpot.objects.filter(status="Ativa")
         return ParkingSpot.objects.all()
 
     def perform_create(self, serializer):
         print("=== Dados recebidos para criar vaga ===")
-        print(self.request.data)  # Adicione esta linha
+        print(self.request.data) 
         serializer.save(owner=self.request.user)
     
     def retrieve(self, request, *args, **kwargs):
@@ -395,7 +394,6 @@ def get_spot_availability_by_spot_id(request, spot_id):
             if availability:
                 num_slots = availability.available_quantity
                 for i in range(1, num_slots + 1):
-                    # ✅ CORREÇÃO: Busque todas as reservas para o slot e a data
                     reservations = Reservation.objects.filter(
                         spot=spot,
                         slot_number=i,
@@ -447,7 +445,7 @@ def buscar_veiculos(request):
     except FileNotFoundError:
         return JsonResponse({"erro": "Arquivo de veículos não encontrado"}, status=404)
     
-# --------------  CHAT  -----------------
+# CHAT 
 @login_required
 def chat_dashboard(request):
     conversations = (
@@ -559,33 +557,107 @@ def get_conversations_api(request):
         
     return JsonResponse(conversation_list, safe=False)
 
-# --------------  API REST (opcional)  -----------------
+# API REST (opcional)
 class ParkingSpotListAPI(generics.ListAPIView):
     queryset = ParkingSpot.objects.all()
     serializer_class = ParkingSpotSerializer
     
-
-
-# --------------  Views existentes  -----------------
 def spots_list(request):
     return render(request, 'parking/list.html', {
         'GOOGLE_MAPS_API_KEY': settings.GOOGLE_MAPS_API_KEY,
     })
 
+def send_verification_email_async(subject, message, from_email, recipient_list):
+    """ Envia e-mail em uma thread separada para não bloquear a view """
+    try:
+        send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+        print(f"E-mail de verificação enviado para {recipient_list[0]}")
+    except Exception as e:
+        # Em uma thread, não podemos falar com o usuário.
+        # Apenas registramos o erro no console.
+        print(f"ERRO CRÍTICO AO ENVIAR E-MAIL (em background): {e}")
+
 def registrar_usuario(request):
     if request.method == "POST":
         form = RegistroUsuarioForm(request.POST)
         if form.is_valid():
-            user = User.objects.create_user(
-                email=form.cleaned_data["email"],
-                password=form.cleaned_data["password1"],
-            )
-            user.backend = 'parking.backends.EmailBackend'
-            login(request, user)
-            return redirect("parking:cadastrar_perfil")  # redireciona após login
+            user = form.save(commit=False)
+            user.email = form.cleaned_data["email"]
+            user.set_password(form.cleaned_data["password1"])
+            user.is_active = False 
+            
+            if not user.email_verification_code:
+                 user.email_verification_code = str(random.randint(100000, 999999))
+            
+            user.save()
+
+            # --- LÓGICA DE E-MAIL (MODO SÍNCRONO/TRAVADO) ---
+            # Vamos forçar o erro a aparecer.
+            try:
+                subject = 'Seu Código de Verificação do ParkShare'
+                message = f'Olá! Seu código para ativar a conta ParkShare é: {user.email_verification_code}'
+                
+                print(">>> TENTANDO ENVIAR E-MAIL (MODO DE TESTE SÍNCRONO)...")
+                
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL, # Use o DEFAULT_FROM_EMAIL
+                    recipient_list=[user.email],
+                    fail_silently=False, # Isso força o erro a aparecer!
+                )
+                
+                print(">>> E-MAIL ENVIADO (MODO SÍNCRONO).")
+
+            except Exception as e:
+                # Se falhar, o erro completo aparecerá no terminal AGORA
+                print(f">>> ERRO DETALHADO DO SEND_MAIL: {e}") 
+                user.delete() # Deleta o usuário que falhou ao enviar
+                form.add_error(None, f"Houve um erro ao enviar o e-mail de confirmação. Tente novamente mais tarde.")
+                return render(request, "parking/registrar.html", {"form": form})
+            # --- FIM DA MUDANÇA ---
+            
+            request.session['user_id_to_verify'] = user.id
+            return redirect('parking:verificar_codigo')
     else:
         form = RegistroUsuarioForm()
     return render(request, "parking/registrar.html", {"form": form})
+
+def verificar_codigo(request):
+    try:
+        # Pega o ID do usuário que acabamos de registrar (guardado na sessão)
+        user_id = request.session['user_id_to_verify']
+        user = User.objects.get(id=user_id)
+    except (KeyError, User.DoesNotExist):
+        messages.error(request, "Sessão inválida ou usuário não encontrado. Por favor, tente se registrar novamente.")
+        return redirect('parking:registrar')
+
+    if request.method == 'POST':
+        code = request.POST.get('verification_code')
+        
+        if code == user.email_verification_code:
+            # SUCESSO!
+            user.is_active = True
+            user.is_email_verified = True
+            user.email_verification_code = None # Limpa o código para segurança
+            user.save()
+            
+            # Limpa o ID da sessão
+            del request.session['user_id_to_verify']
+            
+            # Loga o usuário
+            user.backend = 'parking.backends.EmailBackend' # Precisa disso!
+            login(request, user)
+            
+            # Envia para o próximo passo
+            return redirect('parking:cadastrar_perfil')
+        else:
+            # CÓDIGO ERRADO
+            messages.error(request, 'Código inválido. Tente novamente.')
+            return render(request, 'parking/verificar_codigo.html')
+
+    # Se for método GET, apenas mostra a página
+    return render(request, 'parking/verificar_codigo.html')
 
 @login_required
 def cadastrar_perfil(request):
@@ -613,3 +685,79 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ["email", "password1", "password2"]
+
+class MySpotReservationRequestsView(generics.ListAPIView):
+    """
+    API para o vendedor (owner) ver as solicitações de reserva pendentes
+    para suas próprias vagas.
+    """
+    serializer_class = ReservationListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Retorna reservas de vagas que pertencem ao usuário logado
+        # E que tenham o status 'pending'
+        return Reservation.objects.filter(
+            spot__owner=self.request.user, 
+            status='pending'
+        ).select_related('spot', 'renter', 'renter__perfil').order_by('created_at')
+
+
+class UpdateReservationStatusView(APIView):
+    """
+    API para o vendedor (owner) aprovar ou recusar uma solicitação.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            reservation = Reservation.objects.get(pk=pk)
+        except Reservation.DoesNotExist:
+            return Response({"detail": "Reserva não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 1. Verificação de Segurança: O usuário é o dono da vaga?
+        if reservation.spot.owner != request.user:
+            return Response(
+                {"detail": "Você não tem permissão para modificar esta reserva."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        action = request.data.get('action') # Esperamos 'approve' ou 'refuse'
+
+        if action == 'approve':
+            # 2. Verificação de Conflito: Aprovar esta reserva causará sobreposição com outra JÁ CONFIRMADA?
+            overlapping_reservations = Reservation.objects.filter(
+                spot=reservation.spot,
+                slot_number=reservation.slot_number,
+                start_time__lt=reservation.end_time,
+                end_time__gt=reservation.start_time,
+                status='confirmed' # Apenas contra reservas já confirmadas
+            ).exclude(pk=reservation.pk).exists() # Exclui a própria reserva da verificação
+
+            if overlapping_reservations:
+                return Response(
+                    {"detail": "Não é possível aprovar. Já existe uma reserva confirmada neste horário para este slot."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 3. Aprova a reserva
+            reservation.status = 'confirmed'
+            reservation.save(update_fields=['status'])
+            
+            # TODO: Idealmente, enviar uma notificação para o locatário (renter) aqui
+
+            serializer = ReservationListSerializer(reservation)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        elif action == 'refuse':
+            # 4. Recusa a reserva
+            reservation.status = 'refused'
+            reservation.save(update_fields=['status'])
+            
+            # TODO: Idealmente, enviar uma notificação para o locatário (renter) aqui
+
+            serializer = ReservationListSerializer(reservation)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        else:
+            return Response({"detail": "Ação inválida. Envie 'approve' ou 'refuse'."}, status=status.HTTP_400_BAD_REQUEST)

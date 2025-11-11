@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
     
     
-    // ✅ Verificações essenciais primeiro
+    // Verificações essenciais primeiro
     if (!conversationList || !messageForm || !userIdElement) {
         console.error('Um ou mais elementos HTML necessários para o chat não foram encontrados.');
         return;
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentConversationId = null;
 
     loadConversations();
-    // ✅ Listeners de eventos depois que todas as variáveis são definidas
+    // Listeners de eventos depois que todas as variáveis são definidas
 
     // Gerencia o clique na lista de conversas
     conversationList.addEventListener('click', function(event) {
@@ -170,19 +170,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ✅ Gerencia o clique no botão de exclusão (AGORA DEPOIS DAS VARIÁVEIS)
+    //  Gerencia o clique no botão de exclusão (AGORA DEPOIS DAS VARIÁVEIS)
     if (deleteChatBtn) {
     deleteChatBtn.addEventListener('click', function() {
         if (!currentConversationId) {
             alert('Nenhuma conversa selecionada para exclusão.');
             return;
         }
-        // ✅ Mostra o modal de confirmação
+        //  Mostra o modal de confirmação
         deleteChatModal.classList.remove('hidden');
     });
 }
 
-// ✅ Gerencia o clique no botão de CONFIRMAÇÃO do modal
+// Gerencia o clique no botão de CONFIRMAÇÃO do modal
 if (confirmDeleteBtn) {
     confirmDeleteBtn.addEventListener('click', async function() {
         try {
@@ -220,14 +220,14 @@ if (confirmDeleteBtn) {
     });
 }
 
-// ✅ Gerencia o clique no botão de CANCELAMENTO do modal
+// Gerencia o clique no botão de CANCELAMENTO do modal
 if (cancelDeleteBtn) {
     cancelDeleteBtn.addEventListener('click', function() {
         deleteChatModal.classList.add('hidden');
     });
 }
 
-// ✅ Fecha o modal clicando fora dele
+// Fecha o modal clicando fora dele
 if (deleteChatModal) {
     deleteChatModal.addEventListener('click', function(event) {
         if (event.target === this) {

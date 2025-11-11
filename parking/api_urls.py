@@ -20,10 +20,10 @@ router.register(r'reservations', views.ReservationViewSet, basename='reservation
 router.register(r'spot-availabilities', views.SpotAvailabilityViewSet, basename='spot_availability') 
 
 urlpatterns = [
-    # Inclua as rotas do router primeiro para garantir que elas sejam encontradas
+    # Incluindo as rotas do router primeiro para garantir que elas sejam encontradas
     path('', include(router.urls)),
 
-    # Em seguida, inclua as views de API personalizadas
+    # Em seguida, as views de API personalizadas
     path('token/login/', obtain_auth_token, name='api_token_auth'), 
     path('my-reservations/', MyReservationsListView.as_view(), name='my-reservations-list'),
     path('parking-spots/<int:spot_id>/reservations/', SpotReservationsListView.as_view(), name='spot-reservations-list'),
@@ -33,4 +33,6 @@ urlpatterns = [
     path('chat/<int:pk>/messages/', views.get_messages, name='api_get_messages'),
     path('chat/<int:pk>/send/', views.send_message, name='api_send_message'),
     path('chat/<int:pk>/delete/', views.delete_conversation, name='api_delete_conversation'),
+    path('my-requests/', views.MySpotReservationRequestsView.as_view(), name='my-spot-requests'),
+    path('reservations/<int:pk>/update-status/', views.UpdateReservationStatusView.as_view(), name='update-reservation-status'),
 ]

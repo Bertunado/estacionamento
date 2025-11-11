@@ -190,7 +190,7 @@ export async function fetchMySpots() {
             }
         });
 
-        // 🚨 NOVO: Lida com respostas que não são 200 OK
+        // Lida com respostas que não são 200 OK
         if (response.status === 401 || response.status === 403) {
             // Se o token for inválido, o backend retornará 401 ou 403
             throw new Error("Sessão expirada ou inválida. Por favor, faça login novamente.");
@@ -206,7 +206,7 @@ export async function fetchMySpots() {
         return data;
 
     } catch (error) {
-        // Loga o erro completo para depuração
+
         console.error('Erro ao buscar vagas:', error);
         
         // Relança o erro para que a função que chamou 'fetchMySpots' possa tratá-lo
@@ -315,7 +315,7 @@ export async function loadAndRenderMyReservations() {
             container.innerHTML = '<p class="text-center text-gray-500">Nenhuma reserva encontrada.</p>';
         } else {
             reservations.forEach(reservation => {
-                // A sua função que cria o card HTML
+                // A função que cria o card HTML
                 renderMyReservation(reservation); 
             });
         }
@@ -324,4 +324,52 @@ export async function loadAndRenderMyReservations() {
         container.innerHTML = '<p class="text-center text-red-500">Erro ao carregar suas reservas.</p>';
     }
 }
+
+export const getReservationRequests = async () => {
+    const csrfToken = getCsrfToken(); // Usando sua função existente
+    if (!csrfToken) {
+        throw new Error("CSRF token ausente. Não foi possível buscar solicitações.");
+    }
+
+    const response = await fetch('/parking/api/my-requests/', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken // Padrão do seu arquivo
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error('Erro ao buscar solicitações de reserva.');
+    }
+    return await response.json();
+};
+
+export const updateReservationStatus = async (id, action) => {
+    const csrfToken = getCsrfToken(); // Usando sua função existente
+    if (!csrfToken) {
+        throw new Error("CSRF token ausente. Não foi possível atualizar o status.");
+    }
+
+    const response = await fetch(`/parking/api/reservations/${id}/update-status/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken // Padrão do seu arquivo
+        },
+        body: JSON.stringify({ action: action }) // Ex: { action: 'approve' }
+    });
+    
+    if (!response.ok) {
+        // Tenta pegar o erro detalhado do backend
+        let errorData;
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            errorData = { detail: 'Erro desconhecido.' };
+        }
+        throw new Error(errorData.detail || 'Erro ao atualizar status da reserva.');
+    }
+    return await response.json();
+};
 

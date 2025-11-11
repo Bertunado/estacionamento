@@ -18,9 +18,8 @@ urlpatterns = [
     path('perfil/buscar-veiculos/', views.buscar_veiculos, name='buscar_veiculos'),
     path('salvar-disponibilidade/', views.salvar_disponibilidade, name='salvar_disponibilidade'),
     path('api/', include('parking.api_urls')),
-    
-    # URL de logout correta
     path('logout/', auth_views.LogoutView.as_view(next_page='parking:login'), name='logout'),
+    path("verificar-codigo/", views.verificar_codigo, name="verificar_codigo"),
 
     # URLs de autenticação do Django
     path('login/', auth_views.LoginView.as_view(

@@ -23,7 +23,7 @@ class ParkingSpot(models.Model):
     price_day = models.DecimalField(max_digits=6, decimal_places=2)
     tipo_vaga = models.CharField(max_length=20, choices=TIPOS_DE_VAGA)
     has_camera = models.BooleanField(default=False)
-    size = models.CharField(max_length=30, default="Médio")  # se quiser manter
+    size = models.CharField(max_length=30, default="Médio")
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default="Ativa")
     quantity = models.IntegerField(default=1, help_text="Número total de vagas neste local.")
@@ -31,7 +31,6 @@ class ParkingSpot(models.Model):
     def __str__(self):
         return f"{self.title} – {self.address}"
         
-
 class SpotAvailability(models.Model):
     spot = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name='availabilities_by_date')
     slot_number = models.IntegerField(default=1, help_text="Número específico da vaga.")
@@ -85,12 +84,20 @@ class Availability(models.Model):
 
 # Reserva
 class Reservation(models.Model):
+
+    STATUS_CHOICES = [
+        ('pending', 'Pendente'),
+        ('confirmed', 'Confirmada'),
+        ('refused', 'Recusada'),
+        ('cancelled', 'Cancelada'),
+    ]
+
     spot        = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name="reservations")
     renter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     start_time  = models.DateTimeField()
     end_time    = models.DateTimeField()
     total_price = models.DecimalField(max_digits=8, decimal_places=2, default=0.00) 
-    status      = models.CharField(max_length=20, default='pending')
+    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at  = models.DateTimeField(auto_now_add=True)
     slot_number = models.PositiveIntegerField()
 
@@ -118,7 +125,6 @@ class Conversation(models.Model):
 
     def __str__(self):
         return f"Chat #{self.pk} – reserva {self.reservation_id}"
-
 
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, related_name="messages", on_delete=models.CASCADE)

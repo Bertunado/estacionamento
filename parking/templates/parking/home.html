@@ -16,6 +16,9 @@
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="add-parking">Divulgar Vaga</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-parkings">Minhas Vagas</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-reservations">Minhas Reservas</button>
+    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="requests">Solicitações
+    <span id="requests-count-badge" class="hidden ml-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full"></span>
+</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="chat">Chat</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="profile">Perfil</button>
     <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="settings">Configurações</button>    
@@ -41,7 +44,6 @@
     <div class="flex">
             <div class="w-1/2">
                 <h3 class="text-lg font-semibold">Pesquisar Localização</h3>
-
                     <div class="flex space-x-2 mt-2">
                         <input id="cepInput" type="text" placeholder="Digite seu endereço ou CEP" class="border border-gray-300 rounded w-full p-2" />
                         <button id="buscarCepBtn" class="bg-indigo-600 text-white px-3 py-2 rounded hover:bg-indigo-700">
@@ -50,13 +52,13 @@
                     </div>
 
                 <div class="map-container mt-4 rounded-lg shadow">
-                <div id="map" style="height: 400px; width: 100%;"></div>
+                <div id="map" style="height: 480px; width: 100%;"></div>
             </div>
         </div>
 
             <div class="w-1/2 pl-4">
                 <h3 class="text-lg font-semibold">Vagas Próximas</h3>
-                <div id="parking" class="mt-4 space-y-4 overflow-y-auto" style="max-height: 350px;">
+                <div id="parking" class="mt-4 space-y-4 overflow-y-auto" style="max-height: 540px;">
 
                 </div>
             </div>
@@ -543,45 +545,47 @@
 </div> 
                     
             <!-- Reservation Confirmation Modal -->
-            <div id="reservation-confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-                <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
-                    <div class="text-center mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Reserva confirmada!</h3>
-                        <p class="text-gray-600">Sua reserva foi confirmada com sucesso.</p>
-                    </div>
-                    
-                    <div class="bg-gray-100 rounded-lg p-4 mb-6">
-                        <div class="flex justify-between mb-2">
-    <span class="text-gray-700">Tipo:</span>
-    <span class="font-bold" id="confirmation-location">Garagem residencial</span>
+           <div id="reservation-confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
+        <div class="text-center mb-6">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            
+            <h3 class="text-xl font-bold text-gray-800 mb-2">Sua reserva está pendente</h3>
+            
+            <p class="text-gray-600">Avisaremos assim que o vendedor confirmar.</p>
+        </div>
+        
+        <div class="bg-gray-100 rounded-lg p-4 mb-6">
+            <div class="flex justify-between mb-2">
+                <span class="text-gray-700">Tipo:</span>
+                <span class="font-bold" id="confirmation-location">Garagem residencial</span>
+            </div>
+            <div class="flex justify-between mb-2">
+                <span class="text-gray-700">Data:</span>
+                <span class="font-bold" id="confirmation-date">15/06/2023</span>
+            </div>
+            <div class="flex justify-between mb-2">
+                <span class="text-gray-700">Horário:</span>
+                <span class="font-bold" id="confirmation-time">14:00 - 17:00</span>
+            </div>
+            <div class="flex justify-between mb-2">
+                <span class="text-gray-700">Vaga:</span>
+                <span class="font-bold" id="confirmation-spot">Vaga A1</span>
+            </div>
+            <div class="flex justify-between font-bold text-lg mt-3 pt-2 border-t border-gray-300">
+                <span>Total:</span>
+                <span id="confirmation-total">R$ 24,00</span>
+            </div>
+        </div>
+        
+        <button id="close-confirmation-btn" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition duration-200">
+            Fechar
+        </button>
+    </div>
 </div>
-                        
-                        <div class="flex justify-between mb-2">
-                            <span class="text-gray-700">Data:</span>
-                            <span class="font-bold" id="confirmation-date">15/06/2023</span>
-                        </div>
-				<div class="flex justify-between mb-2">
-                            <span class="text-gray-700">Horário:</span>
-                            <span class="font-bold" id="confirmation-time">14:00 - 17:00</span>
-                        </div>
-                        <div class="flex justify-between mb-2">
-                            <span class="text-gray-700">Vaga:</span>
-                            <span class="font-bold" id="confirmation-spot">Vaga A1</span>
-                        </div>
-                        <div class="flex justify-between font-bold text-lg mt-3 pt-2 border-t border-gray-300">
-                            <span>Total:</span>
-                            <span id="confirmation-total">R$ 24,00</span>
-                        </div>
-                    </div>
-                    
-                    <button id="close-confirmation-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-                        Fechar
-                    </button>
-                </div>
-            </div> 
     
 <div id="reservation-detail-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto">
     <div class="relative top-10 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -641,7 +645,6 @@
             </div>
             <div id="chat-button-container"></div>
 
-            <button id="start-route-button"></button>
         </div>
     </div>
 </div>
@@ -797,6 +800,19 @@
       </div>
     </form>
   </div>
+</div>
+
+<div id="requests" class="tab-content mt-4 hidden">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Solicitações de Reserva Pendentes</h2>
+        
+        <div id="requestsContainer" class="space-y-6">
+            </div>
+
+        <p id="no-requests-message" class="text-center text-gray-500 mt-6 hidden">
+            Você não tem nenhuma solicitação de reserva pendente.
+        </p>
+    </div>
 </div>
 
 {% endblock %}

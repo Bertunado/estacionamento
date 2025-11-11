@@ -103,8 +103,6 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         return super().create(validated_data)
 
-
-
 class ParkingSpotSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
     availabilities_by_date = SpotAvailabilitySerializer(many=True, required=False) 
@@ -171,5 +169,5 @@ class ParkingSpotSerializer(serializers.ModelSerializer):
             # Caso o serializer seja usado em um contexto sem request (pouco comum)
             return [photo.image.url for photo in obj.photos.all()]
 
-        # ✅ Retorna um array de URLs completas
+        # Retorna um array de URLs completas
         return [request.build_absolute_uri(photo.image.url) for photo in obj.photos.all()]

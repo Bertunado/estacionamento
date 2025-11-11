@@ -1,18 +1,17 @@
 // ui_handlers.js
 // Funções responsáveis por renderizar elementos na interface e gerenciar modais/abas
 
-import { fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus, createReservation, fetchMyReservations, fetchSpotReservations } from './api_services.js';
+import { getReservationRequests, updateReservationStatus, fetchMySpots, fetchSpots, deleteSpot, updateSpotStatus, createReservation, fetchMyReservations, fetchSpotReservations } from './api_services.js';
 import { initializeAutocomplete, configurarBuscaEndereco, initMap, map, carregarSpots as carregarSpotsDoMapa } from './map_utilities.js';
-import { getCookie } from './utils.js'; // Ajuste o caminho conforme a estrutura de pastas
+import { getCookie } from './utils.js';
 import { setupAvailabilityFields } from './availability_manager.js';
 import { createMiniMap } from './map_utilities.js'; 
 import { loadConversations } from './chat_loader.js';
 import { getAuthToken, getCsrfToken, loadAndRenderMyReservations } from './api_services.js';
-import { showToast } from './chat_loader.js'; // ou o mesmo arquivo de utilidades
+import { showToast } from './chat_loader.js'; 
 import { showConfirmModal } from './confirmations.js';
 import { initializeReservationComponents } from './calendar.js';
 import { formatarTamanhoVaga, formatarTipoVaga, formatarHorarioDisponivelModal, formatDateToISO  } from './format.js';
-
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
@@ -27,7 +26,6 @@ let currentSelectedSlot = {
     slotNumber: null
 };
 window.currentSpotData = null; 
-
 
 export async function activateTab(tabName) {
     console.log(`activateTab: Ativando aba '${tabName}'`);
@@ -55,7 +53,7 @@ export async function activateTab(tabName) {
             }
         } else {
             content.classList.remove('active');
-            content.classList.remove('flex'); // Remove flex de abas inativas
+            content.classList.remove('flex'); 
             content.classList.add('hidden');
         }
     });
@@ -81,6 +79,10 @@ export async function activateTab(tabName) {
         carregarMinhasVagas();
     } else if (tabName === 'my-reservations') {
         carregarMinhasReservas(); 
+    } else if (tabName === 'requests') {
+        // ✨ AQUI CHAMA A NOVA FUNÇÃO ✨
+        await loadReservationRequests();
+
     } else if (tabName === "add-parking") {
         console.log("activateTab: Aba 'add-parking' ativada.");
         setTimeout(() => {
@@ -88,6 +90,104 @@ export async function activateTab(tabName) {
             setupAvailabilityFields(); 
             console.log("setupAvailabilityFields() chamado ao ativar a aba 'add-parking'.");
         }, 100);
+    }
+}
+
+async function loadReservationRequests() {
+    const requestsContainer = document.getElementById('requestsContainer');
+    const noRequestsMessage = document.getElementById('no-requests-message');
+    const badge = document.getElementById('requests-count-badge'); // O <span> no botão da aba
+
+    if (!requestsContainer) return; // Sai se o elemento não existir
+
+    try {
+        const requests = await getReservationRequests(); // Chama a API
+        requestsContainer.innerHTML = ''; // Limpa o contêiner
+
+        if (requests.length === 0) {
+            noRequestsMessage?.classList.remove('hidden');
+            badge?.classList.add('hidden');
+            badge.textContent = '0';
+        } else {
+            noRequestsMessage?.classList.add('hidden');
+            
+            // Atualiza o contador
+            badge.textContent = requests.length;
+            badge?.classList.remove('hidden');
+
+            requests.forEach(request => {
+                const card = createRequestCard(request); // Cria o card
+                requestsContainer.appendChild(card);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar solicitações:', error);
+        // showToast('Erro ao carregar solicitações.', 'error');
+        alert('Erro ao carregar solicitações.');
+    }
+}
+
+/**
+ * Cria o elemento HTML para um card de solicitação de reserva.
+ */
+function createRequestCard(request) {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg p-4 shadow-sm';
+    card.id = `request-${request.id}`; // ID para remoção fácil
+
+    // Formata datas (você pode ter isso no seu 'format.js')
+    const startDate = new Date(request.start_time).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const endDate = new Date(request.end_time).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    
+    // Pega o nome do locatário
+    const renterName = request.renter?.perfil?.nome_completo || request.renter?.email || 'Usuário';
+
+    card.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-lg font-semibold text-indigo-700">${request.spot.title}</h3>
+            <span class="text-lg font-bold">R$ ${request.total_price}</span>
+        </div>
+        <p class="text-gray-600"><strong>Locatário:</strong> ${renterName}</p>
+        <p class="text-gray-600"><strong>Período:</strong> ${startDate} até ${endDate}</p>
+        <p class="text-gray-600"><strong>Slot:</strong> Vaga ${request.slot_number}</p>
+        
+        <div class="flex space-x-4 mt-4">
+            <button data-id="${request.id}" data-action="approve" class="action-btn flex-1 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-200">
+                Aprovar
+            </button>
+            <button data-id="${request.id}" data-action="refuse" class="action-btn flex-1 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200">
+                Recusar
+            </button>
+        </div>
+    `;
+    return card;
+}
+
+/**
+ * Lida com o clique de aprovar/recusar, chamado pelo main.js
+ */
+export async function handleReservationAction(id, action) {
+    try {
+        const result = await updateReservationStatus(id, action); // Chama a API
+        
+        // Remove o card da lista de pendentes
+        const card = document.getElementById(`request-${id}`);
+        if (card) {
+            card.classList.add('opacity-0', 'transition-all'); // Efeito de fade out
+            setTimeout(() => card.remove(), 500);
+        }
+        
+        // showToast(`Reserva ${action === 'approve' ? 'Aprovada' : 'Recusada'}!`, 'success');
+        alert(`Reserva ${action === 'approve' ? 'Aprovada' : 'Recusada'}!`);
+        
+        // Recarrega a lista para atualizar o contador da badge
+        await loadReservationRequests();
+
+    } catch (error) {
+        console.error(`Erro ao ${action} reserva:`, error);
+        const errorMessage = error.detail || `Falha ao ${action === 'approve' ? 'aprovar' : 'recusar'} reserva.`;
+        // showToast(errorMessage, 'error');
+        alert(errorMessage);
     }
 }
 
@@ -337,12 +437,12 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
     reservedSlotsList.innerHTML = '';
     
     if (occupiedTimes && occupiedTimes.length > 0) {
-        reservedSlotsSection.classList.remove('hidden');
-        noReservedSlotsMessage.classList.add('hidden');
-         
-        occupiedTimes.forEach(time => {
-            const timeItem = document.createElement('p');
-            timeItem.className = 'text-sm text-gray-600';
+        reservedSlotsSection.classList.remove('hidden');
+        noReservedSlotsMessage.classList.add('hidden');
+ 
+            occupiedTimes.forEach(time => {
+            const timeItem = document.createElement('p');
+            timeItem.className = 'text-sm text-gray-600';
 
             const startDateTimeUTC = new Date(`${selectedDateStr}T${time.start}:00Z`);
             const endDateTimeUTC = new Date(`${selectedDateStr}T${time.end}:00Z`);
@@ -363,8 +463,6 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
         noReservedSlotsMessage.classList.remove('hidden');
         }
 }
-
-
 
 // Carregar as reservas quando a data for selecionada
 export async function handleDateSelection(spotId, selectedDates) {
@@ -613,7 +711,7 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceDay = parseFloat(spotDetails.price_day);
 
-    // --- LÓGICA DA CALCULADORA "POR HORA" ---
+    // LÓGICA DA CALCULADORA "POR HORA" 
     hourlyPriceElement.textContent = `R$ ${priceHour.toFixed(2).replace('.', ',')}`;
 
     if (!selectedSlotDate || !startTime || !endTime) {
@@ -648,7 +746,7 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
         totalPriceElement.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
     }
 
-    // --- LÓGICA DA CALCULADORA "POR DIA" ---
+    // LÓGICA DA CALCULADORA "POR DIA"
     if (!isNaN(priceDay) && priceDay > 0) {
         dailyPriceElement.textContent = `R$ ${priceDay.toFixed(2).replace('.', ',')}`;
         dailyTotalPriceElement.textContent = `R$ ${priceDay.toFixed(2).replace('.', ',')}`;
@@ -853,24 +951,46 @@ export function renderMyReservation(reservation) {
     const content = document.createElement("div");
     content.className = "p-4 flex flex-col flex-1 relative";
 
+    // --- LÓGICA DE STATUS ATUALIZADA ---
     const statusContainer = document.createElement("div");
     statusContainer.className = "absolute top-4 right-2";
-
     const statusSpan = document.createElement("span");
     statusSpan.className = "text-xs px-2 py-1 rounded font-semibold";
 
+    // Prioriza o status do banco de dados
+    switch(reservation.status) {
+        case 'pending':
+            statusSpan.textContent = "Pendente";
+            statusSpan.classList.add("bg-yellow-100", "text-yellow-800");
+            break;
+        case 'confirmed':
+            statusSpan.textContent = "Confirmada";
+            statusSpan.classList.add("bg-green-100", "text-green-800");
+            break;
+        case 'refused':
+            statusSpan.textContent = "Recusada";
+            statusSpan.classList.add("bg-red-100", "text-red-800");
+            break;
+        case 'cancelled':
+            statusSpan.textContent = "Cancelada";
+            statusSpan.classList.add("bg-gray-100", "text-gray-800");
+            break;
+        default:
+            statusSpan.textContent = reservation.status; // Caso tenha algum status inesperado
+            statusSpan.classList.add("bg-gray-100", "text-gray-800");
+    }
+    
+    // Verifica se a reserva já terminou (mesmo se foi confirmada)
     const now = new Date();
     const endDate = new Date(reservation.end_time);
+    const isReservationActive = now < endDate;
 
-    let isReservationActive = now < endDate;
-
-    if (isReservationActive) {
-        statusSpan.textContent = "Disponível";
-        statusSpan.classList.add("bg-green-100", "text-green-800");
-    } else {
+    if (!isReservationActive && reservation.status === 'confirmed') {
         statusSpan.textContent = "Finalizada";
+        statusSpan.classList.remove("bg-green-100", "text-green-800");
         statusSpan.classList.add("bg-gray-100", "text-gray-800");
     }
+    // --- FIM DA LÓGICA DE STATUS ---
 
     statusContainer.appendChild(statusSpan);
     content.appendChild(statusContainer);
@@ -910,48 +1030,50 @@ export function renderMyReservation(reservation) {
     detailsButton.className = "mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-200";
     detailsButton.textContent = "Mostrar detalhes >";
 
+    // O botão de chat só será criado no modal de detalhes se a reserva for confirmada
     detailsButton.addEventListener("click", () => {
         openReservationDetailModal(reservation);
     });
 
     content.appendChild(detailsButton);
 
-    // ✅ NOVO CÓDIGO: Botão de cancelar, visível apenas para reservas ativas
-    if (isReservationActive) {
+    // Botão de cancelar, visível apenas para reservas ativas E que estejam pendentes/confirmadas
+    if (isReservationActive && (reservation.status === 'pending' || reservation.status === 'confirmed')) {
         const cancelButton = document.createElement("button");
         cancelButton.className = "mt-2 bg-red-600 text-white py-2 rounded hover:bg-red-700 transition duration-200";
         cancelButton.textContent = "Cancelar Reserva";
 
         cancelButton.addEventListener("click", () => {
-    showConfirmModal("Tem certeza que deseja cancelar esta reserva?", async () => {
-        // Esta callback só será executada se o usuário clicar em "Sim, cancelar"
-        try {
-            const token = getAuthToken();
-            const csrfToken = getCsrfToken();
-            const url = `http://127.0.0.1:8000/parking/api/reservations/${reservation.id}/`;
+            showConfirmModal("Tem certeza que deseja cancelar esta reserva?", async () => {
+                // Esta callback só será executada se o usuário clicar em "Sim, cancelar"
+                try {
+                    const token = getAuthToken();
+                    const csrfToken = getCsrfToken();
+                    const url = `http://127.0.0.1:8000/parking/api/reservations/${reservation.id}/`;
 
-            const response = await fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'X-CSRFToken': csrfToken,
-                },
+                    const response = await fetch(url, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Token ${token}`,
+                            'X-CSRFToken': csrfToken,
+                        },
+                    });
+
+                    if (response.ok) {
+                        showToast('Reserva cancelada com sucesso.', true);
+                        // Recarrega a lista de reservas
+                        carregarMinhasReservas(); 
+                    } else {
+                        const errorData = await response.json();
+                        const errorMessage = errorData.detail || 'Erro ao cancelar a reserva.';
+                        showToast(errorMessage, false);
+                    }
+                } catch (error) {
+                    console.error('Falha ao cancelar reserva:', error);
+                    showToast('Não foi possível cancelar a reserva. Tente novamente.', false);
+                }
             });
-
-            if (response.ok) {
-                showToast('Reserva cancelada com sucesso.', true);
-                loadAndRenderMyReservations();
-            } else {
-                const errorData = await response.json();
-                const errorMessage = errorData.detail || 'Erro ao cancelar a reserva.';
-                showToast(errorMessage, false);
-            }
-        } catch (error) {
-            console.error('Falha ao cancelar reserva:', error);
-            showToast('Não foi possível cancelar a reserva. Tente novamente.', false);
-        }
-    });
-});
+        });
 
         content.appendChild(cancelButton);
     }
@@ -1017,7 +1139,7 @@ export async function openReservationDetailModal(reservation) {
         }
     }
 
-    const chatButtonContainer = document.getElementById('chat-button-container'); // Supondo que você tenha este div no HTML da modal
+    const chatButtonContainer = document.getElementById('chat-button-container');
     if (chatButtonContainer) {
         chatButtonContainer.innerHTML = ''; 
 
@@ -1066,11 +1188,8 @@ export async function openReservationDetailModal(reservation) {
         window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`, '_blank');
     };
 
-    // Fechar modal
     const closeBtn = document.getElementById("close-reservation-modal");
     if (closeBtn) closeBtn.onclick = () => modal.classList.add("hidden");
-
-    console.log("Modal aberta com detalhes da reserva.");
 }
 
 
@@ -1243,7 +1362,7 @@ async function renderVagaSquares(selectedDates) {
         
         console.log("Dados de disponibilidade da API:", data);
         
-        // ✅ CORREÇÃO: Salve os dados da API em uma variável global
+        // Salvando os dados da API em uma variável global
         window.currentSpotData = data; 
 
         if (!response.ok) {
@@ -1320,7 +1439,7 @@ async function renderVagaSquares(selectedDates) {
                             document.getElementById('selected-slot-number').textContent = currentSelectedSlot.slotNumber;
                             document.getElementById('selected-slot-date-display').textContent = new Date(currentSelectedSlot.date).toLocaleDateString('pt-BR');
                             
-                            // ✅ Renderiza os horários reservados
+                            // Renderiza os horários reservados
                             const selectedAvailability = data.dates_availability.find(av => av.date === currentSelectedSlot.date);
                             const selectedSlotData = selectedAvailability.slots.find(s => s.slot_number === currentSelectedSlot.slotNumber);
                             renderReservedSlots(selectedSlotData.occupied_times, currentSelectedSlot.date);
@@ -1339,13 +1458,13 @@ async function renderVagaSquares(selectedDates) {
 
     } catch (error) {
         console.error("Erro na requisição da API de disponibilidade:", error);
-        window.currentSpotData = null; // ✅ Garante que a variável seja limpa em caso de erro
+        window.currentSpotData = null; // Garante que a variável seja limpa em caso de erro
         noSlotsMessageP.textContent = "Erro ao carregar disponibilidade das vagas. Verifique sua conexão ou tente novamente.";
         noSlotsMessageP.classList.remove('hidden');
     }
 }
 
-// --- Setup dos Listeners de Modais e Botões de Ação ---
+// Setup dos Listeners de Modais e Botões de Ação
 export function setupModalClosers() {
     document.getElementById("close-modal")?.addEventListener("click", () => {
         const modal = document.getElementById("parking-detail-modal");

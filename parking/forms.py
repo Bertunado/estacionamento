@@ -4,7 +4,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.forms import AuthenticationForm
 
-
 User = get_user_model()
 
 class RegistroUsuarioForm(UserCreationForm):
@@ -29,7 +28,7 @@ class PerfilForm(forms.ModelForm):
             'nome_completo',
             'foto',
             'telefone',
-            'marca_veiculo',   # novo campo, se existir no modelo
+            'marca_veiculo',
             'modelo_veiculo',
             'cor_veiculo',
             'placa_veiculo',

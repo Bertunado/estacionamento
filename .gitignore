@@ -1,0 +1,17 @@
+.env
+
+# Banco de Dados
+db.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+
+# Mídia (Uploads de usuários - fotos de perfil, etc.)
+media/
+
+# Node (eu vi que você tem essa pasta)
+node_modules/
+
+# Arquivos de IDE (ex: VSCode)
+.vscode/

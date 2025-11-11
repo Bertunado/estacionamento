@@ -23,7 +23,7 @@ export function initializeReservationComponents(modalElement, spotDetails) {
         reservationCalendarInstance = null;
     }
 
-    // --- LÓGICA DO SELETOR DE HORA (INÍCIO) ---
+    // LÓGICA DO SELETOR DE HORA (INÍCIO) 
     if (startTimeInput) {
         flatpickr(startTimeInput, {
             enableTime: true,
@@ -74,7 +74,7 @@ export function initializeReservationComponents(modalElement, spotDetails) {
         });
     }
 
-    // --- LÓGICA DO CALENDÁRIO DE DATAS ---
+    // LÓGICA DO CALENDÁRIO DE DATAS 
     let availabilityArray = [];
     if (spotDetails && Array.isArray(spotDetails.dates_availability)) {
         availabilityArray = spotDetails.dates_availability;
