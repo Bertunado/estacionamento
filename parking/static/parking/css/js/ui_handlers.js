@@ -32,57 +32,98 @@ export async function activateTab(tabName) {
 
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
+    const mobileNavButtons = document.querySelectorAll('#mobile-nav button');
 
+    // 1. Desativa todos os botões (desktop e móvel)
     tabButtons.forEach(button => {
-        if (button.dataset.tab === tabName) {
-            button.classList.add('border-indigo-600', 'text-indigo-600');
-            button.classList.remove('border-gray-200', 'text-gray-500', 'hover:text-indigo-500');
-        } else {
-            button.classList.remove('border-indigo-600', 'text-indigo-600');
-            button.classList.add('border-gray-200', 'text-gray-500', 'hover:text-indigo-500');
-        }
+        button.classList.remove('border-indigo-600', 'text-indigo-600');
+        button.classList.add('border-gray-200', 'text-gray-500', 'hover:text-indigo-500');
+    });
+    
+    mobileNavButtons.forEach(button => {
+        button.classList.remove('text-indigo-600'); // Remove a cor ativa
+        button.classList.add('text-gray-500');
     });
 
+    // 2. Esconde todos os conteúdos
     tabContents.forEach(content => {
-        if (content.id === tabName) {
-            content.classList.add('active');
-            content.classList.remove('hidden');
-
-            if (content.dataset.displayFlex === 'true') {
-                content.classList.add('flex');
-            }
-        } else {
-            content.classList.remove('active');
-            content.classList.remove('flex'); 
-            content.classList.add('hidden');
-        }
+        content.classList.remove('active', 'flex');
+        content.classList.add('hidden');
     });
 
-    // Lógica para interagir com o mapa APENAS quando a aba 'parkings' estiver ativa
+    // 3. Ativa a aba e o botão corretos (desktop)
+    const desktopBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    if (desktopBtn) {
+        desktopBtn.classList.add('border-indigo-600', 'text-indigo-600');
+        desktopBtn.classList.remove('border-gray-200', 'text-gray-500', 'hover:text-indigo-500');
+    }
+    
+    // 4. Ativa o ícone correto (móvel)
+    const mobileBtn = document.querySelector(`.mobile-nav-btn[data-tab="${tabName}"]`);
+    if (mobileBtn) {
+        mobileBtn.classList.add('text-indigo-600'); // Adiciona a cor ativa
+        mobileBtn.classList.remove('text-gray-500');
+    }
+
+    // 5. Mostra o conteúdo da aba
+    const contentToShow = document.getElementById(tabName);
+    if (contentToShow) {
+        contentToShow.classList.add('active');
+        contentToShow.classList.remove('hidden');
+        if (contentToShow.dataset.displayFlex === 'true') {
+            contentToShow.classList.add('flex');
+        }
+    }
+
+    // --- 👇 ESTA É A LÓGICA NOVA E CORRIGIDA 👇 ---
+    
     if (tabName === 'parkings') {
         console.log("activateTab: Aba 'parkings' ativada.");
 
-        await initMap(); // Garante que o mapa esteja carregado
+        // Detecta se estamos no desktop (breakpoint 'md' do Tailwind é 768px)
+        const isMobile = window.innerWidth < 768; 
+
+        // Define os IDs corretos para celular ou desktop
+        const mapId = isMobile ? 'map' : 'mapDesktop';
+        const inputId = isMobile ? 'cepInput' : 'cepInputDesktop';
+
+        // Inicializa o mapa correto
+        // NOTA: Isso assume que seu 'initMap' foi atualizado (veja Passo 2)
+        await initMap(mapId); 
 
         setTimeout(() => {
             if (map && window.google && window.google.maps) {
                 google.maps.event.trigger(map, 'resize');
                 map.setCenter(map.getCenter());
-                console.log("activateTab: Mapa redimensionado e centralizado.");
-                carregarSpotsDaListaEdoMapa();
-                configurarBuscaEndereco();
+                
+                // Carrega os spots em AMBAS as listas
+                carregarSpotsDaListaEdoMapa(); 
+                
+                // Configura a busca de endereço correta
+                // NOTA: Isso assume que 'configurarBuscaEndereco' foi atualizada (veja Passo 2)
+                configurarBuscaEndereco(inputId);
+                
+                // Adiciona o listener de clique do mapa apenas no celular
+                if (isMobile) {
+                    map.addListener('click', () => {
+                        const sheet = document.getElementById('parking-sheet');
+                        if (sheet.classList.contains('is-open')) {
+                            toggleParkingSheet();
+                        }
+                    });
+                }
+
             } else {
-                console.warn("activateTab: Mapa ou bibliotecas Google Maps não disponíveis para redimensionar ou carregar spots.");
+                console.warn("activateTab: Mapa ou libs não disponíveis.");
             }
         }, 100);
+
     } else if (tabName === 'my-parkings') {
         carregarMinhasVagas();
     } else if (tabName === 'my-reservations') {
         carregarMinhasReservas(); 
     } else if (tabName === 'requests') {
-        // ✨ AQUI CHAMA A NOVA FUNÇÃO ✨
         await loadReservationRequests();
-
     } else if (tabName === "add-parking") {
         console.log("activateTab: Aba 'add-parking' ativada.");
         setTimeout(() => {
@@ -90,6 +131,22 @@ export async function activateTab(tabName) {
             setupAvailabilityFields(); 
             console.log("setupAvailabilityFields() chamado ao ativar a aba 'add-parking'.");
         }, 100);
+    }
+}
+
+export function toggleParkingSheet() {
+    const sheet = document.getElementById('parking-sheet');
+    const sheetTitle = document.getElementById('sheet-title');
+    
+    if (sheet) {
+        sheet.classList.toggle('is-open');
+
+        // Opcional: Muda o texto do puxador
+        if (sheet.classList.contains('is-open')) {
+            sheetTitle.textContent = "Toque no mapa para fechar";
+        } else {
+            sheetTitle.textContent = "Vagas Próximas";
+        }
     }
 }
 
@@ -213,38 +270,46 @@ export async function carregarMinhasVagas() {
 }
 
 export async function carregarSpotsDaListaEdoMapa() {
-    console.log("carregarSpotsDaListaEdoMapa: Iniciando...");
     try {
-        const spots = await fetchSpots(); // Pega os spots da API
-        console.log("carregarSpotsDaListaEdoMapa: Spots recebidos:", spots);
-
+        const spots = await fetchSpots();
         window.allSpots = spots; 
 
-        const list = document.querySelector("#parkings .overflow-y-auto");
-        if (list) {
-            list.innerHTML = ""; // Limpa a lista antes de adicionar
-            if (spots && spots.length > 0) {
-                spots.forEach(spot => renderSpot(spot)); // Renderiza os cards na lista
-            } else {
-                list.innerHTML = `<p class="text-center text-gray-400 mt-6">Nenhuma vaga disponível no momento.</p>`;
+        // Encontra OS DOIS contêineres de lista
+        const listMobile = document.getElementById("parking");
+        const listDesktop = document.getElementById("parkingDesktop");
+        
+        // Itera sobre os dois contêineres
+        [listMobile, listDesktop].forEach(list => {
+            if (list) {
+                list.innerHTML = ""; // Limpa a lista
+                if (spots && spots.length > 0) {
+                    spots.forEach(spot => {
+                        // Passa o ID da lista (parking ou parkingDesktop) para o renderSpot
+                        renderSpot(spot, list.id); 
+                    });
+                } else {
+                    list.innerHTML = `<p class="text-center text-gray-400 mt-6">Nenhuma vaga disponível.</p>`;
+                }
             }
-        }
-        await carregarSpotsDoMapa(spots); // Passa os spots para a função de mapa
+        });
+        
+        await carregarSpotsDoMapa(spots); // Carrega os marcadores no mapa
 
     } catch (error) {
         console.error("Erro ao carregar spots na UI:", error);
     }
 }
 
-export function renderSpot(spot) {
+export function renderSpot(spot, listId) {
     if (!spot || !spot.id) {
         console.warn("renderSpot: Spot inválido:", spot);
         return;
     }
 
-    const list = document.querySelector("#parkings .overflow-y-auto");
+    // Agora ele encontra o contêiner específico que foi passado (parking ou parkingDesktop)
+    const list = document.getElementById(listId); 
     if (!list) {
-        console.warn("renderSpot: Elemento #parkings .overflow-y-auto não encontrado.");
+        console.warn(`renderSpot: Contêiner de lista com ID "${listId}" não encontrado.`);
         return;
     }
 

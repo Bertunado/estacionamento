@@ -11,7 +11,8 @@ import {
     activateTab, 
     openReservationDetailModal, 
     carregarSpotsDaListaEdoMapa,
-    handleReservationAction // 👇 Importe a nova função
+    handleReservationAction,
+    toggleParkingSheet // 👇 Importe a nova função
 } from './ui_handlers.js';
 import { setupAvailabilityFields } from './availability_manager.js';
 import { setupPhotoUpload } from './photo_upload.js';
@@ -71,6 +72,45 @@ async function initializeApplication() {
         // 5. Event listener DE CLIQUE GLOBAL (MODIFICADO)
         // Combinamos os listeners de clique aqui
         document.addEventListener("click", async (e) => {
+
+            const mobileBtn = e.target.closest(".mobile-nav-btn");
+    if (mobileBtn) {
+        e.preventDefault();
+        const tabId = mobileBtn.dataset.tab;
+        activateTab(tabId); // (Função do ui_handlers.js)
+        return;
+    }
+
+    // --- Lógica para o BOTÃO DE PERFIL MÓVEL (que abre o pop-up) ---
+    const profileMenuBtn = e.target.closest("#profile-menu-btn");
+    if (profileMenuBtn) {
+        e.preventDefault();
+        document.getElementById("profile-menu-modal").classList.toggle("hidden");
+        return;
+    }
+
+    // --- Lógica para as OPÇÕES DO POP-UP DE PERFIL ---
+    const profileMenuOption = e.target.closest(".profile-menu-option");
+    if (profileMenuOption) {
+        e.preventDefault();
+        const tabId = profileMenuOption.dataset.tab;
+        activateTab(tabId); // Ativa a aba
+        document.getElementById("profile-menu-modal").classList.add("hidden"); // Esconde o modal
+        return;
+    }
+
+    const sheetHandle = e.target.closest("#sheet-handle");
+    if (sheetHandle) {
+        // (Assumindo que a função está em ui_handlers.js)
+        toggleParkingSheet(); 
+        return;
+    }
+    
+    // Esconde o pop-up de perfil se clicar em qualquer outro lugar
+    const profileModal = document.getElementById("profile-menu-modal");
+    if (profileModal && !profileModal.classList.contains("hidden") && !e.target.closest("#profile-menu-btn")) {
+        profileModal.classList.add("hidden");
+    }
             
             // Lógica para abrir modal de reserva (clique no card da lista)
             const openModalBtn = e.target.closest(".open-reservation-modal");

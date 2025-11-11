@@ -571,7 +571,7 @@ def send_verification_email_async(subject, message, from_email, recipient_list):
     """ Envia e-mail em uma thread separada para não bloquear a view """
     try:
         send_mail(subject, message, from_email, recipient_list, fail_silently=False)
-        print(f"E-mail de verificação enviado para {recipient_list[0]}")
+        print(f"E-mail de verificação (via SendGrid) enviado para {recipient_list[0]}")
     except Exception as e:
         # Em uma thread, não podemos falar com o usuário.
         # Apenas registramos o erro no console.
@@ -591,32 +591,23 @@ def registrar_usuario(request):
             
             user.save()
 
-            # --- LÓGICA DE E-MAIL (MODO SÍNCRONO/TRAVADO) ---
-            # Vamos forçar o erro a aparecer.
-            try:
-                subject = 'Seu Código de Verificação do ParkShare'
-                message = f'Olá! Seu código para ativar a conta ParkShare é: {user.email_verification_code}'
-                
-                print(">>> TENTANDO ENVIAR E-MAIL (MODO DE TESTE SÍNCRONO)...")
-                
-                send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL, # Use o DEFAULT_FROM_EMAIL
-                    recipient_list=[user.email],
-                    fail_silently=False, # Isso força o erro a aparecer!
-                )
-                
-                print(">>> E-MAIL ENVIADO (MODO SÍNCRONO).")
-
-            except Exception as e:
-                # Se falhar, o erro completo aparecerá no terminal AGORA
-                print(f">>> ERRO DETALHADO DO SEND_MAIL: {e}") 
-                user.delete() # Deleta o usuário que falhou ao enviar
-                form.add_error(None, f"Houve um erro ao enviar o e-mail de confirmação. Tente novamente mais tarde.")
-                return render(request, "parking/registrar.html", {"form": form})
-            # --- FIM DA MUDANÇA ---
+            # --- LÓGICA DE E-MAIL MODIFICADA ---
+            # 3. USE A THREAD PARA CHAMAR A FUNÇÃO
             
+            subject = 'Seu Código de Verificação do ParkShare'
+            message = f'Olá! Seu código para ativar a conta ParkShare é: {user.email_verification_code}'
+            
+            # Cria a thread
+            email_thread = threading.Thread(
+                target=send_verification_email_async,
+                args=(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+            )
+            # Inicia a thread (a view não vai esperar por isso)
+            email_thread.start()
+            
+            # --- FIM DA MODIFICAÇÃO ---
+            
+            # A view continua IMEDIATAMENTE para cá
             request.session['user_id_to_verify'] = user.id
             return redirect('parking:verificar_codigo')
     else:

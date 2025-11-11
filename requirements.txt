@@ -7,3 +7,7 @@ geopy
 django-filters
 django-widget-tweaks
 Pillow
+django-filter
+channels
+django-cors-headers
+django-widget-tweaks
