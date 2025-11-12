@@ -28,3 +28,23 @@
     transform: translate-x-0 -translate-y-0 scale-100; /* Volta para a posição original e tamanho normal */
     opacity: 1; /* Torna visível */
 }
+
+.price-marker {
+  /* Forma e Cor */
+  background-color: white;
+  /* 👇 REDUZIDO: Padding horizontal e vertical */
+  padding: 4px 8px;           /* Antes: 6px 12px */ 
+  border-radius: 9999px;      /* Forma de pílula (oval) */
+  border: 1px solid #E0E0E0;  /* Borda cinza sutil */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 👇 REDUZIDO: Sombra mais suave */
+
+  /* Texto */
+  /* 👇 REDUZIDO: Tamanho da fonte */
+  font-size: 12px;            /* Antes: 14px */
+  font-weight: 700; /* bold */
+  color: #333;
+  white-space: nowrap; /* Impede que o texto quebre a linha */
+
+  /* Posicionamento */
+  transform: translate(-50%, -50%);
+}

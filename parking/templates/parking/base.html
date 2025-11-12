@@ -18,12 +18,6 @@
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
-    <script 
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places,marker&map_ids=78fe22b3d0432217499196a4">
-        async
-        defer
-    </script>
-
     <link rel="stylesheet" href="{% static 'parking/css/style.css' %}" />
 
     <style>
@@ -47,7 +41,10 @@
     
     {% block extra_head %}{% endblock %}
 
-    
+    <script 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCIksVaLbJTz4VIoPUk3wD2gqEi6Q72qk4&libraries=places,marker&map_ids=78fe22b3d0432217499196a4">
+    </script>
+
 </head>
 
 <body class="bg-gray-50 flex flex-col min-h-screen">
@@ -69,7 +66,7 @@
     </div>
 </nav>
 
-<main class="container mx-auto p-4 flex-grow">
+<main class="flex-grow">
     {% block content %}{% endblock %}
 </main>
 

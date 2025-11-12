@@ -29,28 +29,37 @@ export function adicionarMarkerSpot(spot) {
         return null;
     }
 
-    // Remove o marcador antigo se ele existir para evitar duplicatas
     if (window.spotMarkers[spot.id]) {
-        window.spotMarkers[spot.id].map = null; // Desvincula do mapa para Advanced Markers
+        window.spotMarkers[spot.id].map = null;
         delete window.spotMarkers[spot.id];
     }
 
     const position = { lat: Number(spot.latitude), lng: Number(spot.longitude) };
 
-    // Criando um elemento personalizado para o ícone
-    const markerContent = document.createElement('div');
-    markerContent.className = 'custom-marker-spot'; // Classe para estilizar este marcador específico
-    markerContent.innerHTML = `<i class="fas fa-map-marker-alt text-indigo-600 text-3xl"></i>`;
+    // --- INÍCIO DA ATUALIZAÇÃO ---
 
-    const marker = new MarkerClass({ // Usando MarkerClass (que será AdvancedMarkerElement)
-        map: map, // Usando a variável 'map' exportada
+    // 1. Formatar o preço (ex: 20.00 -> 20)
+    const priceText = Math.round(parseFloat(spot.price_hour));
+
+    // 2. Criar o novo elemento HTML para o marcador
+    const markerContent = document.createElement('div');
+    
+    // 3. Aplicar a nova classe CSS (que definiremos no style.css)
+    markerContent.className = 'price-marker';
+    
+    // 4. Definir o conteúdo (ex: "R$20")
+    markerContent.innerHTML = `R$${priceText}`;
+    
+    // --- FIM DA ATUALIZAÇÃO ---
+
+    const marker = new MarkerClass({
+        map: map,
         position: position,
         title: spot.title,
-        content: markerContent,
+        content: markerContent, // 👈 Aqui ele usa seu HTML customizado
         gmpDraggable: false, 
     });
 
-    // Dispara um evento customizado que ui_handlers.js pode ouvir
     marker.addListener("click", () => {
         document.dispatchEvent(new CustomEvent("spotMarkerClicked", { detail: spot }));
     });
@@ -108,11 +117,12 @@ export function localizarUsuario() {
     );
 }
 
-export function configurarBuscaEndereco() {
-    const btn = document.getElementById("buscarCepBtn");
-    const input = document.getElementById("cepInput");
-    if (!btn || !input || !map || !SearchBoxClass || !MarkerClass) { // Usando 'map' exportado
-        console.warn("Elementos de busca de endereço não encontrados, mapa, SearchBoxClass ou MarkerClass não inicializados.");
+export function configurarBuscaEndereco(inputId) {
+    const btn = document.getElementById(inputId === 'cepInput' ? 'buscarCepBtn' : 'buscarCepBtnDesktop');
+    const input = document.getElementById(inputId);
+
+    if (!btn || !input || !map || !SearchBoxClass || !MarkerClass) { 
+        console.warn(`Elementos de busca (${inputId}) não encontrados ou mapa/libs não inicializados.`);
         return;
     }
 
@@ -255,18 +265,27 @@ export async function carregarSpots(spots) { // Recebe 'spots' como argumento
     }
 }
 
-export async function initMap() {
+export async function initMap(mapId) {
     console.log("initMap: Iniciando carregamento de bibliotecas do Google Maps...");
     try {
-        if (map) { // Usando 'map' exportado
-            console.log("initMap: Mapa já existe, não reinicializando.");
-            localizarUsuario(); // Atualiza a localização do usuário no mapa existente
-            return;
+        // --- LÓGICA DE VERIFICAÇÃO CORRIGIDA ---
+        if (map) {
+            // Um mapa já existe. Ele está no div correto?
+            if (map.getDiv() && map.getDiv().id === mapId) {
+                // Sim, o mapa já existe no div correto. Apenas centralize.
+                console.log(`initMap: Mapa já existe no elemento #${mapId}.`);
+                localizarUsuario(); 
+                return;
+            } else {
+                // Não! O mapa existe, mas no div errado (ex: no #map e agora queremos o #mapDesktop)
+                // Precisamos forçar a recriação.
+                console.log(`initMap: Mapa existe em #${map.getDiv().id}, mas o alvo é #${mapId}. Recriando.`);
+                map = null; // Define o mapa como nulo para forçar a recriação abaixo
+            }
         }
 
         const mapsLib = await google.maps.importLibrary("maps");
         MapClass = mapsLib.Map;
-        // Tenta usar AdvancedMarkerElement, fallback para Marker clássico se não disponível/ativado
         MarkerClass = (await google.maps.importLibrary("marker")).AdvancedMarkerElement || mapsLib.Marker;
 
         const placesLib = await google.maps.importLibrary("places");
@@ -279,15 +298,16 @@ export async function initMap() {
 
         console.log("initMap: Bibliotecas Google Maps carregadas.");
 
-        const mapElement = document.getElementById("map");
+        const mapElement = document.getElementById(mapId);
         if (!mapElement) {
-            console.error("initMap: Elemento #map não encontrado no DOM. O mapa não pode ser inicializado.");
+            // A mensagem de erro agora usa o mapId dinâmico
+            console.error(`initMap: Elemento #${mapId} não encontrado no DOM. O mapa não pode ser inicializado.`);
             throw new Error("Elemento do mapa não encontrado.");
         }
 
         // Tenta obter a localização atual do usuário como centro inicial
-        let initialLat = -26.3026; // Latitude padrão (Joinville, SC)
-        let initialLng = -48.8475; // Longitude padrão (Joinville, SC)
+        let initialLat = -26.3026; 
+        let initialLng = -48.8475; 
         try {
             const position = await new Promise((resolve, reject) => {
                 if (navigator.geolocation) {
@@ -298,33 +318,31 @@ export async function initMap() {
             });
             initialLat = position.coords.latitude;
             initialLng = position.coords.longitude;
-            console.log("initMap: Localização atual obtida:", initialLat, initialLng);
         } catch (error) {
-            console.warn("initMap: Erro ao obter localização atual ou não suportado. Usando localização padrão.", error);
+            console.warn("initMap: Erro ao obter localização. Usando padrão.", error);
         }
 
         map = new MapClass(mapElement, {
-            center: { lat: initialLat, lng: initialLng }, // Usando a localização obtida ou padrão
-            zoom: 15, // Zoom um pouco maior para a localização inicial
-            mapId: "78fe22b3d0432217499196a4", // ID do mapa
+            center: { lat: initialLat, lng: initialLng }, 
+            zoom: 15,
+            mapId: "78fe22b3d0432217499196a4", 
             mapTypeId: "roadmap",
-            disableDefaultUI: true, // Para ter controle manual dos controles
+            disableDefaultUI: true, 
             zoomControl: true,
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
         });
-        console.log("initMap: Mapa principal inicializado.");
+        console.log(`initMap: Mapa principal inicializado em #${mapId}.`);
 
-        localizarUsuario(); // Chama a função para adicionar o marcador do usuário
-
-        console.log("initMap: Funções dependentes do mapa chamadas (pós-inicialização).");
+        localizarUsuario(); 
+        console.log("initMap: Funções dependentes do mapa chamadas.");
 
     } catch (error) {
-        console.error("initMap: Erro fatal ao inicializar o mapa ou carregar bibliotecas:", error);
-        const mapElement = document.getElementById("map");
+        console.error("initMap: Erro fatal ao inicializar o mapa:", error);
+        const mapElement = document.getElementById(mapId);
         if (mapElement) {
-            mapElement.innerHTML = "<p class='text-red-500 text-center p-4'>Não foi possível carregar o mapa. Por favor, verifique sua conexão, chave da API ou Map ID.</p>";
+            mapElement.innerHTML = "<p class='text-red-500 text-center p-4'>Não foi possível carregar o mapa.</p>";
         }
     }
 }

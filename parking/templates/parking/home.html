@@ -11,28 +11,27 @@
 
 {% block content %}
 <!-- Tabs -->
-<div class="hidden md:flex border-b border-gray-200">
-    <button class="tab-btn px-4 py-2 font-medium text-indigo-600 border-b-2 border-indigo-600" data-tab="parkings">Vagas Disponíveis</button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="add-parking">Divulgar Vaga</button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-parkings">Minhas Vagas</button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-reservations">Minhas Reservas</button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="requests">Solicitações
+<div class="hidden md:flex border-b border-gray-200 container mx-auto w-full">
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-indigo-600 border-b-2 border-indigo-600" data-tab="parkings">Vagas Disponíveis</button>
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="add-parking">Divulgar Vaga</button>
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-parkings">Minhas Vagas</button>
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="my-reservations">Minhas Reservas</button>
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="requests">Solicitações
     <span id="requests-count-badge" class="hidden ml-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full"></span>
 </button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="chat">Chat</button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="profile">Perfil</button>
-    <button class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="settings">Configurações</button>    
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="chat">Chat</button>
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="profile">Perfil</button>
+    <button class="tab-btn flex-1 text-center px-4 py-2 font-medium text-gray-500 hover:text-indigo-500" data-tab="settings">Configurações</button>   
 </div>
 
 <!-- Parkings Tab -->
-<div id="parkings" class="tab-content active">
+<div id="parkings" class="tab-content container mx-auto p-4">
 
-    <div class="hidden md:block">
+    <div class="hidden md:block container mx-auto p-4">
         <div class="bg-white rounded-lg shadow-md p-4">
             <div class="flex flex-row space-x-4">
                 
                 <div class="w-1/2 flex flex-col">
-                    
                     <div>
                         <h3 class="text-lg font-semibold">Pesquisar Localização</h3>
                         <div class="flex space-x-2 mt-2">
@@ -42,14 +41,12 @@
                             </button>
                         </div>
                     </div>
-                    
                     <div class="map-container-desktop mt-4 rounded-lg shadow-md overflow-hidden relative flex-grow">
-                        <div id="mapDesktop" class="w-full h-full" style="min-height: 600px;"></div>
+                        <div id="mapDesktop" class="w-full h-full" style="min-height: 550px;"></div>
                     </div>
                 </div>
 
                 <div class="w-1/2 flex flex-col">
-                    
                     <div class="flex-shrink-0">
                         <h3 class="text-lg font-semibold">Vagas Próximas</h3>
                         <div class="flex space-x-2 mt-3 mb-4">
@@ -64,8 +61,7 @@
                             </button>
                         </div>
                     </div>
-                    
-                    <div id="parkingDesktop" class="flex-grow overflow-y-auto space-y-4" style="height: 600px;">
+                    <div id="parkingDesktop" class="flex-grow overflow-y-auto space-y-4" style="height: 550px;">
                         </div>
                 </div>
 
@@ -89,17 +85,14 @@
             </div>
 
             <div id="map-container" class="fixed inset-0 z-10">
-                <div id="map" class="w-full h-full"></div>
-            </div>
+                <div id="map" class="w-full h-full"></div> </div>
 
             <div id="parking-sheet" class="fixed bottom-[60px] left-0 right-0 z-30 transition-transform duration-300 ease-in-out">
                 <div class="bg-white rounded-t-lg shadow-2xl h-[80vh] flex flex-col">
-                    
                     <div id="sheet-handle" class="w-full p-4 text-center cursor-pointer border-b">
                         <span class="inline-block w-10 h-1 bg-gray-300 rounded-full"></span>
                         <h3 id="sheet-title" class="font-semibold text-lg mt-2">Vagas Próximas</h3>
                     </div>
-
                     <div class="sheet-content p-4 overflow-y-auto">
                         <div class="flex space-x-2 mb-4">
                             <select class="border border-gray-300 rounded px-2 py-2 text-sm w-2/3">
@@ -107,7 +100,7 @@
                                 <option>Ordenar por: Preço</option>
                                 <option>Ordenar por: Avaliação</option>
                             </select>
-                            <button class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 flex items-center w-1/3 justify-center">
+                            <button class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 flex items-center w-1s/3 justify-center">
                                 <i class="fas fa-filter mr-1"></i> 
                                 <span>Filtrar</span>
                             </button>
@@ -122,7 +115,7 @@
 </div>
 
 <!-- Add Parking Tab -->
-<div id="add-parking" class="tab-content mt-4">
+<div id="add-parking" class="tab-content container mx-auto p-4">
   <div class="bg-white rounded-lg shadow-md p-6">
     <h2 class="text-xl font-bold text-gray-800 mb-4">Divulgar Nova Vaga</h2>
     
@@ -224,12 +217,12 @@
   </div>
 </div>
 
-<div id="my-reservations" class="tab-content hidden" data-display-flex="false">
+<div id="my-reservations" class="tab-content container mx-auto p-4" data-display-flex="false">
     <div id="myReservationsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4"></div>
 </div>
 
 
-<div id="my-parkings" class="tab-content mt-4">
+<div id="my-parkings" class="tab-content container mx-auto p-4">
   <div class="bg-white rounded-lg shadow-md p-6">
     <h2 class="text-xl font-bold text-gray-800 mb-4">Minhas Vagas Cadastradas</h2>
     <div id="myVagasContainer" class="space-y-4">
@@ -257,7 +250,7 @@
 </div>
 
 <!-- Chat Tab -->
-<div id="chat" class="tab-content mt-4 hidden">
+<div id="chat" class="tab-content container mx-auto p-4">
     <div class="flex flex-col md:flex-row gap-6">
         <div class="w-full md:w-1/3 bg-white rounded-lg shadow-md overflow-hidden">
             <div class="p-4 border-b">
@@ -296,7 +289,7 @@
 </div>
 
 <!-- Profile Tab -->
-<div id="profile" class="tab-content mt-4">
+<div id="profile" class="tab-content container mx-auto p-4">
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center mb-6">
             <div class="relative">
@@ -355,7 +348,7 @@
 </div>
 
 <!-- Settings Tab -->
-<div id="settings" class="tab-content mt-4">
+<div id="settings" class="tab-content container mx-auto p-4">
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-bold text-gray-800 mb-6">Configurações</h2>
         
@@ -857,7 +850,7 @@
   </div>
 </div>
 
-<div id="requests" class="tab-content mt-4 hidden">
+<div id="requests" class="tab-content container mx-auto p-4">
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-bold text-gray-800 mb-4">Solicitações de Reserva Pendentes</h2>
         

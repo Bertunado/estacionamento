@@ -24,6 +24,35 @@ import {
     fetchMySpots 
 } from './api_services.js';
 // Não precisamos importar as novas funções da API aqui, pois elas são usadas pelo ui_handlers
+let resizeTimer;
+let isMobile = window.innerWidth < 768;
+
+// --- LÓGICA DE DETECÇÃO DE REDIMENSIONAMENTO ---
+
+window.addEventListener('resize', () => {
+    // Limpa o timer anterior para não rodar o código mil vezes
+    clearTimeout(resizeTimer);
+    
+    // Cria um novo timer. O código só roda 250ms *depois* que o usuário PARAR de redimensionar.
+    resizeTimer = setTimeout(() => {
+        const newIsMobile = window.innerWidth < 768;
+        
+        // O código só roda se o estado mudou (ex: de celular para desktop)
+        if (newIsMobile !== isMobile) {
+            console.log(`Breakpoint cruzado! Novo estado: ${newIsMobile ? 'Mobile' : 'Desktop'}`);
+            isMobile = newIsMobile; // Atualiza o estado
+            
+            // Verifica se a aba "Vagas" é a que está ativa
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab && activeTab.id === 'parkings') {
+                
+                // Se for, re-chama o activateTab para redesenhar o mapa no lugar certo!
+                console.log("Re-ativando 'parkings' para o novo tamanho de tela.");
+                activateTab('parkings');
+            }
+        }
+    }, 250); 
+});
 
 async function initializeApplication() {
     console.log("main.js: Inicializando aplicação...");
@@ -40,31 +69,34 @@ async function initializeApplication() {
             alert("Você foi desconectado.")
         );
 
-        // 2. Inicializar o mapa e aguardar sua conclusão
-        await initMap();
-        console.log("main.js: Mapa base inicializado e pronto.");
+        // 2. REMOVIDA A CHAMADA DE initMap() DAQUI.
+        //    O mapa SÓ deve ser inicializado pelo activateTab.
 
         // 3. Configurar event listeners para as abas
-        // Estes listeners dependem do mapa ter sido inicializado (especialmente a aba 'parkings')
         const tabButtons = document.querySelectorAll('.tab-btn');
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // A mágica acontece aqui! O activateTab (em ui_handlers.js)
-                // vai carregar o conteúdo da aba correta, incluindo a nova 'requests'
                 activateTab(button.dataset.tab);
             });
         });
 
         // 4. Ativar a aba padrão ('parkings') na carga inicial
+        // Esta chamada agora é a ÚNICA responsável por carregar o mapa.
         const initialTab = document.querySelector('.tab-btn[data-tab="parkings"]');
         if (initialTab) {
             await activateTab(initialTab.dataset.tab); 
             console.log("main.js: Aba 'parkings' ativada e spots carregados.");
         } else {
-            console.warn("main.js: Botão da aba 'parkings' não encontrado. Não foi possível ativar a aba inicial.");
+            // Se não houver abas (ex: em 'verificar_codigo.html'), 
+            // vamos tentar carregar o mapa do celular por padrão, se ele existir.
+            if (document.getElementById('map')) {
+                 await activateTab('parkings');
+            } else {
+                 console.warn("main.js: Botão da aba 'parkings' não encontrado. Não foi possível ativar a aba inicial.");
+            }
         }
 
-        // Event listener para marcadores do mapa (recebe do map_utilities)
+        // 5. Event listener para marcadores do mapa
         document.addEventListener("spotMarkerClicked", (event) => {
             openParkingDetailModal(event.detail); 
         });
