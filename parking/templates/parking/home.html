@@ -338,6 +338,12 @@
                         <input type="text" value="{{ perfil.placa_veiculo }}" class="border-0 border-b border-gray-300 w-full p-1 bg-transparent">
                     </div>
                 </div>
+
+                <div class="mt-8">
+    <h3 class="font-medium text-lg mb-4">Meus Favoritos</h3>
+    <div id="profile-favorites-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+</div>
                 
                 <button class="mt-6 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
                     Salvar Alterações
@@ -417,25 +423,23 @@
     </div> 
 </div>
 
-<div id="parking-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+<div id="parking-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end md:items-center justify-center hidden">
+    <div class="bg-white w-full md:w-full md:max-w-md h-[85vh] md:h-auto md:max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-lg shadow-xl relative">
         <div class="p-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800" id="modal-parking-title">(Titulo da Vaga)</h3>
-                <div class="bg-white rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-                    <div class="p-4">
-                     <input type="hidden" id="reservation-spot-id">
-
-                 </div>
-                            </div>
-                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-gray-800 flex-1 pr-4" id="modal-parking-title">
+                    (Titulo da Vaga)
+                </h3>
+                <input type="hidden" id="reservation-spot-id">
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700 flex-shrink-0 p-1 bg-gray-100 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
 
-            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/193711e1-47a8-44c3-86af-4c20ef678c94.png" alt="Vista ampla de garagem residencial com espaço para um carro médio e prateleiras de armazenamento" class="w-full h-48 object-cover rounded-lg mb-4" id="modal-parking-image">
+            <div id="modal-parking-main-image-wrapper" class="relative mb-4 w-full h-56 rounded-xl bg-gray-200">
+                </div>
 
                 <div class="mb-4">
                     <p class="text-gray-800" id="modal-parking-address">(Endereço da Vaga)</p>
@@ -585,7 +589,7 @@
                 </div>
             </div>
                 <div class="mt-6 flex justify-end space-x-3">
-                <button id="close-modal" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                <button id="btn-cancel-detail" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
                 <button id="confirm-reservation-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Confirmar Reserva</button>
             </div>
         </div>
@@ -860,6 +864,31 @@
         <p id="no-requests-message" class="text-center text-gray-500 mt-6 hidden">
             Você não tem nenhuma solicitação de reserva pendente.
         </p>
+    </div>
+</div>
+
+<div id="favorites-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[80vh]">
+        
+        <div class="flex justify-between items-center p-4 border-b">
+            <button id="close-favorites-modal" class="text-gray-500 hover:text-gray-900">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            <h3 class="text-lg font-bold text-gray-800">Salvar nesta lista</h3>
+            <div class="w-5"></div> 
+        </div>
+
+        <div class="p-6 overflow-y-auto">
+            <div id="favorites-list-container" class="grid grid-cols-2 gap-4">
+                </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 bg-white mt-auto">
+            <button id="create-fav-list-btn" class="w-full flex items-center justify-center space-x-2 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-black transition-colors shadow-md active:scale-[0.98] transform transition-transform">
+                <i class="fas fa-plus"></i>
+                <span>Criar nova lista de favoritos</span>
+            </button>
+        </div>
     </div>
 </div>
 

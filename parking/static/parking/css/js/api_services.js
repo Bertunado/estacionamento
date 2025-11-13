@@ -121,31 +121,35 @@ export async function updateSpot(spotId, payload) {
 }
 
 export async function uploadPhotos(spotId, files) {
-    if (!files.length) return;
+    if (!files || files.length === 0) return;
 
-    const csrfToken = getCsrfToken(); // Obtendo o token aqui
-    if (!csrfToken) {
-        throw new Error("CSRF token ausente. Não foi possível enviar as fotos.");
-    }
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) throw new Error("CSRF token ausente.");
 
-    const formData = new FormData();
-    formData.append("spot", spotId);
-    for (const file of files) {
-        formData.append("image", file);
-    }
+    // Cria um array de promessas (uma requisição por foto)
+    const uploadPromises = files.map(file => {
+        const formData = new FormData();
+        formData.append("spot", spotId);
+        formData.append("image", file); // Envia uma foto de cada vez
 
-    const resp = await fetch("/parking/api/photos/", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": csrfToken, // Usando a função para obter o token
-        },
-        body: formData,
+        return fetch("/parking/api/photos/", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken,
+            },
+            body: formData,
+        }).then(async response => {
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Erro ao enviar imagem ${file.name}: ${errText}`);
+            }
+            return response.json();
+        });
     });
-    if (!resp.ok) {
-        alert("Erro ao enviar fotos.");
-        throw new Error("Erro ao enviar fotos.");
-    }
-    return resp.json();
+
+    // Espera todas as fotos serem enviadas antes de continuar
+    // Se você enviou 3 fotos, ele vai esperar as 3 terminarem.
+    return await Promise.all(uploadPromises);
 }
 
 export async function saveAvailabilities(spotId, availabilities) {

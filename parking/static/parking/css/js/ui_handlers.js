@@ -12,6 +12,7 @@ import { showToast } from './chat_loader.js';
 import { showConfirmModal } from './confirmations.js';
 import { initializeReservationComponents } from './calendar.js';
 import { formatarTamanhoVaga, formatarTipoVaga, formatarHorarioDisponivelModal, formatDateToISO  } from './format.js';
+import { favoritedSpotIds, saveFavoritesToStorage } from './globals.js';
 
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
@@ -134,6 +135,95 @@ export async function activateTab(tabName) {
     }
 }
 
+export function openFavoritesModal(spot) {
+    const modal = document.getElementById('favorites-modal');
+    if (!modal) return;
+
+    modal.dataset.currentSpotId = spot.id;
+    renderFavoriteListsInModal(spot.id);
+    modal.classList.remove('hidden');
+}
+
+// Desenha os quadrados das listas dentro do modal
+function renderFavoriteListsInModal(spotId) {
+    const container = document.getElementById('favorites-list-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    favoriteLists.forEach(list => {
+        // Verifica se a vaga já está NESTA lista
+        const isSaved = list.spots.includes(String(spotId)) || list.spots.includes(parseInt(spotId));
+        
+        const card = document.createElement('div');
+        card.className = "cursor-pointer group relative";
+        card.onclick = () => toggleSpotInList(list.id, spotId);
+
+        // Placeholder de imagem (pode melhorar isso depois pegando a foto da 1ª vaga)
+        const coverImage = isSaved 
+            ? `<div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-500"><i class="fas fa-check text-3xl"></i></div>`
+            : `<div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300 group-hover:bg-gray-200"><i class="fas fa-heart text-3xl"></i></div>`;
+
+        card.innerHTML = `
+            <div class="aspect-square rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-2 transition-transform transform group-hover:scale-105">
+                ${coverImage}
+            </div>
+            <h4 class="text-sm font-bold text-gray-800 truncate">${list.name}</h4>
+            <p class="text-xs text-gray-500">${list.spots.length} vaga(s)</p>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// Salva ou remove a vaga da lista clicada
+function toggleSpotInList(listId, spotId) {
+    const list = favoriteLists.find(l => l.id === listId);
+    if (!list) return;
+
+    const idStr = String(spotId);
+    const index = list.spots.indexOf(idStr);
+
+    if (index > -1) {
+        list.spots.splice(index, 1); // Remove
+    } else {
+        list.spots.push(idStr); // Adiciona
+        // Fecha o modal ao salvar (opcional, estilo Airbnb)
+        document.getElementById('favorites-modal').classList.add('hidden');
+    }
+    
+    saveListsToStorage();
+    updateAllHeartIcons(spotId); // Atualiza os corações na tela principal
+    renderFavoriteListsInModal(spotId); // Atualiza o modal se ele continuar aberto
+}
+
+// Cria uma nova lista
+export function setupFavoritesLogic() {
+    document.getElementById("create-fav-list-btn")?.addEventListener("click", () => {
+        const name = prompt("Nome da nova lista:");
+        if (name) {
+            favoriteLists.push({ id: Date.now().toString(), name: name, spots: [] });
+            saveListsToStorage();
+            // Atualiza o modal
+            const modal = document.getElementById('favorites-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                renderFavoriteListsInModal(modal.dataset.currentSpotId);
+            }
+        }
+    });
+
+    document.getElementById("close-favorites-modal")?.addEventListener("click", () => {
+        document.getElementById("favorites-modal").classList.add("hidden");
+    });
+}
+
+// Atualiza a cor do coração na tela principal
+export function updateAllHeartIcons(spotId) {
+    const isFav = isSpotFavorited(spotId);
+    const btns = document.querySelectorAll(`.btn-favorite[data-spot-id="${spotId}"] i`);
+    btns.forEach(icon => {
+        icon.className = isFav ? "fas fa-heart text-red-500 text-lg" : "far fa-heart text-gray-400 text-lg";
+    });
+}
+
 export function toggleParkingSheet() {
     const sheet = document.getElementById('parking-sheet');
     const sheetTitle = document.getElementById('sheet-title');
@@ -148,6 +238,38 @@ export function toggleParkingSheet() {
             sheetTitle.textContent = "Vagas Próximas";
         }
     }
+}
+
+export function renderProfileFavorites() {
+    const container = document.getElementById('profile-favorites-container'); // Você precisará criar este DIV no seu home.html dentro da aba de perfil
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    if (favoriteLists.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">Você ainda não tem listas de favoritos.</p>';
+        return;
+    }
+
+    favoriteLists.forEach(list => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-shadow";
+        
+        card.innerHTML = `
+            <div class="w-16 h-16 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500">
+                <i class="fas fa-heart text-2xl"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-gray-800">${list.name}</h4>
+                <p class="text-sm text-gray-500">${list.spots.length} vaga(s) salva(s)</p>
+            </div>
+        `;
+        
+        // Ao clicar, poderia abrir uma lista com as vagas (futuro)
+        card.onclick = () => alert(`Abrir lista: ${list.name} (Implementar visualização de vagas)`);
+        
+        container.appendChild(card);
+    });
 }
 
 async function loadReservationRequests() {
@@ -220,9 +342,6 @@ function createRequestCard(request) {
     return card;
 }
 
-/**
- * Lida com o clique de aprovar/recusar, chamado pelo main.js
- */
 export async function handleReservationAction(id, action) {
     try {
         const result = await updateReservationStatus(id, action); // Chama a API
@@ -301,23 +420,23 @@ export async function carregarSpotsDaListaEdoMapa() {
 }
 
 export function renderSpot(spot, listId) {
-    if (!spot || !spot.id) {
-        console.warn("renderSpot: Spot inválido:", spot);
-        return;
-    }
-
-    // Agora ele encontra o contêiner específico que foi passado (parking ou parkingDesktop)
-    const list = document.getElementById(listId); 
-    if (!list) {
-        console.warn(`renderSpot: Contêiner de lista com ID "${listId}" não encontrado.`);
-        return;
-    }
+    if (!spot || !spot.id) return;
+    const list = document.getElementById(listId);
+    if (!list) return;
 
     const card = document.createElement("div");
-    card.className = "border border-gray-200 rounded-lg p-3 hover:bg-gray-50 mb-2 cursor-pointer";
+    card.className = "border border-gray-200 rounded-lg p-3 hover:bg-gray-50 mb-2 cursor-pointer relative group";
     card.setAttribute("data-spot-id", spot.id);
-    const formattedTipoVaga = formatarTipoVaga(spot.tipo_vaga); 
+
+    const formattedTipoVaga = formatarTipoVaga(spot.tipo_vaga);
     const formattedTamanhoVaga = formatarTamanhoVaga(spot.size);
+    
+    // 1. Verifica se já é favorito na nossa lista global
+    const isFav = favoritedSpotIds.has(spot.id);
+    // Define as classes iniciais (Vermelho Sólido ou Cinza Outline)
+    const heartClass = isFav ? "fas fa-heart text-red-500" : "far fa-heart text-gray-400";
+
+    const photos = (spot.photos && spot.photos.length > 0) ? spot.photos : ['/static/parking/css/images/placeholder.png'];
 
     card.innerHTML = `
         <div class="flex justify-between items-start">
@@ -337,13 +456,32 @@ export function renderSpot(spot, listId) {
             <p class="text-sm text-gray-500">${formattedTipoVaga}</p>
         </div>
 
-        <div class="mt-2">
+        <div class="mt-2 relative w-full h-48 rounded overflow-hidden group/carousel">
             <img
-                src="${spot.photos && spot.photos.length > 0 ? spot.photos[0] : '/static/parking/css/images/placeholder.png'}"
+                src="${photos[0]}"
                 alt="${spot.description || spot.title}"
-                class="w-full h-32 object-cover rounded"
+                class="w-full h-full object-cover carousel-image transition-opacity duration-300"
+                data-current-index="0"
                 onerror="this.onerror=null;this.src='/static/parking/css/images/placeholder.png';"
             />
+            
+            ${photos.length > 1 ? `
+                <button class="carousel-prev absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 rounded-full p-1.5 shadow-md opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10 hover:scale-110">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <button class="carousel-next absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 rounded-full p-1.5 shadow-md opacity-0 group-hover/carousel:opacity-100 transition-opacity z-10 hover:scale-110">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+                <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1.5 z-10 pointer-events-none">
+                    ${photos.map((_, idx) => `
+                        <div class="w-1.5 h-1.5 rounded-full shadow-sm transition-colors duration-200 ${idx === 0 ? 'bg-white' : 'bg-white/50'} carousel-dot" data-idx="${idx}"></div>
+                    `).join('')}
+                </div>
+            ` : ''}
         </div>
 
         <div class="flex justify-between items-center mt-3">
@@ -356,6 +494,15 @@ export function renderSpot(spot, listId) {
     `;
     list.prepend(card);
 
+    const favBtn = card.querySelector(".btn-favorite");
+    if (favBtn) {
+        favBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            
+            openFavoritesModal(spot);
+        });
+    }
+
     const reservarBtn = card.querySelector(".btn-reservar");
     if (reservarBtn) {
         reservarBtn.addEventListener("click", (event) => {
@@ -365,6 +512,40 @@ export function renderSpot(spot, listId) {
         });
     }
 
+    if (photos.length > 1) {
+        const imgElement = card.querySelector('.carousel-image');
+        const prevBtn = card.querySelector('.carousel-prev');
+        const nextBtn = card.querySelector('.carousel-next');
+        const dots = card.querySelectorAll('.carousel-dot');
+
+        const updateImage = (newIndex) => {
+            imgElement.src = photos[newIndex];
+            imgElement.dataset.currentIndex = newIndex;
+            dots.forEach((dot, idx) => {
+                if (idx === newIndex) {
+                    dot.classList.remove('bg-white/50');
+                    dot.classList.add('bg-white');
+                } else {
+                    dot.classList.add('bg-white/50');
+                    dot.classList.remove('bg-white');
+                }
+            });
+        };
+
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            let idx = parseInt(imgElement.dataset.currentIndex);
+            idx = (idx - 1 + photos.length) % photos.length;
+            updateImage(idx);
+        });
+
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            let idx = parseInt(imgElement.dataset.currentIndex);
+            idx = (idx + 1) % photos.length;
+            updateImage(idx);
+        });
+    }
 
     const editBtn = card.querySelector('[data-action="editar"]');
     if (editBtn) {
@@ -841,14 +1022,19 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
 }
 
 // Atualiza os cards de vagas no mapa e na lista
-export function openParkingDetailModal(spotDetails) {
+// ui_handlers.js
+
+export async function openParkingDetailModal(spotDetails) {
     const modal = document.getElementById('parking-detail-modal');
     if (!modal) {
         console.error("Erro: Modal de detalhes da vaga (parking-detail-modal) não encontrado.");
         return;
     }
 
-    // Preenche os dados da modal
+    // Esconde a modal por padrão e mostra apenas depois de preencher tudo para evitar piscar de conteúdo
+    modal.classList.add('hidden'); // Certifique-se de que está escondida no início
+
+    // Preenche os dados textuais da modal
     document.getElementById("modal-parking-title").textContent = spotDetails.title;
     document.getElementById("modal-parking-address").textContent = spotDetails.address;
     document.getElementById("modal-parking-description").textContent = spotDetails.description;
@@ -860,24 +1046,105 @@ export function openParkingDetailModal(spotDetails) {
         console.error("Erro: Elemento reservation-spot-id não encontrado.");
     }
     
-    document.getElementById('parking-detail-modal').classList.remove('hidden');
+    // --- LÓGICA DO CARROSSEL DE IMAGENS DA VAGA (CORRIGIDA) ---
+    
+    // 1. Prepara as fotos
+    const photos = (spotDetails.photos && spotDetails.photos.length > 0) 
+        ? spotDetails.photos 
+        : ['/static/parking/css/images/placeholder.png'];
+    
+    // 2. Encontra o container da imagem principal da vaga no modal
+    // Este é o container que você mostrou na Imagem 2 (do carro)
+    const modalMainImageWrapper = modal.querySelector('#modal-parking-main-image-wrapper'); // <--- NOVO ID NO HTML
 
-    // Atualiza a imagem da vaga
-    const modalImage = document.getElementById("modal-parking-image");
-    if (modalImage) {
-        if (spotDetails.photos && spotDetails.photos.length > 0 && typeof spotDetails.photos[0] === 'string') {
-            modalImage.src = spotDetails.photos[0];
-        } else {
-            modalImage.src = '/static/parking/css/images/placeholder.png';
+    if (modalMainImageWrapper) {
+        // Estado do botão de favorito
+        const isFavorite = spotDetails.is_favorite || false;
+        const heartIconClass = isFavorite ? "fas fa-heart text-red-500" : "far fa-heart text-gray-500";
+
+        modalMainImageWrapper.innerHTML = `
+            <div class="relative w-full h-56 rounded-xl overflow-hidden group/modal-carousel">
+                <img
+                    src="${photos[0]}"
+                    alt="${spotDetails.title}"
+                    class="w-full h-full object-cover modal-carousel-image transition-opacity duration-300"
+                    data-current-index="0"
+                    id="modal-parking-image"
+                    onerror="this.onerror=null;this.src='/static/parking/css/images/placeholder.png';"
+                />
+                
+                <button id="modal-favorite-btn" class="absolute top-3 right-3 z-20 bg-white p-2 rounded-full shadow-md hover:scale-105 transition-transform focus:outline-none group">
+                    <i class="${heartIconClass} text-lg"></i>
+                </button>
+
+                ${photos.length > 1 ? `
+                    <button class="modal-carousel-prev absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 rounded-full p-2 shadow-md opacity-0 group-hover/modal-carousel:opacity-100 transition-opacity z-10 hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button class="modal-carousel-next absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 rounded-full p-2 shadow-md opacity-0 group-hover/modal-carousel:opacity-100 transition-opacity z-10 hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                    
+                    <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1.5 z-10 pointer-events-none">
+                        ${photos.map((_, idx) => `
+                            <div class="w-2 h-2 rounded-full shadow-sm transition-colors duration-200 ${idx === 0 ? 'bg-white' : 'bg-white/50'} modal-carousel-dot" data-idx="${idx}"></div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        // --- Lógica JS para o Carrossel do Modal ---
+        if (photos.length > 1) {
+            // Seletor corrigido para usar a classe do carrossel do modal
+            const imgElement = modalMainImageWrapper.querySelector('.modal-carousel-image'); 
+            const prevBtn = modalMainImageWrapper.querySelector('.modal-carousel-prev');
+            const nextBtn = modalMainImageWrapper.querySelector('.modal-carousel-next');
+            const dots = modalMainImageWrapper.querySelectorAll('.modal-carousel-dot');
+
+            const updateImage = (newIndex) => {
+                imgElement.src = photos[newIndex];
+                imgElement.dataset.currentIndex = newIndex;
+                dots.forEach((dot, idx) => {
+                    if (idx === newIndex) {
+                        dot.classList.remove('bg-white/50');
+                        dot.classList.add('bg-white');
+                    } else {
+                        dot.classList.add('bg-white/50');
+                        dot.classList.remove('bg-white');
+                    }
+                });
+            };
+
+            prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                let idx = parseInt(imgElement.dataset.currentIndex);
+                idx = (idx - 1 + photos.length) % photos.length;
+                updateImage(idx);
+            });
+
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                let idx = parseInt(imgElement.dataset.currentIndex);
+                idx = (idx + 1) % photos.length;
+                updateImage(idx);
+            });
         }
-        modalImage.alt = spotDetails.description || spotDetails.title;
+    } else {
+        console.error("Erro: Container #modal-parking-main-image-wrapper não encontrado no modal.");
     }
+    // --- FIM DA LÓGICA DO CARROSSEL ---
+
 
     // Formata o preço por hora
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceHourFormatted = isNaN(priceHour) ? 'N/A' : `R$ ${priceHour.toFixed(2).replace('.', ',')}/h`;
 
-    // Preenche os novos campos detalhados
+    // Preenche os campos de detalhes
     document.getElementById("modal-parking-type-display").textContent = `Tipo: ${formatarTipoVaga(spotDetails.tipo_vaga)}`;
     document.getElementById("modal-parking-size-display").textContent = `Tamanho: ${formatarTamanhoVaga(spotDetails.size)}`;
     document.getElementById("modal-parking-hours-display").textContent = `Disponível: ${formatarHorarioDisponivelModal(spotDetails)}`;
@@ -895,11 +1162,15 @@ export function openParkingDetailModal(spotDetails) {
         }
     });
 
+    // Mostra a modal (agora com o conteúdo já preenchido)
     modal.classList.remove('hidden');
 
     const closeModalBtn = document.getElementById("close-modal");
     if (closeModalBtn) {
-        closeModalBtn.onclick = () => {
+        // É importante clonar e substituir para remover listeners antigos
+        const newCloseBtn = closeModalBtn.cloneNode(true);
+        closeModalBtn.parentNode.replaceChild(newCloseBtn, closeModalBtn);
+        newCloseBtn.onclick = () => {
             modal.classList.add("hidden");
         };
     }
@@ -909,13 +1180,15 @@ export function openParkingDetailModal(spotDetails) {
     currentSpotDetails = spotDetails;
     currentSpotId = spotDetails.id;
     
+    // Inicializa o calendário e os seletores de hora (certifique-se de que initializeReservationComponents 
+    // está importado ou definido globalmente)
+    initializeReservationComponents(modal, spotDetails);
+
+    // Lógica do vendedor
     const modalSellerProfileImage = document.getElementById('modal-seller-profile-image');
     const modalSellerName = document.getElementById('modal-seller-name');
     const profileImage = document.getElementById('modal-seller-profile-image');
     const popover = document.getElementById('seller-info-popover');
-
-    // Inicializa o calendário e os seletores de hora
-    initializeReservationComponents(modal, spotDetails);
 
     if (modalSellerProfileImage && modalSellerName) {
         if (spotDetails.owner && spotDetails.owner.perfil) {
@@ -923,14 +1196,22 @@ export function openParkingDetailModal(spotDetails) {
             const sellerPhotoUrl = spotDetails.owner.perfil.foto;
             if (sellerPhotoUrl) {
                 modalSellerProfileImage.src = sellerPhotoUrl;
+            } else {
+                modalSellerProfileImage.src = '/static/parking/css/images/default_avatar.png'; // Fallback para avatar
             }
         } else {
             modalSellerName.textContent = 'Vendedor não disponível';
+            if (modalSellerProfileImage) {
+                modalSellerProfileImage.src = '/static/parking/css/images/default_avatar.png'; // Fallback para avatar
+            }
         }
     }
 
     if (profileImage) {
-        profileImage.addEventListener('click', (e) => {
+        // Remova listeners antigos antes de adicionar novos
+        const newProfileImage = profileImage.cloneNode(true);
+        profileImage.parentNode.replaceChild(newProfileImage, profileImage);
+        newProfileImage.addEventListener('click', (e) => {
             e.stopPropagation(); 
             popover.classList.toggle('hidden');
 
@@ -940,32 +1221,37 @@ export function openParkingDetailModal(spotDetails) {
                 popoverName.textContent = sellerName.textContent;
             }
 
-            const rect = profileImage.getBoundingClientRect();
+            const rect = newProfileImage.getBoundingClientRect(); // Use newProfileImage aqui
             popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
             popover.style.left = `${rect.left + window.scrollX}px`;
         });
     }
 
+    // Listener para fechar popover do vendedor
     document.addEventListener('click', (e) => {
-        if (popover && !popover.contains(e.target) && !profileImage.contains(e.target)) {
+        if (popover && !popover.contains(e.target) && (!profileImage || !profileImage.contains(e.target))) { // Verifica se profileImage existe
             popover.classList.add('hidden');
         }
     });
 
+    // Lógica para seleção de hora/dia
     const hourlyOptionBox = document.getElementById('reservation-option-hourly');
     const dailyOptionBox = document.getElementById('reservation-option-daily');
 
+    // Remove listeners antigos antes de adicionar novos (para evitar duplicação)
     if (hourlyOptionBox) {
-        hourlyOptionBox.addEventListener('click', () => {
+        const newHourlyOptionBox = hourlyOptionBox.cloneNode(true);
+        hourlyOptionBox.parentNode.replaceChild(newHourlyOptionBox, hourlyOptionBox);
+        newHourlyOptionBox.addEventListener('click', () => {
             if (currentSelectedReservationOption === 'hourly') {
-                hourlyOptionBox.classList.remove('selected-reservation-option');
+                newHourlyOptionBox.classList.remove('selected-reservation-option');
                 currentSelectedReservationOption = null;
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, null, null);
             } else {
                 document.querySelectorAll('.reservation-option').forEach(option => {
                     option.classList.remove('selected-reservation-option');
                 });
-                hourlyOptionBox.classList.add('selected-reservation-option');
+                newHourlyOptionBox.classList.add('selected-reservation-option');
                 currentSelectedReservationOption = 'hourly';
                 const startTimeInput = document.getElementById('start-time-input');
                 const endTimeInput = document.getElementById('end-time-input');
@@ -975,9 +1261,11 @@ export function openParkingDetailModal(spotDetails) {
     }
 
     if (dailyOptionBox) {
-        dailyOptionBox.addEventListener('click', () => {
+        const newDailyOptionBox = dailyOptionBox.cloneNode(true);
+        dailyOptionBox.parentNode.replaceChild(newDailyOptionBox, dailyOptionBox);
+        newDailyOptionBox.addEventListener('click', () => {
             if (currentSelectedReservationOption === 'daily') {
-                dailyOptionBox.classList.remove('selected-reservation-option');
+                newDailyOptionBox.classList.remove('selected-reservation-option');
                 currentSelectedReservationOption = null;
                 const startTimeInput = document.getElementById('start-time-input');
                 const endTimeInput = document.getElementById('end-time-input');
@@ -986,13 +1274,59 @@ export function openParkingDetailModal(spotDetails) {
                 document.querySelectorAll('.reservation-option').forEach(option => {
                     option.classList.remove('selected-reservation-option');
                 });
-                dailyOptionBox.classList.add('selected-reservation-option');
+                newDailyOptionBox.classList.add('selected-reservation-option');
                 currentSelectedReservationOption = 'daily';
                 updateReservationSummary(currentSpotDetails, currentSelectedSlot.date, null, null); 
             }
         });
     }
 
+    // Configura o botão de favorito do modal (deve ser re-conectado pois o HTML foi recriado)
+    const modalFavBtn = document.getElementById('modal-favorite-btn');
+    
+    if (modalFavBtn) {
+        // 1. Define estado inicial visual
+        const icon = modalFavBtn.querySelector('i') || modalFavBtn.querySelector('svg'); // Aceita ambos
+        const isFav = favoritedSpotIds.has(spotDetails.id);
+        
+        // Função auxiliar para atualizar visual
+        const updateIcon = (active) => {
+            // Se estiver usando FontAwesome (<i>)
+            if (icon.tagName === 'I') {
+                icon.className = active ? "fas fa-heart text-red-500 text-lg" : "far fa-heart text-gray-500 text-lg";
+            } 
+            // Se estiver usando SVG
+            else if (icon.tagName === 'svg') {
+                icon.setAttribute('fill', active ? 'currentColor' : 'none');
+                icon.classList.toggle('text-red-500', active);
+                icon.classList.toggle('text-gray-400', !active);
+            }
+        };
+        
+        updateIcon(isFav);
+
+        // 2. Configura o clique
+        const newModalFavBtn = modalFavBtn.cloneNode(true);
+        modalFavBtn.parentNode.replaceChild(newModalFavBtn, modalFavBtn);
+
+        newModalFavBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            
+            // Toggle (Inverte)
+            if (favoritedSpotIds.has(spotDetails.id)) {
+                favoritedSpotIds.delete(spotDetails.id);
+                // Precisamos pegar o ícone de dentro do NOVO botão clonado
+                const currentIcon = newModalFavBtn.querySelector('i') || newModalFavBtn.querySelector('svg');
+                if(currentIcon.tagName === 'I') currentIcon.className = "far fa-heart text-gray-500 text-lg";
+                // Adicione lógica SVG se necessário
+            } else {
+                favoritedSpotIds.add(spotDetails.id);
+                const currentIcon = newModalFavBtn.querySelector('i') || newModalFavBtn.querySelector('svg');
+                if(currentIcon.tagName === 'I') currentIcon.className = "fas fa-heart text-red-500 text-lg";
+            }
+            saveFavoritesToStorage();
+        });
+    }
 }
 
 export function renderMyReservation(reservation) {
@@ -1538,6 +1872,11 @@ export function setupModalClosers() {
 
     document.getElementById("cancel-edit")?.addEventListener("click", () => {
         document.getElementById("edit-spot-modal").classList.add("hidden");
+    });
+
+    document.getElementById("btn-cancel-detail")?.addEventListener("click", () => {
+        const modal = document.getElementById("parking-detail-modal");
+        if (modal) modal.classList.add("hidden");
     });
 
     document.getElementById("success-ok")?.addEventListener("click", () => {
