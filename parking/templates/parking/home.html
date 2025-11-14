@@ -1,7 +1,7 @@
 {% extends "parking/base.html" %}
 {% load static %}
 
-{% block title %}Smart Park{% endblock %}
+{% block title %}Estacionamento Inteligente{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'parking/css/style.css' %}">
@@ -291,6 +291,7 @@
 <!-- Profile Tab -->
 <div id="profile" class="tab-content container mx-auto p-4">
     <div class="bg-white rounded-lg shadow-md p-6">
+        
         <div class="flex items-center mb-6">
             <div class="relative">
                 {% if perfil.foto %}
@@ -302,10 +303,10 @@
                     <i class="fas fa-camera text-indigo-600 text-sm"></i>
                 </button>
             </div>
-            
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
             <div>
                 <h3 class="font-medium text-lg mb-4">Informações Pessoais</h3>
                 <div class="space-y-3">
@@ -338,18 +339,21 @@
                         <input type="text" value="{{ perfil.placa_veiculo }}" class="border-0 border-b border-gray-300 w-full p-1 bg-transparent">
                     </div>
                 </div>
+            </div> 
 
-                <div class="mt-8">
-    <h3 class="font-medium text-lg mb-4">Meus Favoritos</h3>
-    <div id="profile-favorites-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <h3 class="font-medium text-lg mb-4">Meus Favoritos</h3>
+                <div id="profile-favorites-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    </div>
+            </div> 
+        
+        
+        </div> <div class="border-t mt-8 pt-6">
+            <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                Salvar Alterações
+            </button>
         </div>
-</div>
-                
-                <button class="mt-6 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                    Salvar Alterações
-                </button>
-            </div>
-        </div>
+
     </div>
 </div>
 
@@ -729,7 +733,8 @@
     </div>
 </div>
 
-<div id="error-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+<div id="error-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[100]">
+    
     <div class="bg-white rounded-lg shadow-xl w-80 p-6">
         <div class="text-center mb-6">
             <h3 class="text-xl font-medium text-red-600">Erro!</h3>
@@ -785,7 +790,7 @@
     </div>
 </div>
 
-<div id="custom-confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-50">
+<div id="custom-confirm-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden z-[100]">
     <div class="bg-white rounded-lg shadow-xl p-6 w-80">
         <h3 class="text-xl font-bold mb-4 text-gray-800">Confirmação</h3>
         <p id="confirm-message" class="text-gray-600 mb-6">Tem certeza que deseja continuar com esta ação?</p>
@@ -883,11 +888,49 @@
                 </div>
         </div>
 
-        <div class="p-4 border-t border-gray-100 bg-white mt-auto">
-            <button id="create-fav-list-btn" class="w-full flex items-center justify-center space-x-2 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-black transition-colors shadow-md active:scale-[0.98] transform transition-transform">
-                <i class="fas fa-plus"></i>
-                <span>Criar nova lista de favoritos</span>
+        <div class="p-4 border-t border-gray-100 bg-white mt-auto space-y-3">
+            <button id="create-fav-list-btn" class="w-full text-center text-gray-800 font-medium underline hover:text-indigo-600">
+                Criar nova lista de favoritos
             </button>
+            
+            <button id="save-favorites-btn" class="w-full flex items-center justify-center py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-black transition-colors shadow-md active:scale-[0.98] transform transition-transform">
+                Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="create-list-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] flex items-center justify-center hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+        
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Criar nova lista</h3>
+        
+        <div class="mb-4">
+            <label for="new-list-name-input" class="block text-sm font-medium text-gray-700">Nome da lista</label>
+            <input type="text" id="new-list-name-input" placeholder="Ex: Viagem para a praia" 
+                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <p id="create-list-error" class="text-red-500 text-sm mt-1 hidden">O nome não pode ficar em branco.</p>
+        </div>
+
+        <div class="flex justify-end space-x-3 mt-6">
+            <button id="cancel-create-list-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium">
+                Cancelar
+            </button>
+            <button id="confirm-create-list-btn" class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-black font-medium">
+                Salvar
+            </button>
+        </div>
+    </div>
+</div>
+<div id="delete-list-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[100]">
+    <div class="bg-white rounded-lg shadow-xl w-80 p-6">
+        <div class="text-center mb-4">
+            <h3 class="text-xl font-medium text-gray-800">Excluir Lista</h3>
+            <p class="modal-message-placeholder text-base text-gray-700 mt-2">Você tem certeza que deseja excluir esta lista?</p>
+        </div>
+        <div class="flex justify-center space-x-4">
+            <button id="cancel-delete-list-btn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+            <button id="confirm-delete-list-btn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Excluir</button>
         </div>
     </div>
 </div>

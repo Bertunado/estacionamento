@@ -48,3 +48,88 @@
   /* Posicionamento */
   transform: translate(-50%, -50%);
 }
+
+.favorite-list-card {
+    /* Largura do card */
+    /* Você pode tentar uma largura fixa para começar, ex: 180px ou 200px */
+    width: 200px; /* Ou um valor menor, como 150px, dependendo do que você quer */
+    /* Ou, se estiver dentro de um grid ou flexbox, você pode usar percentual, mas com limite */
+    /* max-width: 200px; */ /* Garante que não exceda essa largura */
+    
+    /* Altura do card (opcional, mas pode ajudar a manter proporção) */
+    /* Se a imagem for o principal, deixe a altura da imagem ser flexível */
+    /* height: auto; */ 
+    
+    /* Outras propriedades existentes do seu card, como padding, border-radius, box-shadow */
+    /* ... (Mantenha as propriedades existentes aqui) ... */
+    
+    /* Para centralizar o conteúdo dentro do card (se for o caso) */
+    text-align: center; 
+    
+    /* Se você tiver uma imagem dentro do card */
+    display: flex; /* Para controlar o layout interno, se precisar alinhar elementos */
+    flex-direction: column; /* Coloca os elementos um embaixo do outro */
+    align-items: center; /* Centraliza horizontalmente o conteúdo */
+    justify-content: space-between; /* Espaço entre a imagem e o texto, se houver */
+}
+
+/* Para a imagem dentro do card */
+.favorite-list-card .card-image-container {
+    /* Garante que a imagem ocupe a largura total do seu contêiner */
+    width: 100%; 
+    /* Define uma altura máxima para o contêiner da imagem */
+    height: 120px; /* Ajuste este valor conforme necessário */
+    overflow: hidden; /* Corta partes da imagem que excedem o contêiner */
+    border-radius: 8px; /* Opcional: para as bordas arredondadas da imagem */
+    margin-bottom: 10px; /* Espaçamento entre a imagem e o texto */
+    display: flex; /* Para centralizar a imagem dentro do seu contêiner */
+    justify-content: center;
+    align-items: center;
+}
+
+.favorite-list-card .card-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Faz a imagem cobrir o espaço sem distorcer, cortando as bordas */
+    border-radius: 8px; /* Para que a imagem em si tenha bordas arredondadas */
+}
+
+/* Ajustes para o texto */
+.favorite-list-card .card-content {
+    padding: 0 10px 10px; /* Ajuste o padding para o texto, se necessário */
+    width: 100%; /* Para que o conteúdo ocupe a largura do card */
+    box-sizing: border-box; /* Garante que padding e border sejam incluídos na largura */
+}
+
+.favorite-list-card h3 {
+    font-size: 0.9em; /* Diminui o tamanho do título */
+    margin-bottom: 5px;
+    white-space: nowrap; /* Evita que o texto quebre linha */
+    overflow: hidden; /* Esconde o que exceder */
+    text-overflow: ellipsis; /* Adiciona "..." no final se o texto for muito longo */
+    width: 100%; /* Para que ellipsis funcione */
+}
+
+.favorite-list-card p {
+    font-size: 0.8em; /* Diminui o tamanho do parágrafo */
+    color: #666;
+}
+
+
+/* Se você estiver usando um grid ou flexbox para os cards, pode precisar ajustar isso também */
+.favorites-grid { /* Exemplo de um contêiner pai */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* 200px é a largura mínima do card */
+    gap: 20px; /* Espaço entre os cards */
+    justify-content: center; /* Centraliza os cards se houver espaço extra */
+}
+
+/* OU se for flexbox */
+.favorites-flex-container {
+    display: flex;
+    flex-wrap: wrap; /* Permite que os cards quebrem linha */
+    gap: 20px; /* Espaço entre os cards */
+    justify-content: center;
+}
+
+

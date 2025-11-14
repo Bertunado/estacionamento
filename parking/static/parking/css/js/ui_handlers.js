@@ -9,11 +9,10 @@ import { createMiniMap } from './map_utilities.js';
 import { loadConversations } from './chat_loader.js';
 import { getAuthToken, getCsrfToken, loadAndRenderMyReservations } from './api_services.js';
 import { showToast } from './chat_loader.js'; 
-import { showConfirmModal } from './confirmations.js';
+import { showConfirmationModal } from './confirmations.js';
 import { initializeReservationComponents } from './calendar.js';
 import { formatarTamanhoVaga, formatarTipoVaga, formatarHorarioDisponivelModal, formatDateToISO  } from './format.js';
-import { favoritedSpotIds, saveFavoritesToStorage } from './globals.js';
-
+import { favoriteLists, saveListsToStorage, isSpotFavorited } from './globals.js';
 // Variáveis para guardar o estado do modal de reserva
 let currentSpotId = null;
 let dynamicVagaSquaresDiv;
@@ -27,6 +26,9 @@ let currentSelectedSlot = {
     slotNumber: null
 };
 window.currentSpotData = null; 
+let pendingFavoriteChanges = new Map(); // Ex: { listId: 'add', listId_2: 'remove' }
+let currentSpotIdForFavorites = null;
+let currentSpotImageUrlForFavorites = null;
 
 export async function activateTab(tabName) {
     console.log(`activateTab: Ativando aba '${tabName}'`);
@@ -123,6 +125,8 @@ export async function activateTab(tabName) {
         carregarMinhasVagas();
     } else if (tabName === 'my-reservations') {
         carregarMinhasReservas(); 
+    } else if (tabName === 'profile') {
+        renderProfileFavorites();
     } else if (tabName === 'requests') {
         await loadReservationRequests();
     } else if (tabName === "add-parking") {
@@ -139,8 +143,16 @@ export function openFavoritesModal(spot) {
     const modal = document.getElementById('favorites-modal');
     if (!modal) return;
 
-    modal.dataset.currentSpotId = spot.id;
-    renderFavoriteListsInModal(spot.id);
+    // 1. Limpa as mudanças pendentes da última vez
+    pendingFavoriteChanges.clear(); 
+    
+    // 2. Armazena os dados da vaga atual
+    currentSpotIdForFavorites = spot.id;
+    currentSpotImageUrlForFavorites = (spot.photos && spot.photos.length > 0) 
+        ? spot.photos[0] 
+        : '/static/parking/css/images/placeholder.png';
+
+    renderFavoriteListsInModal(spot.id); // Desenha as listas
     modal.classList.remove('hidden');
 }
 
@@ -148,24 +160,63 @@ export function openFavoritesModal(spot) {
 function renderFavoriteListsInModal(spotId) {
     const container = document.getElementById('favorites-list-container');
     if (!container) return;
-    container.innerHTML = '';
+    container.innerHTML = ''; 
 
+    const idStr = String(spotId);
+    
     favoriteLists.forEach(list => {
-        // Verifica se a vaga já está NESTA lista
-        const isSaved = list.spots.includes(String(spotId)) || list.spots.includes(parseInt(spotId));
+        // 1. O estado "original" (como está no localStorage)
+        const isCurrentlySaved = list.spots.some(item => String(item.id) === idStr);
         
+        // 2. O estado "pendente" (o que o usuário clicou AGORA)
+        const pendingAction = pendingFavoriteChanges.get(list.id);
+        
+        // 3. Define o visual final (o que o usuário deve ver)
+        let isVisuallySaved = isCurrentlySaved;
+        if (pendingAction === 'add') {
+            isVisuallySaved = true;
+        } else if (pendingAction === 'remove') {
+            isVisuallySaved = false;
+        }
+
         const card = document.createElement('div');
         card.className = "cursor-pointer group relative";
-        card.onclick = () => toggleSpotInList(list.id, spotId);
 
-        // Placeholder de imagem (pode melhorar isso depois pegando a foto da 1ª vaga)
-        const coverImage = isSaved 
-            ? `<div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-500"><i class="fas fa-check text-3xl"></i></div>`
-            : `<div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300 group-hover:bg-gray-200"><i class="fas fa-heart text-3xl"></i></div>`;
+        // 4. ATUALIZA O ONCLICK:
+        // Agora ele só mexe no 'pendingFavoriteChanges' e redesenha o modal
+        card.onclick = () => {
+            const currentAction = pendingFavoriteChanges.get(list.id);
+
+            if (currentAction) {
+                // O usuário já clicou, vamos reverter a mudança pendente
+                pendingFavoriteChanges.delete(list.id);
+            } else {
+                // Primeiro clique: inverte o estado salvo
+                if (isCurrentlySaved) {
+                    pendingFavoriteChanges.set(list.id, 'remove'); // Clicou em algo salvo = marcar para remover
+                } else {
+                    pendingFavoriteChanges.set(list.id, 'add'); // Clicou em algo não salvo = marcar para adicionar
+                }
+            }
+            // Re-desenha o modal para mostrar a mudança
+            renderFavoriteListsInModal(spotId);
+        };
+        // --- FIM DO ONCLICK ---
+
+        const firstSpotImageUrl = list.spots.length > 0 ? list.spots[0].imageUrl : null;
+        let coverHtml = '';
+        if (firstSpotImageUrl) {
+            coverHtml = `<img src="${firstSpotImageUrl}" class="w-full h-full object-cover rounded-xl">`;
+        } else {
+            coverHtml = `<div class="w-full h-full bg-gray-100 flex items-center justify-center rounded-xl"><i class="fas fa-heart text-gray-300 text-3xl list-heart-icon"></i></div>`;
+        }
 
         card.innerHTML = `
-            <div class="aspect-square rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-2 transition-transform transform group-hover:scale-105">
-                ${coverImage}
+            <div class="aspect-square rounded-xl overflow-hidden border ${isVisuallySaved ? 'border-gray-800' : 'border-gray-200'} shadow-sm mb-2 transition-all transform group-hover:scale-105">
+                ${coverHtml}
+                ${isVisuallySaved ? 
+                    `<div class="absolute top-2 right-2 bg-gray-900 text-white p-1.5 rounded-full shadow-sm"><i class="fas fa-check text-xs"></i></div>` 
+                    : ''}
             </div>
             <h4 class="text-sm font-bold text-gray-800 truncate">${list.name}</h4>
             <p class="text-xs text-gray-500">${list.spots.length} vaga(s)</p>
@@ -175,52 +226,168 @@ function renderFavoriteListsInModal(spotId) {
 }
 
 // Salva ou remove a vaga da lista clicada
-function toggleSpotInList(listId, spotId) {
+function toggleSpotInList(listId, spotId, imageUrl) { // Adicione imageUrl aqui
     const list = favoriteLists.find(l => l.id === listId);
     if (!list) return;
 
     const idStr = String(spotId);
-    const index = list.spots.indexOf(idStr);
+    // Encontra o item da vaga na lista, verificando o ID
+    const spotItemIndex = list.spots.findIndex(item => String(item.id) === idStr);
 
-    if (index > -1) {
-        list.spots.splice(index, 1); // Remove
+    if (spotItemIndex > -1) {
+        list.spots.splice(spotItemIndex, 1); // Remove
     } else {
-        list.spots.push(idStr); // Adiciona
-        // Fecha o modal ao salvar (opcional, estilo Airbnb)
+        // CORREÇÃO: Garante que a imageUrl tenha um valor de fallback
+        const safeImageUrl = imageUrl || '/static/parking/css/images/placeholder.png';
+        
+        // Adiciona a vaga como um objeto { id, imageUrl }
+        list.spots.push({ id: idStr, imageUrl: safeImageUrl }); 
         document.getElementById('favorites-modal').classList.add('hidden');
     }
+
+    saveListsToStorage(); 
+    updateAllHeartIcons(spotId); 
+
+    // Atualiza o modal de listas se ainda estiver aberto, para refletir as mudanças
+    const modal = document.getElementById('favorites-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        renderFavoriteListsInModal(modal.dataset.currentSpotId);
+    }
     
-    saveListsToStorage();
-    updateAllHeartIcons(spotId); // Atualiza os corações na tela principal
-    renderFavoriteListsInModal(spotId); // Atualiza o modal se ele continuar aberto
+    // NOVO: Se o perfil estiver visível, atualiza os favoritos lá também
+    if (!document.getElementById('profile').classList.contains('hidden')) {
+        renderProfileFavorites();
+    }
 }
 
-// Cria uma nova lista
+// Atualiza a cor de TODOS os corações na tela
+export function updateAllHeartIcons(spotId) {
+    const isFav = isSpotFavorited(spotId); // Verifica se está em QUALQUER lista
+    const newClass = isFav ? "fas fa-heart text-red-500" : "far fa-heart text-gray-400";
+    
+    // Atualiza corações nos cards da lista
+    document.querySelectorAll(`.btn-favorite[data-spot-id="${spotId}"] i`).forEach(icon => {
+        icon.className = `${newClass} text-lg transition-colors`;
+    });
+
+    // Atualiza coração no modal de detalhes (se estiver aberto)
+    const modalBtnIcon = document.querySelector(`#modal-favorite-btn[data-spot-id="${spotId}"] i`);
+    if (modalBtnIcon) {
+        modalBtnIcon.className = `${newClass} text-lg transition-colors`;
+    }
+}
+
+// Configura os botões "Criar Lista" e "Fechar" do modal
 export function setupFavoritesLogic() {
+    // Referências aos modais e ao input
+    const favoritesModal = document.getElementById('favorites-modal');
+    const createListModal = document.getElementById('create-list-modal');
+    const newListNameInput = document.getElementById('new-list-name-input');
+    const createListError = document.getElementById('create-list-error');
+
+    // Botão "Criar nova lista de favoritos"
     document.getElementById("create-fav-list-btn")?.addEventListener("click", () => {
-        const name = prompt("Nome da nova lista:");
-        if (name) {
+        if (favoritesModal) favoritesModal.classList.add('hidden');
+        if (createListModal) createListModal.classList.remove('hidden');
+        if (newListNameInput) newListNameInput.focus();
+        if (createListError) createListError.classList.add('hidden');
+    });
+
+    // Botão "Cancelar" (no modal de criação)
+    document.getElementById("cancel-create-list-btn")?.addEventListener("click", () => {
+        if (createListModal) createListModal.classList.add('hidden');
+        if (favoritesModal) favoritesModal.classList.remove('hidden'); 
+    });
+
+    document.getElementById("cancel-delete-list-btn")?.addEventListener("click", () => {
+        document.getElementById("delete-list-confirm-modal").classList.add("hidden");
+    });
+
+    // Botão "Excluir" (do modal de exclusão de lista)
+    document.getElementById("confirm-delete-list-btn")?.addEventListener("click", (e) => {
+        const listId = e.currentTarget.dataset.listId;
+        if (!listId) return;
+
+        // --- 👇 AQUI ESTÁ A CORREÇÃO 👇 ---
+        
+        // 1. Encontra o índice da lista a ser removida
+        const listIndex = favoriteLists.findIndex(list => list.id === listId);
+
+        // 2. Remove a lista do array original (mutação)
+        if (listIndex > -1) {
+            favoriteLists.splice(listIndex, 1);
+        } else {
+            console.warn(`Não foi possível encontrar a lista com ID ${listId} para excluir.`);
+            return;
+        }
+        // --- 👆 FIM DA CORREÇÃO 👆 ---
+        
+        // 2. Salva a mudança no localStorage
+        saveListsToStorage();
+        
+        // 3. Atualiza a tela do perfil
+        renderProfileFavorites();
+        
+        // 4. Fecha o modal de confirmação
+        document.getElementById("delete-list-confirm-modal").classList.add("hidden");
+    });
+
+    // Botão "Salvar" (no modal de criação)
+    document.getElementById("confirm-create-list-btn")?.addEventListener("click", () => {
+        const name = newListNameInput.value;
+        
+        if (name && name.trim() !== '') {
             favoriteLists.push({ id: Date.now().toString(), name: name, spots: [] });
             saveListsToStorage();
-            // Atualiza o modal
-            const modal = document.getElementById('favorites-modal');
-            if (modal && !modal.classList.contains('hidden')) {
-                renderFavoriteListsInModal(modal.dataset.currentSpotId);
+            newListNameInput.value = '';
+            if (createListModal) createListModal.classList.add('hidden');
+            
+            const spotId = favoritesModal.dataset.currentSpotId;
+            
+            if (favoritesModal) {
+                renderFavoriteListsInModal(spotId);
+                favoritesModal.classList.remove('hidden');
             }
+        } else {
+            if (createListError) createListError.classList.remove('hidden');
         }
     });
 
+    // Botão Fechar (X) do modal de listas
     document.getElementById("close-favorites-modal")?.addEventListener("click", () => {
-        document.getElementById("favorites-modal").classList.add("hidden");
+        if (favoritesModal) favoritesModal.classList.add("hidden");
     });
-}
+    
+    // --- 👇 ESTE É O BLOCO QUE ESTAVA FALTANDO 👇 ---
+    // Listener do Botão "Salvar" principal (do modal de listas)
+    document.getElementById("save-favorites-btn")?.addEventListener("click", () => {
+        
+        // 1. Aplica as mudanças pendentes (marcadas/desmarcadas)
+        pendingFavoriteChanges.forEach((action, listId) => {
+            const list = favoriteLists.find(l => l.id === listId);
+            if (!list) return;
 
-// Atualiza a cor do coração na tela principal
-export function updateAllHeartIcons(spotId) {
-    const isFav = isSpotFavorited(spotId);
-    const btns = document.querySelectorAll(`.btn-favorite[data-spot-id="${spotId}"] i`);
-    btns.forEach(icon => {
-        icon.className = isFav ? "fas fa-heart text-red-500 text-lg" : "far fa-heart text-gray-400 text-lg";
+            const idStr = String(currentSpotIdForFavorites);
+            const spotItemIndex = list.spots.findIndex(item => String(item.id) === idStr);
+
+            if (action === 'add' && spotItemIndex === -1) {
+                // Adiciona
+                list.spots.push({ id: idStr, imageUrl: currentSpotImageUrlForFavorites || '' });
+            } else if (action === 'remove' && spotItemIndex > -1) {
+                // Remove
+                list.spots.splice(spotItemIndex, 1);
+            }
+        });
+        
+        // 2. Salva tudo no localStorage (apenas se houver mudanças)
+        if (pendingFavoriteChanges.size > 0) {
+            saveListsToStorage();
+            updateAllHeartIcons(currentSpotIdForFavorites); // Atualiza os corações
+        }
+
+        // 3. Limpa e fecha o modal
+        pendingFavoriteChanges.clear();
+        if (favoritesModal) favoritesModal.classList.add("hidden");
     });
 }
 
@@ -241,33 +408,66 @@ export function toggleParkingSheet() {
 }
 
 export function renderProfileFavorites() {
-    const container = document.getElementById('profile-favorites-container'); // Você precisará criar este DIV no seu home.html dentro da aba de perfil
+    const container = document.getElementById('profile-favorites-container');
     if (!container) return;
 
-    container.innerHTML = '';
-    
-    if (favoriteLists.length === 0) {
-        container.innerHTML = '<p class="text-gray-500">Você ainda não tem listas de favoritos.</p>';
+    container.innerHTML = ''; 
+
+    if (!favoriteLists || favoriteLists.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 col-span-2">Você ainda não criou nenhuma lista de favoritos.</p>';
         return;
     }
 
     favoriteLists.forEach(list => {
         const card = document.createElement('div');
-        card.className = "bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-shadow";
+        // Adicionado 'relative' para o botão da lixeira
+        card.className = "cursor-pointer group flex flex-col relative";
         
+        const firstSpotImageUrl = list.spots.length > 0 ? list.spots[0].imageUrl : null;
+
+        let coverHtml = '';
+        if (firstSpotImageUrl) {
+            coverHtml = `<img src="${firstSpotImageUrl}" class="w-full h-full object-cover rounded-xl">`;
+        } else {
+            coverHtml = `<div class="w-full h-full bg-gray-100 flex items-center justify-center rounded-xl"><i class="fas fa-heart text-gray-300 text-3xl"></i></div>`;
+        }
+
         card.innerHTML = `
-            <div class="w-16 h-16 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500">
-                <i class="fas fa-heart text-2xl"></i>
-            </div>
-            <div>
-                <h4 class="font-bold text-gray-800">${list.name}</h4>
-                <p class="text-sm text-gray-500">${list.spots.length} vaga(s) salva(s)</p>
-            </div>
+            <div class="aspect-square rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-2 transition-transform transform group-hover:scale-105">
+                ${coverHtml}
+
+                <button class="btn-delete-list absolute top-2 right-2 bg-white/80 rounded-full w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                        data-list-id="${list.id}">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+                </div>
+            <h4 class="text-sm font-bold text-gray-800 truncate">${list.name}</h4>
+            <p class="text-xs text-gray-500">${list.spots.length} vaga(s)</p>
         `;
         
-        // Ao clicar, poderia abrir uma lista com as vagas (futuro)
-        card.onclick = () => alert(`Abrir lista: ${list.name} (Implementar visualização de vagas)`);
-        
+        // Listener para abrir a lista
+        card.addEventListener("click", () => {
+            alert(`Clicou na lista: ${list.name}\n(Implementar a visualização desta lista)`);
+        });
+
+        // Listener para o botão de deletar
+        const deleteBtn = card.querySelector('.btn-delete-list');
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", (e) => {
+                e.stopPropagation(); // Impede que o clique na lixeira abra a lista
+                
+                const listId = e.currentTarget.dataset.listId;
+                const modal = document.getElementById('delete-list-confirm-modal');
+                const confirmBtn = document.getElementById('confirm-delete-list-btn');
+
+                if (modal && confirmBtn) {
+                    // Passa o ID da lista para o botão "Excluir" do modal
+                    confirmBtn.dataset.listId = listId;
+                    modal.classList.remove('hidden');
+                }
+            });
+        }
+
         container.appendChild(card);
     });
 }
@@ -432,9 +632,9 @@ export function renderSpot(spot, listId) {
     const formattedTamanhoVaga = formatarTamanhoVaga(spot.size);
     
     // 1. Verifica se já é favorito na nossa lista global
-    const isFav = favoritedSpotIds.has(spot.id);
+    const isFav = isSpotFavorited(spot.id);
+    const heartIconClass = isFav ? "fas fa-heart text-red-500" : "far fa-heart text-gray-400";
     // Define as classes iniciais (Vermelho Sólido ou Cinza Outline)
-    const heartClass = isFav ? "fas fa-heart text-red-500" : "far fa-heart text-gray-400";
 
     const photos = (spot.photos && spot.photos.length > 0) ? spot.photos : ['/static/parking/css/images/placeholder.png'];
 
@@ -494,21 +694,40 @@ export function renderSpot(spot, listId) {
     `;
     list.prepend(card);
 
-    const favBtn = card.querySelector(".btn-favorite");
-    if (favBtn) {
-        favBtn.addEventListener("click", (event) => {
-            event.stopPropagation();
-            
-            openFavoritesModal(spot);
-        });
-    }
-
     const reservarBtn = card.querySelector(".btn-reservar");
     if (reservarBtn) {
         reservarBtn.addEventListener("click", (event) => {
             event.stopPropagation();
             console.log("Clique no botão 'Reservar'. Abrindo modal de detalhes.");
             openParkingDetailModal(spot);
+        });
+    }
+
+    const favBtn = card.querySelector(".btn-favorite");
+    if (favBtn) {
+        favBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            
+            // Verifica se a vaga já está salva
+            const isFav = isSpotFavorited(spot.id);
+            
+            if (isFav) {
+                // Já é favorito -> REMOVE IMEDIATO
+                // (O usuário não precisa selecionar de qual lista remover)
+                if (confirm("Remover esta vaga dos seus favoritos?")) {
+                    favoriteLists.forEach(list => {
+                        const spotItemIndex = list.spots.findIndex(item => String(item.id) === String(spot.id));
+                        if (spotItemIndex > -1) {
+                            list.spots.splice(spotItemIndex, 1);
+                        }
+                    });
+                    saveListsToStorage();
+                    updateAllHeartIcons(spot.id); // Atualiza o coração para cinza
+                }
+            } else {
+                // Não é favorito -> ABRE MODAL PARA ESCOLHER A LISTA
+                openFavoritesModal(spot); 
+            }
         });
     }
 
@@ -712,16 +931,24 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
 
 // Carregar as reservas quando a data for selecionada
 export async function handleDateSelection(spotId, selectedDates) {
-    currentSpotId = spotId;
-    currentSelectedSlot = { date: null, slotNumber: null };
+    currentSpotId = spotId;
+    currentSelectedSlot = { date: null, slotNumber: null };
 
-    document.getElementById('no-slots-message').classList.add('hidden');
-    document.getElementById('dynamic-vaga-squares').innerHTML = '';
+    document.getElementById('no-slots-message').classList.add('hidden');
+    document.getElementById('dynamic-vaga-squares').innerHTML = '';
+    
+    document.getElementById('reserved-slots-list').innerHTML = '';
+    document.getElementById('reserved-slots-for-date').classList.add('hidden');
+
+    // 1. Busca os horários (e salva em window.currentSpotData)
+    await renderVagaSquares(selectedDates);
     
-    document.getElementById('reserved-slots-list').innerHTML = '';
-    document.getElementById('reserved-slots-for-date').classList.add('hidden');
+    // 2. 👇 ADICIONE ESTA LINHA 👇
+    // Pega a primeira data selecionada para atualizar a calculadora
+    const firstDateStr = selectedDates.length > 0 ? formatDateToISO(selectedDates[0]) : null;
 
-    await renderVagaSquares(selectedDates);
+    // 3. Atualiza a calculadora AGORA, usando os dados que acabamos de buscar
+    updateReservationSummary(currentSpotDetails, firstDateStr, null, null);
 }
 
 function isTimeOverlap(userStart, userEnd, occupiedTimes, slotDate) {
@@ -750,50 +977,72 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedDateStr = currentSelectedSlot.date; 
             
             const timeOverlapErrorP = document.getElementById('time-overlap-error');
-            timeOverlapErrorP.classList.add('hidden');
+            if (timeOverlapErrorP) timeOverlapErrorP.classList.add('hidden');
 
+            // --- Validação 1: Vaga física selecionada? ---
             if (currentSelectedSlot.slotNumber === null) {
-                alert("Por favor, selecione a vaga física.");
+                showErrorModal("Por favor, selecione a vaga física."); // SUBSTITUÍDO
                 return;
             }
             const slotNumber = currentSelectedSlot.slotNumber;
 
+            // --- Validação 2: Campos preenchidos? ---
             if (!spotId || !startTime || !endTime || !selectedDateStr) {
-                alert("Por favor, preencha todos os campos da reserva.");
+                showErrorModal("Por favor, preencha a data e os horários da reserva."); // SUBSTITUÍDO
                 return;
             }
             
             const startDateTime = new Date(`${selectedDateStr}T${startTime}:00`);
             const endDateTime = new Date(`${selectedDateStr}T${endTime}:00`);
 
+            // --- Validação 3: Formato de hora válido? ---
             if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-                alert("Horário ou data de reserva inválidos. Por favor, verifique o formato.");
+                showErrorModal("Horário ou data de reserva inválidos. Por favor, verifique o formato HH:MM."); // SUBSTITUÍDO
                 return;
             }
 
+            // --- Validação 4: Hora de término > hora de início? ---
             if (endDateTime <= startDateTime) {
-                alert("O horário de término deve ser posterior ao horário de início.");
+                showErrorModal("O horário de término deve ser posterior ao horário de início."); // SUBSTITUÍDO
                 return;
             }
 
+            // --- Validação 5: Disponibilidade ---
             const selectedAvailability = window.currentSpotData.dates_availability.find(av => av.date === selectedDateStr);
             if (!selectedAvailability) {
                 console.error("Dados de disponibilidade para a data selecionada não encontrados.");
-                alert("Ocorreu um erro ao verificar a disponibilidade. Tente novamente.");
+                showErrorModal("Ocorreu um erro ao verificar a disponibilidade. Tente novamente."); // SUBSTITUÍDO
                 return;
             }
+
+            // --- 👇 VALIDAÇÃO NOVA QUE VOCÊ PEDIU 👇 ---
+            const dayStartTime = selectedAvailability.day_start_time; // ex: "10:00"
+            const dayEndTime = selectedAvailability.day_end_time;     // ex: "15:00"
+
+            if (dayStartTime && dayEndTime) {
+                // Comparação de strings (funciona para formato HH:MM)
+                if (startTime < dayStartTime) {
+                    showErrorModal(`O horário de entrada não pode ser antes das ${dayStartTime}.`);
+                    return;
+                }
+                if (endTime > dayEndTime) {
+                    showErrorModal(`O horário de saída não pode ser depois das ${dayEndTime}.`);
+                    return;
+                }
+            }
+            // --- FIM DA VALIDAÇÃO NOVA ---
             
             const selectedSlotData = selectedAvailability.slots.find(s => s.slot_number === slotNumber);
             if (!selectedSlotData) {
                 console.error("Dados de disponibilidade para o slot selecionado não encontrados.");
-                alert("Ocorreu um erro ao verificar a disponibilidade. Tente novamente.");
+                showErrorModal("Ocorreu um erro ao verificar a disponibilidade. Tente novamente."); // SUBSTITUÍDO
                 return;
             }
             
             const occupiedTimes = selectedSlotData.occupied_times;
 
             if (isTimeOverlap(startDateTime, endDateTime, occupiedTimes, selectedDateStr)) {
-                timeOverlapErrorP.textContent = "O horário selecionado já está parcial ou totalmente ocupado. Por favor, escolha outro horário.";
+                timeOverlapErrorP.textContent = "O horário selecionado já está parcial ou totalmente ocupado.";
                 timeOverlapErrorP.classList.remove('hidden');
                 return;
             }
@@ -807,26 +1056,39 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Payload enviado para a API:", payload);
 
             try {
-    const newReservation = await createReservation(payload);
+                // 1. Chama a API para criar a reserva
+                const newReservation = await createReservation(payload);
 
-    // Mostra o modal de confirmação
-    showReservationConfirmation({
-    tipo_vaga: newReservation.tipo_vaga,
-    slot_number: newReservation.slot_number,
-    start_time: newReservation.start_time,
-    end_time: newReservation.end_time,
-    total_price: newReservation.total_price
-});
+                // 2. FECHA o modal de detalhes da vaga (o card grande)
+                const detailModal = document.getElementById('parking-detail-modal');
+                if (detailModal) {
+                    detailModal.classList.add('hidden');
+                }
 
-    loadConversations();
+                // 3. MOSTRA o modal de "Reserva Pendente" (o card pequeno)
+                showReservationConfirmation({
+                    tipo_vaga: newReservation.spot?.tipo_vaga || currentSpotDetails.tipo_vaga,
+                    slot_number: newReservation.slot_number,
+                    start_time: newReservation.start_time,
+                    end_time: newReservation.end_time,
+                    total_price: newReservation.total_price
+                });
 
-    renderVagaSquares([selectedDateStr]); 
-}catch (error) {
-    alert(`Erro ao criar a reserva: ${error.message}`);
-}
+                // 4. Atualiza o resto em segundo plano
+                if (typeof loadConversations === 'function') {
+                    loadConversations();
+                }
+                if (typeof renderVagaSquares === 'function') {
+                    renderVagaSquares([selectedDateStr]);
+                }
+
+            } catch (error) {
+                // Se der erro (ex: vaga já reservada), mostra o modal de erro
+                showErrorModal(`Erro ao criar a reserva: ${error.message}`);
+            }
         });
     }
-    
+
     const editModal = document.getElementById('edit-spot-modal');
     if (editModal) {
         // Evento para o botão de cancelar
@@ -916,6 +1178,18 @@ if (confirmDeactivateBtn) {
     });
 }
 
+function showErrorModal(message) {
+    const modal = document.getElementById('error-modal');
+    if (modal) {
+        const messageEl = modal.querySelector('.modal-message-placeholder');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
+        modal.classList.remove('hidden');
+    }
+}
+
+
 // Calculadora que atualiza os valores da reserva no card do modal
 export function updateReservationSummary(spotDetails, selectedSlotDate, startTime, endTime) {
     // Referências para a calculadora "Por Hora"
@@ -928,17 +1202,13 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
     const dailyTimesElement = document.getElementById('daily-times');
     const dailyTotalPriceElement = document.getElementById('daily-total-price');
 
-    // Verifica se os elementos HTML da calculadora por hora existem
-    if (!hourlyPriceElement || !totalHoursElement || !totalPriceElement) {
-        console.error("Erro: Elementos da calculadora 'Por hora' não encontrados no modal.");
-        return;
-    }
-    // Verifica se os elementos HTML da calculadora por dia existem
-    if (!dailyPriceElement || !dailyTimesElement || !dailyTotalPriceElement) {
-        console.error("Erro: Elementos da calculadora 'Por dia' não encontrados no modal.");
+    // Verifica se os elementos HTML existem
+    if (!hourlyPriceElement || !totalHoursElement || !totalPriceElement || !dailyPriceElement || !dailyTimesElement || !dailyTotalPriceElement) {
+        console.error("Erro: Elementos da calculadora não encontrados no modal.");
         return;
     }
 
+    // Tenta pegar a data selecionada do calendário se não for passada
     if (!selectedSlotDate) {
         const selectedDateObj = reservationCalendarInstance?.selectedDates[0];
         if (selectedDateObj) {
@@ -946,13 +1216,9 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
         }
     }
 
-    if (!startTime) {
-        startTime = document.getElementById('start-time-input')?.value;
-    }
-
-    if (!endTime) {
-        endTime = document.getElementById('end-time-input')?.value;
-    }
+    // Pega os valores dos inputs "Por Hora" (eles podem estar vazios, como você quer)
+    const hourlyStartTime = document.getElementById('start-time-input')?.value;
+    const hourlyEndTime = document.getElementById('end-time-input')?.value;
 
     const priceHour = parseFloat(spotDetails.price_hour);
     const priceDay = parseFloat(spotDetails.price_day);
@@ -960,35 +1226,31 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
     // LÓGICA DA CALCULADORA "POR HORA" 
     hourlyPriceElement.textContent = `R$ ${priceHour.toFixed(2).replace('.', ',')}`;
 
-    if (!selectedSlotDate || !startTime || !endTime) {
-        totalHoursElement.textContent = '0';
+    // Esta lógica está correta. Se os inputs de hora estiverem vazios, o total será 0.
+    if (!selectedSlotDate || !hourlyStartTime || !hourlyEndTime) {
+        totalHoursElement.textContent = '0h 0m';
         totalPriceElement.textContent = 'R$ 0,00';
     } else {
-        const startDateTime = new Date(`${selectedSlotDate}T${startTime}`);
-        let endDateTime = new Date(`${selectedSlotDate}T${endTime}`);
+        // Se o usuário preencheu, calcula o total por hora
+        const startDateTime = new Date(`${selectedSlotDate}T${hourlyStartTime}`);
+        let endDateTime = new Date(`${selectedSlotDate}T${hourlyEndTime}`);
 
         if (endDateTime <= startDateTime) {
             endDateTime.setDate(endDateTime.getDate() + 1);
         }
-
         const durationMs = endDateTime - startDateTime;
         const durationMinutes = durationMs / (1000 * 60);
         const pricePerMinute = priceHour / 60;
         const totalPrice = durationMinutes * pricePerMinute;
-
         const hours = Math.floor(durationMinutes / 60);
         const minutes = Math.round(durationMinutes % 60);
-
         let totalDurationText = '';
-        if (hours > 0) {
-            totalDurationText += `${hours}h`;
-        }
-        if (minutes > 0 || (hours === 0 && minutes === 0 && durationMinutes === 0)) { 
+        if (hours > 0) totalDurationText += `${hours}h`;
+        if (minutes > 0 || (hours === 0 && durationMinutes > 0)) { 
             if (totalDurationText !== '') totalDurationText += ' ';
             totalDurationText += `${minutes}m`;
         }
-        
-        totalHoursElement.textContent = totalDurationText || '0';
+        totalHoursElement.textContent = totalDurationText || '0m';
         totalPriceElement.textContent = `R$ ${totalPrice.toFixed(2).replace('.', ',')}`;
     }
 
@@ -1001,22 +1263,31 @@ export function updateReservationSummary(spotDetails, selectedSlotDate, startTim
         dailyTotalPriceElement.textContent = `R$ 0,00`;
     }
 
-    let dailyDisplayStartTime = 'Não informado';
-    let dailyDisplayEndTime = '';
+    // --- 👇 AQUI ESTÁ A CORREÇÃO 👇 ---
+    // A lógica para exibir os horários do dia ("08:00 até 18:00")
+    
+    let dailyDisplayStartTime = 'Selecione';
+    let dailyDisplayEndTime = 'uma data';
 
-    if (selectedSlotDate && spotDetails && spotDetails.availabilities_by_date) {
-        const selectedDayAvailability = spotDetails.availabilities_by_date.find(
-            av => av.available_date === selectedSlotDate
+    // CORREÇÃO: Procurar em 'window.currentSpotData' (da API) em vez de 'spotDetails.availabilities_by_date'
+    if (selectedSlotDate && window.currentSpotData && window.currentSpotData.dates_availability) {
+        
+        const selectedDayAvailability = window.currentSpotData.dates_availability.find(
+            av => av.date === selectedSlotDate
         );
 
-        if (selectedDayAvailability && selectedDayAvailability.start_time && selectedDayAvailability.end_time) {
-            dailyDisplayStartTime = selectedDayAvailability.start_time.substring(0, 5);
-            dailyDisplayEndTime = selectedDayAvailability.end_time.substring(0, 5);
+        // Verifica se a API (que corrigimos) retornou os horários
+        if (selectedDayAvailability && selectedDayAvailability.day_start_time && selectedDayAvailability.day_end_time) {
+            dailyDisplayStartTime = selectedDayAvailability.day_start_time; // ex: 08:00
+            dailyDisplayEndTime = selectedDayAvailability.day_end_time; // ex: 18:00
             dailyTimesElement.textContent = `${dailyDisplayStartTime} até ${dailyDisplayEndTime}`;
+        } else if (selectedDayAvailability) {
+            dailyTimesElement.textContent = `Não informado`;
         } else {
-            dailyTimesElement.textContent = `Não informado para este dia`;
+            dailyTimesElement.textContent = `Data indisponível`;
         }
     } else {
+        // Se 'selectedSlotDate' for nulo
         dailyTimesElement.textContent = `Selecione uma data`;
     }
 }
@@ -1283,48 +1554,20 @@ export async function openParkingDetailModal(spotDetails) {
 
     // Configura o botão de favorito do modal (deve ser re-conectado pois o HTML foi recriado)
     const modalFavBtn = document.getElementById('modal-favorite-btn');
-    
     if (modalFavBtn) {
-        // 1. Define estado inicial visual
-        const icon = modalFavBtn.querySelector('i') || modalFavBtn.querySelector('svg'); // Aceita ambos
-        const isFav = favoritedSpotIds.has(spotDetails.id);
+        modalFavBtn.dataset.spotId = spotDetails.id;
         
-        // Função auxiliar para atualizar visual
-        const updateIcon = (active) => {
-            // Se estiver usando FontAwesome (<i>)
-            if (icon.tagName === 'I') {
-                icon.className = active ? "fas fa-heart text-red-500 text-lg" : "far fa-heart text-gray-500 text-lg";
-            } 
-            // Se estiver usando SVG
-            else if (icon.tagName === 'svg') {
-                icon.setAttribute('fill', active ? 'currentColor' : 'none');
-                icon.classList.toggle('text-red-500', active);
-                icon.classList.toggle('text-gray-400', !active);
-            }
-        };
-        
-        updateIcon(isFav);
+        // Atualiza a cor inicial do coração
+        updateAllHeartIcons(spotDetails.id);
 
-        // 2. Configura o clique
+        // Limpa listeners antigos
         const newModalFavBtn = modalFavBtn.cloneNode(true);
         modalFavBtn.parentNode.replaceChild(newModalFavBtn, modalFavBtn);
 
+        // Adiciona o novo listener (Corrigido)
         newModalFavBtn.addEventListener('click', (event) => {
             event.stopPropagation();
-            
-            // Toggle (Inverte)
-            if (favoritedSpotIds.has(spotDetails.id)) {
-                favoritedSpotIds.delete(spotDetails.id);
-                // Precisamos pegar o ícone de dentro do NOVO botão clonado
-                const currentIcon = newModalFavBtn.querySelector('i') || newModalFavBtn.querySelector('svg');
-                if(currentIcon.tagName === 'I') currentIcon.className = "far fa-heart text-gray-500 text-lg";
-                // Adicione lógica SVG se necessário
-            } else {
-                favoritedSpotIds.add(spotDetails.id);
-                const currentIcon = newModalFavBtn.querySelector('i') || newModalFavBtn.querySelector('svg');
-                if(currentIcon.tagName === 'I') currentIcon.className = "fas fa-heart text-red-500 text-lg";
-            }
-            saveFavoritesToStorage();
+            openFavoritesModal(spotDetails); // Abre o modal de listas
         });
     }
 }
@@ -1595,25 +1838,33 @@ export async function openReservationDetailModal(reservation) {
 // Aba de "Minhas Reservas"
 export async function carregarMinhasReservas() {
     console.log("carregarMinhasReservas: Iniciando...");
-    try {
-        const reservations = await fetchMyReservations();
-        const container = document.getElementById("myReservationsContainer");
-        if (container) {
-            container.innerHTML = ""; // Limpa o conteúdo anterior
-            if (reservations && reservations.length > 0) {
-                reservations.forEach(res => renderMyReservation(res));
-            } else {
-                container.innerHTML = `<p class="text-center text-gray-400 mt-6">Você ainda não possui reservas.</p>`;
-            }
-        }
-    } catch (error) {
-        console.error("Erro ao carregar minhas reservas na UI:", error);
-        const container = document.getElementById("myReservationsContainer");
-        if (container) {
-            container.innerHTML = `<p class="text-center text-red-500 mt-6">Erro ao carregar suas reservas: ${error.message}.</p>`;
+        try {
+            const reservations = await fetchMyReservations(); // Pega todas
+            const container = document.getElementById("myReservationsContainer");
+        if (container) { container.innerHTML = ""; // Limpa o conteúdo anterior
+        // Filtra apenas as reservas 'pending' (Pendente) ou 'confirmed' (Confirmada)
+            const activeReservations = reservations.filter(res => 
+            res.status === 'pending' || res.status === 'confirmed'
+        );
+ // --- 👆 FIM DA CORREÇÃO 👆 ---
+
+        if (activeReservations && activeReservations.length > 0) {
+            // Agora, itera sobre a lista filtrada
+            activeReservations.forEach(res => renderMyReservation(res));
+        } else {
+// Mensagem atualizada
+        container.innerHTML = `<p class="text-center text-gray-400 mt-6 col-span-1 md:col-span-2">Você ainda não possui reservas ativas.</p>`;
         }
     }
+ } catch (error) {
+    console.error("Erro ao carregar minhas reservas na UI:", error);
+    const container = document.getElementById("myReservationsContainer");
+        if (container) {
+            container.innerHTML = `<p class="text-center text-red-500 mt-6">Erro ao carregar suas reservas: ${error.message}.</p>`;
+        }   
+    }
 }
+
 // Reservar alguma vaga  após o usuário escolher
 export function showReservationConfirmation(reservationDetails) {
     const modal = document.getElementById('reservation-confirmation-modal');

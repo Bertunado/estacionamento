@@ -12,7 +12,8 @@ import {
     openReservationDetailModal, 
     carregarSpotsDaListaEdoMapa,
     handleReservationAction,
-    toggleParkingSheet // 👇 Importe a nova função
+    toggleParkingSheet,
+    setupFavoritesLogic 
 } from './ui_handlers.js';
 import { setupAvailabilityFields } from './availability_manager.js';
 import { setupPhotoUpload } from './photo_upload.js';
@@ -23,6 +24,8 @@ import {
     fetchSpots, 
     fetchMySpots 
 } from './api_services.js';
+
+import { showConfirmationModal } from './confirmations.js';
 // Não precisamos importar as novas funções da API aqui, pois elas são usadas pelo ui_handlers
 let resizeTimer;
 let isMobile = window.innerWidth < 768;
@@ -64,6 +67,7 @@ async function initializeApplication() {
         setupAvailabilityFields();
         setupPhotoUpload();
         setupModalClosers(); // Configura os fechadores de modais
+        setupFavoritesLogic();
 
         document.getElementById("logoutBtn")?.addEventListener("click", () =>
             alert("Você foi desconectado.")
@@ -167,17 +171,22 @@ async function initializeApplication() {
 
             // 👇 LÓGICA ADICIONADA PARA BOTÕES DE APROVAR/RECUSAR
             const actionBtn = e.target.closest(".action-btn");
-            if (actionBtn) {
-                const id = actionBtn.dataset.id;
-                const action = actionBtn.dataset.action;
-                const actionText = action === 'approve' ? 'aprovar' : 'recusar';
-                
-                // (Assumindo que showConfirmationModal está em confirmations.js ou ui_handlers.js e é global ou importado em ui_handlers)
-                showConfirmationModal(`Tem certeza que deseja ${actionText} esta reserva?`, () => {
-                    handleReservationAction(id, action); // Chama a função do ui_handlers
-                });
-                return; // Encerra após tratar o clique
-            }
+        if (actionBtn) {
+            const id = actionBtn.dataset.id;
+            const action = actionBtn.dataset.action;
+            const actionText = action === 'approve' ? 'aprovar' : 'recusar';
+            
+            // 👇 ATUALIZADO AQUI: Define o texto do botão
+            const confirmButtonText = action === 'approve' ? 'Sim, aprovar' : 'Sim, recusar';
+            
+            // 👇 ATUALIZADO AQUI: Passa os 3 argumentos
+            showConfirmationModal(
+                `Tem certeza que deseja ${actionText} esta reserva?`, // 1. Mensagem
+                confirmButtonText,                                     // 2. Texto do Botão
+                () => { handleReservationAction(id, action); }         // 3. Ação (Callback)
+            );
+            return;
+        }
         });
 
         console.log("main.js: Inicialização completa.");

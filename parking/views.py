@@ -66,7 +66,7 @@ class ParkingSpotPhotoViewSet(viewsets.ModelViewSet):
     queryset = ParkingSpotPhoto.objects.all() # Queryset padrão para listar todas as fotos
     serializer_class = ParkingSpotPhotoSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser] # ESSENCIAL para lidar com uploads de arquivos
+    parser_classes = [MultiPartParser, FormParser] # Para lidar com uploads de arquivos
 
     def get_queryset(self):
         # Este ViewSet lida com fotos, então o queryset deve ser de ParkingSpotPhoto.
@@ -390,8 +390,14 @@ def get_spot_availability_by_spot_id(request, spot_id):
             availability = SpotAvailability.objects.filter(spot=spot, available_date=query_date).first()
 
             slots_info = []
+            day_start_time = None
+            day_end_time = None
 
             if availability:
+
+                day_start_time = availability.start_time.strftime('%H:%M')
+                day_end_time = availability.end_time.strftime('%H:%M')
+
                 num_slots = availability.available_quantity
                 for i in range(1, num_slots + 1):
                     reservations = Reservation.objects.filter(
@@ -416,6 +422,8 @@ def get_spot_availability_by_spot_id(request, spot_id):
             response_data['dates_availability'].append({
                 'date': date_str,
                 'slots': slots_info,
+                'day_start_time': day_start_time,
+                'day_end_time': day_end_time,
             })
 
         except ValueError:
@@ -702,28 +710,33 @@ class UpdateReservationStatusView(APIView):
 
     def post(self, request, pk, *args, **kwargs):
         try:
-            reservation = Reservation.objects.get(pk=pk)
+            # Otimizado: select_related para buscar dados do usuário e vaga de uma vez
+            reservation = Reservation.objects.select_related('renter', 'spot', 'spot__owner').get(pk=pk)
         except Reservation.DoesNotExist:
             return Response({"detail": "Reserva não encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
-        # 1. Verificação de Segurança: O usuário é o dono da vaga?
+        # 1. Verificação de Segurança
         if reservation.spot.owner != request.user:
             return Response(
                 {"detail": "Você não tem permissão para modificar esta reserva."}, 
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        action = request.data.get('action') # Esperamos 'approve' ou 'refuse'
+        action = request.data.get('action') # 'approve' ou 'refuse'
+        
+        # Dados para o E-mail
+        renter_email = reservation.renter.email
+        spot_title = reservation.spot.title
 
         if action == 'approve':
-            # 2. Verificação de Conflito: Aprovar esta reserva causará sobreposição com outra JÁ CONFIRMADA?
+            # 2. Verificação de Conflito
             overlapping_reservations = Reservation.objects.filter(
                 spot=reservation.spot,
                 slot_number=reservation.slot_number,
                 start_time__lt=reservation.end_time,
                 end_time__gt=reservation.start_time,
-                status='confirmed' # Apenas contra reservas já confirmadas
-            ).exclude(pk=reservation.pk).exists() # Exclui a própria reserva da verificação
+                status='confirmed'
+            ).exclude(pk=reservation.pk).exists()
 
             if overlapping_reservations:
                 return Response(
@@ -735,7 +748,28 @@ class UpdateReservationStatusView(APIView):
             reservation.status = 'confirmed'
             reservation.save(update_fields=['status'])
             
-            # TODO: Idealmente, enviar uma notificação para o locatário (renter) aqui
+            # --- INÍCIO DA ATUALIZAÇÃO (E-MAIL DE APROVAÇÃO) ---
+            try:
+                send_mail(
+                    subject=f'Sua reserva para "{spot_title}" foi CONFIRMADA!',
+                    message=(
+                        f'Olá!\n\n'
+                        f'Boas notícias! Sua solicitação de reserva para a vaga "{spot_title}" foi APROVADA pelo proprietário.\n\n'
+                        f'Detalhes:\n'
+                        f'- Data: {reservation.start_time.strftime("%d/%m/%Y")}\n'
+                        f'- Horário: {reservation.start_time.strftime("%H:%M")} às {reservation.end_time.strftime("%H:%M")}\n\n'
+                        f'Você pode ver os detalhes na seção "Minhas Reservas" e iniciar o chat com o proprietário.\n\n'
+                        f'Obrigado por usar o ParkShare!'
+                    ),
+                    from_email=settings.EMAIL_HOST_USER, # O e-mail configurado no settings.py
+                    recipient_list=[renter_email], # O e-mail do locatário
+                    fail_silently=False, # Força a falha para o 'except' pegar
+                )
+            except Exception as e:
+                # O Erro 500 estava vindo daqui.
+                # Agora, apenas imprimimos o erro, mas a API continua.
+                print(f"!!! ERRO AO ENVIAR E-MAIL de confirmação (Reserva ID: {pk}): {e}")
+            # --- FIM DA ATUALIZAÇÃO ---
 
             serializer = ReservationListSerializer(reservation)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -745,7 +779,23 @@ class UpdateReservationStatusView(APIView):
             reservation.status = 'refused'
             reservation.save(update_fields=['status'])
             
-            # TODO: Idealmente, enviar uma notificação para o locatário (renter) aqui
+            # --- INÍCIO DA ATUALIZAÇÃO (E-MAIL DE RECUSA) ---
+            try:
+                send_mail(
+                    subject=f'Atualização sobre sua reserva para "{spot_title}"',
+                    message=(
+                        f'Olá!\n\n'
+                        f'Infelizmente, sua solicitação de reserva para a vaga "{spot_title}" foi RECUSADA pelo proprietário.\n\n'
+                        f'Você pode tentar reservar um horário diferente para esta ou outra vaga.\n\n'
+                        f'Equipe ParkShare.'
+                    ),
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[renter_email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"!!! ERRO AO ENVIAR E-MAIL de recusa (Reserva ID: {pk}): {e}")
+            # --- FIM DA ATUALIZAÇÃO ---
 
             serializer = ReservationListSerializer(reservation)
             return Response(serializer.data, status=status.HTTP_200_OK)
