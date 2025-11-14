@@ -106,7 +106,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 class ParkingSpotSerializer(serializers.ModelSerializer):
     photos = serializers.SerializerMethodField()
     availabilities_by_date = SpotAvailabilitySerializer(many=True, required=False) 
-    owner = CustomUserSerializer(read_only=True)
+    owner = OwnerSerializer(read_only=True)
 
     class Meta:
         model = ParkingSpot

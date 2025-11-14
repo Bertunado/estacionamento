@@ -541,31 +541,70 @@ function createRequestCard(request) {
     `;
     return card;
 }
+function showSuccessModal(message) {
+    const modal = document.getElementById('success-modal');
+    const messageEl = document.getElementById('success-message');
+    const okBtn = document.getElementById('success-ok-button');
+
+    if (!modal || !messageEl || !okBtn) {
+        console.error("Elementos do modal de sucesso não encontrados!");
+        // Caso o modal falhe, volta para o alert
+        alert(message);
+        return;
+    }
+
+    // Define a mensagem
+    messageEl.textContent = message;
+
+    // Remove listeners antigos do botão OK para evitar cliques duplicados
+    const newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    
+    // Adiciona o novo listener para fechar
+    newOkBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    // Mostra o modal
+    modal.classList.remove('hidden');
+}
 
 export async function handleReservationAction(id, action) {
-    try {
-        const result = await updateReservationStatus(id, action); // Chama a API
-        
-        // Remove o card da lista de pendentes
-        const card = document.getElementById(`request-${id}`);
-        if (card) {
-            card.classList.add('opacity-0', 'transition-all'); // Efeito de fade out
-            setTimeout(() => card.remove(), 500);
-        }
-        
-        // showToast(`Reserva ${action === 'approve' ? 'Aprovada' : 'Recusada'}!`, 'success');
-        alert(`Reserva ${action === 'approve' ? 'Aprovada' : 'Recusada'}!`);
-        
-        // Recarrega a lista para atualizar o contador da badge
-        await loadReservationRequests();
-
-    } catch (error) {
-        console.error(`Erro ao ${action} reserva:`, error);
-        const errorMessage = error.detail || `Falha ao ${action === 'approve' ? 'aprovar' : 'recusar'} reserva.`;
-        // showToast(errorMessage, 'error');
-        alert(errorMessage);
+        try {
+            const result = await updateReservationStatus(id, action); // Chama a API
+            
+            // Remove o card da lista de pendentes
+            const card = document.getElementById(`request-${id}`);
+            if (card) {
+                card.classList.add('opacity-0', 'transition-all'); // Efeito de fade out
+                setTimeout(() => card.remove(), 500);
+            }
+            
+            // --- 👇 ESTA É A MUDANÇA 👇 ---
+    
+            // Monta a mensagem de sucesso
+            const successMessage = (action === 'approve') 
+                ? 'Reserva Aprovada com sucesso!' 
+                : 'Reserva Recusada com sucesso!';
+            
+            // Chama o novo modal!
+            showSuccessModal(successMessage);
+            
+            // --- 👆 FIM DA MUDANÇA 👆 ---
+            
+            // Recarrega a lista para atualizar o contador da badge
+            await loadReservationRequests();
+    
+        } catch (error) {
+            console.error(`Erro ao ${action} reserva:`, error);
+            const errorMessage = error.detail || `Falha ao ${action === 'approve' ? 'aprovar' : 'recusar'} reserva.`;
+            
+            // --- 👇 MUDANÇA BÔNUS (para tirar o alert de erro) 👇 ---
+            // alert(errorMessage); // Substituído
+            showErrorModal(errorMessage);
+            // --- 👆 FIM DA MUDANÇA BÔNUS 👆 ---
+        }
     }
-}
 
 export async function carregarMinhasVagas() {
     try {
@@ -766,15 +805,6 @@ export function renderSpot(spot, listId) {
         });
     }
 
-    const editBtn = card.querySelector('[data-action="editar"]');
-    if (editBtn) {
-        editBtn.addEventListener('click', (event) => {
-            event.stopPropagation(); 
-            console.log(`Botão de editar para a vaga ${spot.id} clicado.`);
-            openEditSpotModal(spot); 
-        });
-    }
-
     card.addEventListener("click", () => {
         openParkingDetailModal(spot);
     });
@@ -808,10 +838,7 @@ export function renderMySpot(spot) {
 
         <div class="mt-3 flex items-center justify-between">
             <div class="flex space-x-2">
-                <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700" data-id="${spot.id}" data-action="editar">
-                    Editar
-                </button>
-                <button class="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded hover:bg-gray-200">
+                <button class="bg-indigo-600 text-white px-3 py-1 text-sm rounded hover:bg-indigo-700">
                     Ver Estatísticas
                 </button>
                 <button id="toggleStatusBtn-${spot.id}" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" data-id="${spot.id}" data-action="${desativada ? "ativar" : "desativar"}">
@@ -825,16 +852,6 @@ export function renderMySpot(spot) {
     `;
 
     container.prepend(card);
-
-     const editBtn = card.querySelector('[data-action="editar"]');
-    if (editBtn) {
-        editBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            console.log(`Botão de editar para a vaga ${spot.id} clicado.`);
-            
-            openEditSpotModal(spot);
-        });
-    }
 
     const toggleStatusBtn = card.querySelector(`#toggleStatusBtn-${spot.id}`);
     if (toggleStatusBtn) {
@@ -872,26 +889,6 @@ export function renderMySpot(spot) {
     }
 }
 
-function openEditSpotModal(spotDetails) {
-    const editModal = document.getElementById('edit-spot-modal');
-    if (!editModal) {
-        console.error("Modal de edição não encontrado!");
-        return;
-    }
-    
-    // Preenche o formulário com os dados da vaga
-    document.getElementById('edit-spot-id').value = spotDetails.id;
-    document.getElementById('edit-title').value = spotDetails.title;
-    document.getElementById('edit-address').value = spotDetails.address;
-    document.getElementById('edit-description').value = spotDetails.description;
-    document.getElementById('edit-price_hour').value = spotDetails.price_hour;
-    document.getElementById('edit-price_day').value = spotDetails.price_day;
-    document.getElementById('edit-size').value = spotDetails.size;
-    document.getElementById('edit-tipo_vaga').value = spotDetails.tipo_vaga;
-
-    // Mostra o modal
-    editModal.classList.remove('hidden');
-}
 
 // Renderizar os horários já reservados
 function renderReservedSlots(occupiedTimes, selectedDateStr) {
@@ -931,24 +928,23 @@ function renderReservedSlots(occupiedTimes, selectedDateStr) {
 
 // Carregar as reservas quando a data for selecionada
 export async function handleDateSelection(spotId, selectedDates) {
-    currentSpotId = spotId;
-    currentSelectedSlot = { date: null, slotNumber: null };
+     currentSpotId = spotId;
+     currentSelectedSlot = { date: null, slotNumber: null };
 
-    document.getElementById('no-slots-message').classList.add('hidden');
-    document.getElementById('dynamic-vaga-squares').innerHTML = '';
-    
-    document.getElementById('reserved-slots-list').innerHTML = '';
-    document.getElementById('reserved-slots-for-date').classList.add('hidden');
-
-    // 1. Busca os horários (e salva em window.currentSpotData)
-    await renderVagaSquares(selectedDates);
+     document.getElementById('no-slots-message').classList.add('hidden');
+    document.getElementById('dynamic-vaga-squares').innerHTML = '';
     
-    // 2. 👇 ADICIONE ESTA LINHA 👇
-    // Pega a primeira data selecionada para atualizar a calculadora
-    const firstDateStr = selectedDates.length > 0 ? formatDateToISO(selectedDates[0]) : null;
-
-    // 3. Atualiza a calculadora AGORA, usando os dados que acabamos de buscar
-    updateReservationSummary(currentSpotDetails, firstDateStr, null, null);
+     document.getElementById('reserved-slots-list').innerHTML = '';
+     document.getElementById('reserved-slots-for-date').classList.add('hidden');
+    
+    // 1. Busca os horários (e salva em window.currentSpotData)
+     await renderVagaSquares(selectedDates);
+    
+    
+     const firstDateStr = selectedDates.length > 0 ? formatDateToISO(selectedDates[0]) : null;
+    
+     updateReservationSummary(currentSpotDetails, firstDateStr, null, null);
+        
 }
 
 function isTimeOverlap(userStart, userEnd, occupiedTimes, slotDate) {
@@ -972,25 +968,48 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Botão de confirmar reserva clicado!');
 
             const spotId = document.getElementById('reservation-spot-id').value;
-            const startTime = document.getElementById('start-time-input').value;
-            const endTime = document.getElementById('end-time-input').value;
-            const selectedDateStr = currentSelectedSlot.date; 
-            
-            const timeOverlapErrorP = document.getElementById('time-overlap-error');
-            if (timeOverlapErrorP) timeOverlapErrorP.classList.add('hidden');
+// MUDANÇA 1: Usar 'let' para que os valores possam ser modificados
+let startTime = document.getElementById('start-time-input').value;
+ let endTime = document.getElementById('end-time-input').value;
+const selectedDateStr = currentSelectedSlot.date;
 
-            // --- Validação 1: Vaga física selecionada? ---
-            if (currentSelectedSlot.slotNumber === null) {
-                showErrorModal("Por favor, selecione a vaga física."); // SUBSTITUÍDO
-                return;
-            }
-            const slotNumber = currentSelectedSlot.slotNumber;
+ const timeOverlapErrorP = document.getElementById('time-overlap-error');
+ if (timeOverlapErrorP) timeOverlapErrorP.classList.add('hidden');
 
-            // --- Validação 2: Campos preenchidos? ---
-            if (!spotId || !startTime || !endTime || !selectedDateStr) {
-                showErrorModal("Por favor, preencha a data e os horários da reserva."); // SUBSTITUÍDO
-                return;
-            }
+ // --- Validação 1: Vaga física selecionada? ---
+ if (currentSelectedSlot.slotNumber === null) {
+showErrorModal("Por favor, selecione a vaga física.");
+return;
+ }
+ const slotNumber = currentSelectedSlot.slotNumber;
+
+ // --- MUDANÇA 2: LÓGICA DE VALIDAÇÃO CORRIGIDA ---
+            if (currentSelectedReservationOption === 'hourly') {
+                // Se for 'Por Hora', os campos de horário são obrigatórios
+                if (!startTime || !endTime) {
+                    // Este é o erro que você viu!
+                    showErrorModal("Por favor, preencha a data e os horários da reserva.");
+                    return;
+                }
+            } else if (currentSelectedReservationOption === 'daily') {
+                // Se for 'Por Dia', ignoramos os inputs e buscamos os horários do dia
+                const selectedAvailability = window.currentSpotData.dates_availability.find(av => av.date === selectedDateStr);
+
+                if (selectedAvailability && selectedAvailability.day_start_time && selectedAvailability.day_end_time) {
+                    // MUDANÇA 3: Atribuímos os horários do dia às nossas variáveis
+                    startTime = selectedAvailability.day_start_time;
+                    endTime = selectedAvailability.day_end_time;
+                    console.log(`Modo 'Por Dia' detectado. Usando horários: ${startTime} - ${endTime}`);
+                } else {
+                    showErrorModal("Não foi possível encontrar os horários de 'diária' para esta vaga. Tente selecionar a data novamente.");
+
+            return;
+                }
+           } else {
+                // Se for nulo (nenhuma opção selecionada)
+                showErrorModal("Por favor, selecione uma opção de reserva (Por Hora ou Por Dia).");
+                return;
+            }
             
             const startDateTime = new Date(`${selectedDateStr}T${startTime}:00`);
             const endDateTime = new Date(`${selectedDateStr}T${endTime}:00`);
@@ -1479,31 +1498,28 @@ export async function openParkingDetailModal(spotDetails) {
     }
 
     if (profileImage) {
-        // Remova listeners antigos antes de adicionar novos
-        const newProfileImage = profileImage.cloneNode(true);
-        profileImage.parentNode.replaceChild(newProfileImage, profileImage);
-        newProfileImage.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            popover.classList.toggle('hidden');
-
-            const sellerName = document.getElementById('modal-seller-name');
-            const popoverName = document.getElementById('popover-seller-name');
-            if (sellerName && popoverName) {
-                popoverName.textContent = sellerName.textContent;
-            }
-
-            const rect = newProfileImage.getBoundingClientRect(); // Use newProfileImage aqui
-            popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
-            popover.style.left = `${rect.left + window.scrollX}px`;
-        });
-    }
-
-    // Listener para fechar popover do vendedor
-    document.addEventListener('click', (e) => {
-        if (popover && !popover.contains(e.target) && (!profileImage || !profileImage.contains(e.target))) { // Verifica se profileImage existe
-            popover.classList.add('hidden');
-        }
-    });
+                // Remova listeners antigos antes de adicionar novos
+                const newProfileImage = profileImage.cloneNode(true);
+                profileImage.parentNode.replaceChild(newProfileImage, profileImage);
+                
+                newProfileImage.addEventListener('click', (e) => {
+                    e.stopPropagation(); 
+                    // CHAMA A NOVA FUNÇÃO em vez de mostrar o popover
+                    openSellerProfileModal(currentSpotDetails.owner); 
+                });
+            }
+        
+            // Esconde o popover antigo (não o usamos mais)
+            if (popover) {
+                popover.classList.add('hidden');
+            }
+        
+            // Listener para fechar o popover antigo (só para garantir)
+            document.addEventListener('click', (e) => {
+                if (popover && !popover.contains(e.target) && (!profileImage || !profileImage.contains(e.target))) {
+                    popover.classList.add('hidden');
+                }
+            });
 
     // Lógica para seleção de hora/dia
     const hourlyOptionBox = document.getElementById('reservation-option-hourly');
@@ -1570,6 +1586,103 @@ export async function openParkingDetailModal(spotDetails) {
             openFavoritesModal(spotDetails); // Abre o modal de listas
         });
     }
+}
+
+async function openSellerProfileModal(ownerDetails) {
+    const modal = document.getElementById('seller-profile-modal');
+    if (!modal) {
+        console.error("Modal 'seller-profile-modal' não encontrado no HTML.");
+        return;
+    }
+    
+    // 1. Pegar todos os elementos do modal
+    const photoEl = document.getElementById('seller-modal-photo');
+    const nameEl = document.getElementById('seller-modal-name');
+    const spotsTitleEl = document.getElementById('seller-modal-spots-title');
+    const spotsListEl = document.getElementById('seller-modal-spots-list');
+    const loadingEl = document.getElementById('seller-modal-loading'); // O div "Carregando..."
+    const reportBtn = document.getElementById('report-user-btn'); // Botão de denunciar
+
+    // --- 👇 CORREÇÃO PARA O ERRO DO ID 👇 ---
+    // 5. Buscar as vagas ANTES de preencher os dados
+    if (!ownerDetails || !ownerDetails.id) {
+        spotsListEl.innerHTML = '<p class="text-gray-500">Não foi possível carregar as vagas (ID do vendedor não encontrado).</p>';
+        
+        // Preenche com o que tiver, mesmo se o ID falhar
+        nameEl.textContent = (ownerDetails && ownerDetails.perfil) ? (ownerDetails.perfil.nome_completo || ownerDetails.email) : "Vendedor";
+        photoEl.src = (ownerDetails && ownerDetails.perfil && ownerDetails.perfil.foto) ? ownerDetails.perfil.foto : '/static/parking/css/images/default_avatar.png';
+        spotsTitleEl.textContent = `Vagas de ${nameEl.textContent.split(' ')[0]}`;
+
+        modal.classList.remove('hidden'); // Mostra o modal mesmo com o erro
+        return;
+    }
+    // --- 👆 FIM DA CORREÇÃO 👆 ---
+
+    // 2. Preencher dados estáticos (agora que sabemos que ownerDetails.id existe)
+    let sellerName = 'Vendedor';
+    let sellerPhoto = '/static/parking/css/images/default_avatar.png'; 
+
+    if (ownerDetails && ownerDetails.perfil) {
+        sellerName = ownerDetails.perfil.nome_completo || ownerDetails.email;
+        if (ownerDetails.perfil.foto) {
+            sellerPhoto = ownerDetails.perfil.foto;
+        }
+    }
+    
+    photoEl.src = sellerPhoto;
+    nameEl.textContent = sellerName;
+    spotsTitleEl.textContent = `Vagas de ${sellerName.split(' ')[0]}`; // "Vagas de [Primeiro Nome]"
+    
+    // 3. Configurar botão de denunciar
+    reportBtn.onclick = () => alert('Função "Denunciar" ainda não implementada.'); // Placeholder
+    
+    // 4. Mostrar modal e limpar lista antiga
+    
+    // --- 👇 CORREÇÃO PARA O ERRO 'classList' 👇 ---
+    // Checa se 'loadingEl' foi encontrado (ele será 'null' na 2ª vez)
+    if (loadingEl) {
+        loadingEl.classList.add('hidden'); 
+    }
+    // --- 👆 FIM DA CORREÇÃO 👆 ---
+    
+    spotsListEl.innerHTML = ''; // Limpa a lista de vagas antigas
+    modal.classList.remove('hidden');
+
+    // 5. Buscar as vagas do vendedor (FILTRANDO LOCALMENTE)
+    if (!window.allSpots) {
+         spotsListEl.innerHTML = '<p class="text-red-500">Erro: A lista global de vagas (window.allSpots) não está carregada.</p>';
+         return;
+    }
+
+    const sellerSpots = window.allSpots.filter(spot => spot.owner && spot.owner.id === ownerDetails.id);
+    
+    // 6. Renderizar as vagas
+    if (sellerSpots.length === 0) {
+        spotsListEl.innerHTML = '<p class="text-gray-500">Este vendedor não possui vagas ativas.</p>';
+        return;
+    }
+
+    sellerSpots.forEach(spot => {
+        const card = document.createElement('div');
+        card.className = "flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer";
+        
+        card.onclick = () => {
+            modal.classList.add('hidden');
+            openParkingDetailModal(spot); 
+        };
+
+        const photo = (spot.photos && spot.photos.length > 0) ? spot.photos[0] : '/static/parking/css/images/placeholder.png';
+        
+        card.innerHTML = `
+            <img src="${photo}" alt="${spot.title}" class="w-16 h-16 rounded-md object-cover">
+            <div class="ml-3">
+                <h6 class="font-semibold text-gray-800">${spot.title}</h6>
+                <p class="text-sm text-gray-600">${spot.address}</p>
+                <span class="font-bold text-sm text-indigo-600">R$ ${parseFloat(spot.price_hour).toFixed(2).replace('.', ',')}/h</span>
+            </div>
+        `;
+        spotsListEl.appendChild(card);
+    });
 }
 
 export function renderMyReservation(reservation) {
@@ -1686,10 +1799,13 @@ export function renderMyReservation(reservation) {
         cancelButton.textContent = "Cancelar Reserva";
 
         cancelButton.addEventListener("click", () => {
-            showConfirmModal("Tem certeza que deseja cancelar esta reserva?", async () => {
-                // Esta callback só será executada se o usuário clicar em "Sim, cancelar"
-                try {
-                    const token = getAuthToken();
+            showConfirmationModal(
+                                "Tem certeza que deseja cancelar esta reserva?", // 1. message
+                                "Sim, cancelar", // 2. confirmText (O ARGUMENTO QUE FALTAVA)
+                                async () => { // 3. callback
+                                    // Esta callback só será executada se o usuário clicar em "Sim, cancelar"
+                                    try {
+                                        const token = getAuthToken();
                     const csrfToken = getCsrfToken();
                     const url = `http://127.0.0.1:8000/parking/api/reservations/${reservation.id}/`;
 
@@ -2006,13 +2122,12 @@ async function renderVagaSquares(selectedDates) {
 
     const formattedDatesForApi = selectedDates.map(date => new Date(date).toISOString().split('T')[0]).join(',');
 
-     try {
+    try {
         const response = await fetch(`/parking/api/spots/${currentSpotId}/availability/?dates=${formattedDatesForApi}`);
         const data = await response.json();
         
         console.log("Dados de disponibilidade da API:", data);
         
-        // Salvando os dados da API em uma variável global
         window.currentSpotData = data; 
 
         if (!response.ok) {
@@ -2040,60 +2155,99 @@ async function renderVagaSquares(selectedDates) {
                     availability.slots.forEach(slot => {
                         const square = document.createElement('div');
                         
-                        const isFullyOccupied = slot.occupied_times.length > 0;
+                        // --- 👇 INÍCIO DA LÓGICA ATUALIZADA 👇 ---
+                        
+                        let isFullDayOccupied = false;
+                        const dayStartStr = availability.day_start_time; // "10:00"
+                        const dayEndStr = availability.day_end_time;     // "22:00"
+
+                        if (dayStartStr && dayEndStr && slot.occupied_times.length > 0) {
+                            const getMinutes = (timeStr) => {
+                                const [h, m] = timeStr.split(':').map(Number);
+                                return h * 60 + m;
+                            };
+
+                            const dayStart = getMinutes(dayStartStr);
+                            const dayEnd = getMinutes(dayEndStr);
+                            const totalDayDuration = dayEnd - dayStart;
+
+                            let totalOccupiedDuration = 0;
+                            slot.occupied_times.forEach(time => {
+                                const start = getMinutes(time.start);
+                                const end = getMinutes(time.end);
+                                totalOccupiedDuration += (end - start);
+                            });
+
+                            if (totalOccupiedDuration >= totalDayDuration) {
+                                isFullDayOccupied = true;
+                            }
+                        }
+                        // --- 👆 FIM DA LÓGICA ATUALIZADA 👆 ---
                         
                         square.classList.add(
                             'vaga-square', 'w-10', 'h-10', 'rounded-md', 'flex', 
                             'items-center', 'justify-center', 'font-bold', 'text-white', 
-                            'text-lg', 'select-none', 'border-2', 'transition-colors', 'm-1', 'cursor-pointer'
+                            'text-lg', 'select-none', 'border-2', 'transition-colors', 'm-1'
                         );
                         square.textContent = slot.slot_number;
                         square.dataset.vagaNumber = slot.slot_number;
                         square.dataset.slotDate = availability.date; 
                         square.dataset.selected = 'false';
 
-                        if (isFullyOccupied) {
-                            square.classList.add('border-yellow-500', 'bg-yellow-500', 'hover:bg-yellow-600');
+                        if (isFullDayOccupied) {
+                            // 100% OCUPADO (CINZA E SEM CLIQUE)
+                            square.classList.add('border-gray-400', 'bg-gray-400', 'cursor-not-allowed', 'opacity-50');
+                        } else if (slot.occupied_times.length > 0) {
+                            // PARCIALMENTE OCUPADO (AMARELO)
+                            square.classList.add('border-yellow-500', 'bg-yellow-500', 'hover:bg-yellow-600', 'cursor-pointer');
                         } else {
-                            square.classList.add('border-green-500', 'bg-green-500', 'hover:bg-green-600');
+                            // LIVRE (VERDE)
+                            square.classList.add('border-green-500', 'bg-green-500', 'hover:bg-green-600', 'cursor-pointer');
                         }
                         
-                        square.addEventListener('click', async () => {
-                            document.querySelectorAll('.vaga-square').forEach(otherSquare => {
-                                if (otherSquare.dataset.selected === 'true') {
-                                    // Remove o estilo de seleção
-                                    otherSquare.classList.remove('bg-indigo-600', 'border-indigo-600');
-                                    
-                                    // Restaura a cor original baseada na ocupação
-                                    const otherSlotDate = otherSquare.dataset.slotDate;
-                                    const otherSlotNumber = otherSquare.dataset.vagaNumber;
-                                    const otherAvailability = data.dates_availability.find(av => av.date === otherSlotDate);
-                                    const otherSlot = otherAvailability.slots.find(s => s.slot_number.toString() === otherSlotNumber);
-                                    if (otherSlot.occupied_times.length > 0) {
-                                         otherSquare.classList.add('bg-yellow-500', 'border-yellow-500');
-                                    } else {
-                                         otherSquare.classList.add('bg-green-500', 'border-green-500');
+                        // SÓ ADICIONA CLIQUE SE NÃO ESTIVER 100% OCUPADO
+                        if (!isFullDayOccupied) {
+                            square.addEventListener('click', async () => {
+                                // --- ESTE É O CÓDIGO DO SEU LISTENER ORIGINAL ---
+                                document.querySelectorAll('.vaga-square').forEach(otherSquare => {
+                                    if (otherSquare.dataset.selected === 'true') {
+                                        otherSquare.classList.remove('bg-indigo-600', 'border-indigo-600');
+                                        
+                                        // Restaura a cor original
+                                        const otherSlotDate = otherSquare.dataset.slotDate;
+                                        const otherSlotNumber = otherSquare.dataset.vagaNumber;
+                                        const otherAvailability = data.dates_availability.find(av => av.date === otherSlotDate);
+                                        const otherSlot = otherAvailability.slots.find(s => s.slot_number.toString() === otherSlotNumber);
+                                        
+                                        // (Lógica de 100% ocupado não é necessária aqui, pois ele não seria clicável)
+                                        if (otherSlot.occupied_times.length > 0) {
+                                            otherSquare.classList.add('bg-yellow-500', 'border-yellow-500');
+                                        } else {
+                                            otherSquare.classList.add('bg-green-500', 'border-green-500');
+                                        }
+                                        otherSquare.dataset.selected = 'false';
                                     }
-                                    otherSquare.dataset.selected = 'false';
-                                }
+                                });
+                                
+                                square.classList.remove('bg-green-500', 'border-green-500', 'bg-yellow-500', 'border-yellow-500');
+                                square.classList.add('bg-indigo-600', 'border-indigo-600');
+                                square.dataset.selected = 'true';
+                                
+                                currentSelectedSlot.date = square.dataset.slotDate;
+                                currentSelectedSlot.slotNumber = parseInt(square.dataset.vagaNumber);
+                                
+                                document.getElementById('selected-slot-details-section').classList.remove('hidden');
+                                document.getElementById('selected-slot-number').textContent = currentSelectedSlot.slotNumber;
+                                document.getElementById('selected-slot-date-display').textContent = new Date(currentSelectedSlot.date).toLocaleDateString('pt-BR');
+                                
+                                // Renderiza os horários reservados
+                                const selectedAvailability = data.dates_availability.find(av => av.date === currentSelectedSlot.date);
+                                const selectedSlotData = selectedAvailability.slots.find(s => s.slot_number === currentSelectedSlot.slotNumber);
+                                renderReservedSlots(selectedSlotData.occupied_times, currentSelectedSlot.date);
+                                // --- FIM DO CÓDIGO DO SEU LISTENER ORIGINAL ---
                             });
-                            
-                            square.classList.remove('bg-green-500', 'border-green-500', 'bg-yellow-500', 'border-yellow-500');
-                            square.classList.add('bg-indigo-600', 'border-indigo-600');
-                            square.dataset.selected = 'true';
-                            
-                            currentSelectedSlot.date = square.dataset.slotDate;
-                            currentSelectedSlot.slotNumber = parseInt(square.dataset.vagaNumber);
-                            
-                            document.getElementById('selected-slot-details-section').classList.remove('hidden');
-                            document.getElementById('selected-slot-number').textContent = currentSelectedSlot.slotNumber;
-                            document.getElementById('selected-slot-date-display').textContent = new Date(currentSelectedSlot.date).toLocaleDateString('pt-BR');
-                            
-                            // Renderiza os horários reservados
-                            const selectedAvailability = data.dates_availability.find(av => av.date === currentSelectedSlot.date);
-                            const selectedSlotData = selectedAvailability.slots.find(s => s.slot_number === currentSelectedSlot.slotNumber);
-                            renderReservedSlots(selectedSlotData.occupied_times, currentSelectedSlot.date);
-                        });
+                        }
+
                         slotsContainer.appendChild(square);
                     });
                     dynamicVagaSquaresDiv.appendChild(slotsContainer);
@@ -2101,14 +2255,14 @@ async function renderVagaSquares(selectedDates) {
             });
         }
         
-         if (!hasSlotsToShow) {
+        if (!hasSlotsToShow) {
             noSlotsMessageP.textContent = 'Não há vagas disponíveis para a data selecionada.';
             noSlotsMessageP.classList.remove('hidden');
         }
 
     } catch (error) {
         console.error("Erro na requisição da API de disponibilidade:", error);
-        window.currentSpotData = null; // Garante que a variável seja limpa em caso de erro
+        window.currentSpotData = null;
         noSlotsMessageP.textContent = "Erro ao carregar disponibilidade das vagas. Verifique sua conexão ou tente novamente.";
         noSlotsMessageP.classList.remove('hidden');
     }
@@ -2148,5 +2302,9 @@ export function setupModalClosers() {
 
     document.getElementById("error-ok")?.addEventListener("click", () => {
         document.getElementById("error-modal").classList.add("hidden");
+    });
+
+    document.getElementById("close-seller-profile-modal")?.addEventListener("click", () => {
+        document.getElementById("seller-profile-modal").classList.add("hidden");
     });
 }

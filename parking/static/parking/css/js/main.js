@@ -171,22 +171,26 @@ async function initializeApplication() {
 
             // 👇 LÓGICA ADICIONADA PARA BOTÕES DE APROVAR/RECUSAR
             const actionBtn = e.target.closest(".action-btn");
-        if (actionBtn) {
-            const id = actionBtn.dataset.id;
-            const action = actionBtn.dataset.action;
-            const actionText = action === 'approve' ? 'aprovar' : 'recusar';
-            
-            // 👇 ATUALIZADO AQUI: Define o texto do botão
-            const confirmButtonText = action === 'approve' ? 'Sim, aprovar' : 'Sim, recusar';
-            
-            // 👇 ATUALIZADO AQUI: Passa os 3 argumentos
-            showConfirmationModal(
-                `Tem certeza que deseja ${actionText} esta reserva?`, // 1. Mensagem
-                confirmButtonText,                                     // 2. Texto do Botão
-                () => { handleReservationAction(id, action); }         // 3. Ação (Callback)
-            );
-            return;
-        }
+        if (actionBtn) {
+            const id = actionBtn.dataset.id;
+            const action = actionBtn.dataset.action;
+            const actionText = action === 'approve' ? 'aprovar' : 'recusar';
+            
+            const confirmButtonText = action === 'approve' ? 'Sim, aprovar' : 'Sim, recusar';
+
+            // --- 🚀 ADICIONADO AQUI ---
+            // Define o estilo baseado na ação
+    	    const style = (action === 'approve') ? 'primary' : 'danger';
+            // --- FIM DA ADIÇÃO ---
+            
+            showConfirmationModal(
+                `Tem certeza que deseja ${actionText} esta reserva?`, // 1. Mensagem
+                confirmButtonText,                                     // 2. Texto do Botão
+                () => { handleReservationAction(id, action); },         // 3. Ação (Callback)
+                style                                                  // 4. Estilo (NOVO)
+            );
+            return;
+        }
         });
 
         console.log("main.js: Inicialização completa.");

@@ -142,6 +142,9 @@ class ReservationViewSet(viewsets.ModelViewSet):
             spot = ParkingSpot.objects.get(id=spot_id)
         except ParkingSpot.DoesNotExist:
             raise serializers.ValidationError({"spot": "Vaga de estacionamento não encontrada."})
+        
+        if spot.owner == self.request.user:
+            raise serializers.ValidationError({"detail": "Você não pode reservar sua própria vaga."})
 
         # 4. Converte as strings de data/hora para objetos datetime
         try:
@@ -310,7 +313,7 @@ class ParkingSpotListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return ParkingSpot.objects.filter(status="Ativa")
+        return ParkingSpot.objects.filter(status="Ativa").select_related('owner', 'owner__perfil')
     
     def perform_create(self, serializer):
         print("=== Dados recebidos para criar reserva ===")
@@ -332,7 +335,7 @@ class ParkingSpotViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.action == 'list': 
-            return ParkingSpot.objects.filter(status="Ativa")
+            return ParkingSpot.objects.filter(status="Ativa").select_related('owner', 'owner__perfil')
         return ParkingSpot.objects.all()
 
     def perform_create(self, serializer):
@@ -552,15 +555,32 @@ def get_conversations_api(request):
     
     conversation_list = []
     for conv in conversations:
-        # Pega a outra parte da conversa (o outro usuário)
         other_user = conv.buyer if request.user == conv.seller else conv.seller
         
-        # Cria a entrada na lista com as informações necessárias
+        # --- INÍCIO DA CORREÇÃO ---
+        
+        # 1. Define valores padrão
+        other_user_name = other_user.email # Padrão é o email
+        # Define um caminho padrão para a foto (use o seu caminho correto)
+        other_user_photo_url = f'{settings.STATIC_URL}parking/css/images/default_avatar.png'
+
+        # 2. Verifica se o 'perfil' existe (evita crash)
+        if hasattr(other_user, 'perfil') and other_user.perfil:
+            # Se existe, usa o nome completo (ou o email se o nome estiver vazio)
+            other_user_name = other_user.perfil.nome_completo or other_user.email
+            
+            # 3. Verifica se o campo 'foto' NÃO está vazio ANTES de ler o .url
+            if other_user.perfil.foto: 
+                other_user_photo_url = other_user.perfil.foto.url
+        
+        # --- FIM DA CORREÇÃO ---
+
+        # 4. Adiciona os dados seguros à lista
         conversation_list.append({
             'id': conv.id,
             'title': conv.reservation.spot.title,
-            'other_user_name': other_user.perfil.nome_completo or other_user.email,
-            'other_user_photo_url': other_user.perfil.foto.url,
+            'other_user_name': other_user_name, # Usa a variável segura
+            'other_user_photo_url': other_user_photo_url, # Usa a variável segura
         })
         
     return JsonResponse(conversation_list, safe=False)
@@ -602,8 +622,8 @@ def registrar_usuario(request):
             # --- LÓGICA DE E-MAIL MODIFICADA ---
             # 3. USE A THREAD PARA CHAMAR A FUNÇÃO
             
-            subject = 'Seu Código de Verificação do ParkShare'
-            message = f'Olá! Seu código para ativar a conta ParkShare é: {user.email_verification_code}'
+            subject = 'Seu Código de Verificação do Estacionamento Inteligente'
+            message = f'Olá! Seu código para ativar a conta Estacionamento Inteligente é: {user.email_verification_code}'
             
             # Cria a thread
             email_thread = threading.Thread(
@@ -759,9 +779,9 @@ class UpdateReservationStatusView(APIView):
                         f'- Data: {reservation.start_time.strftime("%d/%m/%Y")}\n'
                         f'- Horário: {reservation.start_time.strftime("%H:%M")} às {reservation.end_time.strftime("%H:%M")}\n\n'
                         f'Você pode ver os detalhes na seção "Minhas Reservas" e iniciar o chat com o proprietário.\n\n'
-                        f'Obrigado por usar o ParkShare!'
+                        f'Obrigado por usar o Estacionamento Inteligente!'
                     ),
-                    from_email=settings.EMAIL_HOST_USER, # O e-mail configurado no settings.py
+                    from_email=settings.DEFAULT_FROM_EMAIL, # O e-mail configurado no settings.py
                     recipient_list=[renter_email], # O e-mail do locatário
                     fail_silently=False, # Força a falha para o 'except' pegar
                 )
@@ -787,9 +807,9 @@ class UpdateReservationStatusView(APIView):
                         f'Olá!\n\n'
                         f'Infelizmente, sua solicitação de reserva para a vaga "{spot_title}" foi RECUSADA pelo proprietário.\n\n'
                         f'Você pode tentar reservar um horário diferente para esta ou outra vaga.\n\n'
-                        f'Equipe ParkShare.'
+                        f'Equipe Estacionamento Inteligente.'
                     ),
-                    from_email=settings.EMAIL_HOST_USER,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[renter_email],
                     fail_silently=False,
                 )
