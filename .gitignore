@@ -1,11 +1,15 @@
-.env
-
-# Banco de Dados
-db.sqlite3
+venv/
+env/
 
 # Python
 __pycache__/
 *.pyc
+
+# Banco de Dados
+db.sqlite3
+*.sqlite3
+
+.env
 
 # Mídia (Uploads de usuários - fotos de perfil, etc.)
 media/
@@ -15,3 +19,4 @@ node_modules/
 
 # Arquivos de IDE (ex: VSCode)
 .vscode/
+

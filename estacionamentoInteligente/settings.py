@@ -7,9 +7,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-up*sx#if(&6zvy3%5nds%e_j$q9#$$f31rsar6nv_pvy&*!v&p'
 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['estacionamentointeligente.pythonanywhere.com', '127.0.0.1']
 
-DEBUG = True
+DEBUG = False
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -100,7 +101,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     # Isso instrui o Django a procurar diretamente dentro da pasta 'static' do seu app 'parking'.
@@ -108,7 +109,9 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'parking', 'static'),
 ]
 
-STATIC_ROOT = BASE_DIR / 'staticfiles_collected'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 LOGIN_URL = '/parking/login/'
 

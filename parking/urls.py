@@ -4,6 +4,10 @@ from django.urls import path, include
 from . import views
 from django.contrib.auth import views as auth_views
 from .forms import EmailAuthenticationForm
+from .views import (
+    # ... (suas outras views) ...
+    ReservationCheckInView,  # <-- Importar a nova view
+)
 
 app_name = 'parking' 
 
@@ -26,5 +30,9 @@ urlpatterns = [
         template_name='parking/login.html',
         authentication_form=EmailAuthenticationForm
     ), name='login'),
+
+    path('api/reservations/<int:pk>/check-in/', 
+         ReservationCheckInView.as_view(), 
+         name='reservation-check-in'),
     
 ]

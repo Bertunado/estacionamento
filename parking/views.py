@@ -30,6 +30,7 @@ from django.core.mail import send_mail
 import random
 from django.contrib import messages
 import threading
+from datetime import timedelta
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -505,6 +506,74 @@ def send_message(request, pk):
         'text': msg.text,
         'created_at': msg.created_at.strftime('%H:%M')
     }, status=201)
+
+class ReservationCheckInView(APIView):
+    """
+    API para o locatário (renter) fazer o check-in
+    de uma reserva confirmada.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            reservation = Reservation.objects.get(pk=pk)
+        except Reservation.DoesNotExist:
+            return Response(
+                {"detail": "Reserva não encontrada."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # 1. Validação de Segurança (Quem é o usuário)
+        if reservation.renter != request.user:
+            return Response(
+                {"detail": "Você não tem permissão para fazer check-in nesta reserva."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # 2. Validação de Status (A reserva está 'confirmada'?)
+        if reservation.status != 'confirmed':
+            return Response(
+                {"detail": f"Não é possível fazer check-in. O status da reserva é '{reservation.status}'."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # --- 👇 ESTE É O NOVO BLOCO DE VALIDAÇÃO DE HORÁRIO 👇 ---
+        
+        # 3. Validação de Horário (com Janela de Tolerância)
+        now = timezone.now()
+        start_time = reservation.start_time
+        end_time = reservation.end_time
+        
+        # Define a tolerância (ex: 15 minutos)
+        grace_period = timedelta(minutes=15)
+        
+        # Calcula o horário mais cedo permitido para check-in
+        earliest_checkin = start_time - grace_period
+        
+        if now < earliest_checkin:
+            # Se 'agora' for antes do início menos a tolerância
+            return Response(
+                {"detail": f"Check-in muito cedo. Você só pode fazer o check-in a partir das {earliest_checkin.strftime('%H:%M')}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if now > end_time:
+            # Se 'agora' for depois que a reserva já terminou
+            return Response(
+                {"detail": "Não é possível fazer check-in. Esta reserva já expirou."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # --- 👆 FIM DO NOVO BLOCO 👆 ---
+
+        # 4. SUCESSO! Atualiza o status
+        reservation.status = 'active'
+        reservation.save(update_fields=['status'])
+        
+        print(f"Check-in realizado com sucesso para a Reserva ID: {pk}")
+
+        serializer = ReservationListSerializer(reservation) 
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @login_required
 def get_messages(request, pk):

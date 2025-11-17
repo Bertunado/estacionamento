@@ -3,11 +3,7 @@ djangorestframework
 django-cors-headers
 channels
 python-dotenv
-geopy   
-django-filters
+geopy
+django-filter
 django-widget-tweaks
 Pillow
-django-filter
-channels
-django-cors-headers
-django-widget-tweaks

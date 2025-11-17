@@ -673,13 +673,16 @@
             <hr class="my-4">
             <div class="flex flex-col items-center justify-center space-y-4">
                 <div id="reservation-map" class="w-full h-48 rounded-md bg-gray-200">
-            </div>
-                <button id="start-route-button" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-200 w-full text-center font-semibold">
-                    Iniciar Rota
-                </button>
-                <button id="cancel-reservation-btn" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition duration-200 w-full text-center font-semibold">
-        Cancelar Reserva
-    </button>
+    </div>
+<button id="start-route-button" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 ...">
+ Iniciar Rota
+ </button>
+                
+                <button id="check-in-qr-btn" class="bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition duration-200 w-full font-semibold flex items-center justify-center">
+    <i class="fas fa-qrcode mr-2"></i>
+    <span>Fazer Check-in (Escanear QR)</span>
+</button>
+                
 </div>
             </div>
 
@@ -922,6 +925,73 @@
                 <i class="fas fa-flag mr-1"></i> Denunciar este usuário
             </button>
         </div>
+    </div>
+</div>
+
+<div id="spot-slots-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 max-h-[70vh] flex flex-col">
+        
+        <div class="flex justify-between items-center p-4 border-b">
+            <h3 id="spot-slots-title" class="text-xl font-bold text-gray-800">Vagas de...</h3>
+            <button id="close-spot-slots-modal" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="spot-slots-list" class="p-4 overflow-y-auto space-y-2">
+            </div>
+    </div>
+</div>
+
+
+<div id="slot-qrcode-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6 text-center">
+        
+        <h3 id="slot-qrcode-title" class="text-2xl font-bold text-gray-800 mb-4">QR Code da Vaga...</h3>
+        
+        <div id="qrcode-display" class="w-64 h-64 mx-auto my-4 bg-gray-100 flex items-center justify-center border">
+            </div>
+        
+        <p class="text-gray-600 mb-2">Mostre este código para o cliente escanear.</p>
+        <p class="text-gray-500 text-sm mb-4">(Você também pode imprimir este QR Code e colar na sua vaga para check-in automático)</p>
+        
+        <button id="close-slot-qrcode-modal" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
+            Fechar
+        </button>
+    </div>
+</div>
+
+<div id="qr-scanner-modal" class="fixed inset-0 bg-black bg-opacity-75 z-[90] flex flex-col items-center justify-center hidden">
+    
+    <div class="bg-white rounded-lg w-full max-w-sm mx-4 p-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">Aponte para o QR Code da Vaga</h3>
+        
+        <div id="qr-reader" class="w-full" style="width: 100%;"></div>
+        
+        <p id="qr-scan-result" class="text-center text-red-500 mt-2 h-4"></p>
+    </div>
+
+    <button id="close-qr-scanner" class="mt-4 text-white font-semibold py-2 px-6 rounded-lg bg-gray-700 hover:bg-gray-600">
+        Cancelar
+    </button>
+</div>
+
+<div id="favorite-list-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+        
+        <div class="flex justify-between items-center p-4 border-b">
+            <h3 id="favorite-list-title" class="text-xl font-bold text-gray-800">Nome da Lista</h3>
+            <button id="close-favorite-list-detail-modal" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="favorite-list-spots-container" class="p-4 overflow-y-auto space-y-3">
+            </div>
     </div>
 </div>
 

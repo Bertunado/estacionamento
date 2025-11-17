@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}ParkShare{% endblock %}</title>
+
+    <!-- Tailwind via CDN pode ficar aqui -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- CSS custom do static -->
+    <link rel="stylesheet" href="{% static 'your_app/css/style.css' %}" />
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+
+<nav class="bg-indigo-600 text-white p-4 shadow-md">
+    <!-- seu navbar aqui -->
+</nav>
+
+<main class="container mx-auto p-4">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="text-center p-4 text-gray-500">
+    © 2025 ParkShare
+</footer>
+
+<!-- JS custom -->
+<script src="{% static 'your_app/js/main.js' %}"></script>
+{% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

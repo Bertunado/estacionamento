@@ -88,8 +88,10 @@ class Reservation(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pendente'),
         ('confirmed', 'Confirmada'),
+        ('active', 'Ativa'),
         ('refused', 'Recusada'),
         ('cancelled', 'Cancelada'),
+        ('finished', 'Finalizada'),
     ]
 
     spot        = models.ForeignKey(ParkingSpot, on_delete=models.CASCADE, related_name="reservations")
